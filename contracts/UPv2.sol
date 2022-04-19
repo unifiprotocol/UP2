@@ -169,13 +169,6 @@ interface IBEP20 {
 }
 
 
-
-
-interface IUnifiCallee {
-    function unifiCall(address sender, uint amount0) external payable;
-}
-
-
 contract UPv2 is MinterRole {
 
     string private _name;
@@ -188,16 +181,10 @@ contract UPv2 is MinterRole {
     mapping (address => mapping (address => uint256)) private _allowed;
     uint256 private _totalSupply;
     address public controllerAddress;
-    bool public defaultFlashLoanEnabled = false;
-    uint public  defaultFlashLoanFees = 50;//0.5%
-    uint public  defaultFeesDenominator = 10000;
     
     uint public nativedBorrowed = 0;
     uint public upBorrowed = 0 ;
 
-    mapping(address =>bool) public flashloanEnabled;
-    mapping(address =>bool) public isZeroFeeContract;
-    mapping(address =>uint) public flashLoanFees;
     event Transfer(
         address indexed from,
         address indexed to,
@@ -213,12 +200,6 @@ contract UPv2 is MinterRole {
         address indexed owner,
         uint256 value
     );
-
-    event UpdateDefaultFlashLoanFees(uint _amount) ;
-    event UpdateDefaultFlashLoanEnable(bool _value) ;
-    event UpdateFlashLoanFees(address _pool , uint _amount) ;
-    event UpdateFlashLoanEnable(address _pool , bool _value) ;
-    event UpdateisZeroFeeContract(address _pool , bool _value) ;
     event UpdateMintRate(uint _amount);
     event BorrowNative(uint _amount);
     event BorrowUP(uint _amount);
@@ -276,7 +257,6 @@ contract UPv2 is MinterRole {
         
     }
 
-
     /**
      * @dev Burns a specific amount of tokens from the target address and decrements allowance
      * @param from address The address which you want to send tokens from
@@ -284,42 +264,6 @@ contract UPv2 is MinterRole {
      */
     function burnFrom(address from, uint256 value) public {
         _burnFrom(from, value);
-    }
-
-
-    function getFlashloanFee(address _pool) public view returns(uint){
-        if(isZeroFeeContract[_pool] == true){
-            return 0;
-        }else{
-            return flashLoanFees[_pool]> 0?flashLoanFees[_pool]:defaultFlashLoanFees;
-        }
-
-    }
-    function flashLoan( address to , uint amount) public{
-        
-        if((defaultFlashLoanEnabled || flashloanEnabled[msg.sender]) && amount <= address(this).balance){
-            uint currentBalance = address(this).balance;
-            uint currentTotalSupply = _totalSupply;
-           // address(to).transfer(amount);//optimially give to user
-            IUnifiCallee(to).unifiCall{value:amount}(to, amount);
-            uint newBalanceMinimumAmount = currentBalance + (loanFeeAmount( msg.sender ,  amount));
-            require(newBalanceMinimumAmount <= address(this).balance , 'Unifi: INSUFFICIENT_INPUT_AMOUNT'); 
-            require(currentTotalSupply == _totalSupply , 'Unifi: NO UP can be minted or burn during flashloan');
-        }
-
-
-    }
-    /**
-     * @return the simulated debt amount to pay.
-     */
-    function loanReturnAmount(address from , uint loanAmount)public view  returns(uint){
-       return  loanAmount + (loanFeeAmount(from , loanAmount));
-    }
-     /**
-     * @return the fee.
-     */   
-    function loanFeeAmount(address from , uint loanAmount)public view  returns(uint){
-       return loanAmount*(getFlashloanFee(from))/(defaultFeesDenominator);
     }
     /**
      * @return the name of the token.
@@ -430,45 +374,6 @@ contract UPv2 is MinterRole {
         _mintRate = _amount;
         emit UpdateMintRate(_amount);
     }
-
-     /**
-     * @dev Update flashloan fees
-     * @param _amount amount based of 100000
-     */  
-    function updateDefaultFlashLoanFees(uint _amount) public onlyOwner{
-        defaultFlashLoanFees = _amount;
-        emit UpdateDefaultFlashLoanFees( _amount) ;    
-    }
-     /**
-     * @dev Update default flashloan config
-     */ 
-    function updateDefaultFlashLoanEnable(bool _value) public onlyOwner{
-        defaultFlashLoanEnabled = _value;
-        emit UpdateDefaultFlashLoanEnable( _value) ;  
-    }
-     /**
-     * @dev Update  flashloan fee config for individual contract
-     */     
-    function updateFlashLoanFees(address _pool , uint _amount) public onlyOwner{
-        flashLoanFees[_pool] = _amount;
-        emit UpdateFlashLoanFees( _pool ,  _amount) ;
-    }
-     /**
-     * @dev Update  flashloan config for individual contract
-     */     
-    function updateFlashLoanEnable(address  _pool , bool _value) public onlyOwner{
-        flashloanEnabled[_pool] = _value;
-        emit UpdateFlashLoanEnable( _pool ,  _value) ;
-    }
-    /**
-     * @dev Update  flashloan config for zero fee contract
-     */    
-    function updateisZeroFeeContract(address _pool , bool _value) public onlyOwner{
-        isZeroFeeContract[_pool] = _value;
-        emit UpdateisZeroFeeContract( _pool ,  _value) ;
-    }    
-
-
     /**
      * @dev Total number of tokens in existence exclude minted UP
      */
