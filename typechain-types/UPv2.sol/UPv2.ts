@@ -42,13 +42,6 @@ export interface UPv2Interface extends utils.Interface {
     "controllerAddress()": FunctionFragment;
     "decimals()": FunctionFragment;
     "decreaseAllowance(address,uint256)": FunctionFragment;
-    "defaultFeesDenominator()": FunctionFragment;
-    "defaultFlashLoanEnabled()": FunctionFragment;
-    "defaultFlashLoanFees()": FunctionFragment;
-    "flashLoan(address,uint256)": FunctionFragment;
-    "flashLoanFees(address)": FunctionFragment;
-    "flashloanEnabled(address)": FunctionFragment;
-    "getFlashloanFee(address)": FunctionFragment;
     "getNativeTotal()": FunctionFragment;
     "getRedeemValue()": FunctionFragment;
     "getTotalFeesGiven()": FunctionFragment;
@@ -58,11 +51,8 @@ export interface UPv2Interface extends utils.Interface {
     "increaseAllowance(address,uint256)": FunctionFragment;
     "isMinter(address)": FunctionFragment;
     "isOwner(address)": FunctionFragment;
-    "isZeroFeeContract(address)": FunctionFragment;
     "justBurn(uint256)": FunctionFragment;
     "justDeposit(uint256)": FunctionFragment;
-    "loanFeeAmount(address,uint256)": FunctionFragment;
-    "loanReturnAmount(address,uint256)": FunctionFragment;
     "mint(address,uint256)": FunctionFragment;
     "name()": FunctionFragment;
     "nativedBorrowed()": FunctionFragment;
@@ -77,12 +67,7 @@ export interface UPv2Interface extends utils.Interface {
     "transferOwnership(address)": FunctionFragment;
     "upBorrowed()": FunctionFragment;
     "updateControllerAddress(address)": FunctionFragment;
-    "updateDefaultFlashLoanEnable(bool)": FunctionFragment;
-    "updateDefaultFlashLoanFees(uint256)": FunctionFragment;
-    "updateFlashLoanEnable(address,bool)": FunctionFragment;
-    "updateFlashLoanFees(address,uint256)": FunctionFragment;
     "updateMintRate(uint256)": FunctionFragment;
-    "updateisZeroFeeContract(address,bool)": FunctionFragment;
   };
 
   getFunction(
@@ -100,13 +85,6 @@ export interface UPv2Interface extends utils.Interface {
       | "controllerAddress"
       | "decimals"
       | "decreaseAllowance"
-      | "defaultFeesDenominator"
-      | "defaultFlashLoanEnabled"
-      | "defaultFlashLoanFees"
-      | "flashLoan"
-      | "flashLoanFees"
-      | "flashloanEnabled"
-      | "getFlashloanFee"
       | "getNativeTotal"
       | "getRedeemValue"
       | "getTotalFeesGiven"
@@ -116,11 +94,8 @@ export interface UPv2Interface extends utils.Interface {
       | "increaseAllowance"
       | "isMinter"
       | "isOwner"
-      | "isZeroFeeContract"
       | "justBurn"
       | "justDeposit"
-      | "loanFeeAmount"
-      | "loanReturnAmount"
       | "mint"
       | "name"
       | "nativedBorrowed"
@@ -135,12 +110,7 @@ export interface UPv2Interface extends utils.Interface {
       | "transferOwnership"
       | "upBorrowed"
       | "updateControllerAddress"
-      | "updateDefaultFlashLoanEnable"
-      | "updateDefaultFlashLoanFees"
-      | "updateFlashLoanEnable"
-      | "updateFlashLoanFees"
       | "updateMintRate"
-      | "updateisZeroFeeContract"
   ): FunctionFragment;
 
   encodeFunctionData(functionFragment: "addMinter", values: [string]): string;
@@ -184,34 +154,6 @@ export interface UPv2Interface extends utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "defaultFeesDenominator",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "defaultFlashLoanEnabled",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "defaultFlashLoanFees",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "flashLoan",
-    values: [string, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "flashLoanFees",
-    values: [string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "flashloanEnabled",
-    values: [string]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getFlashloanFee",
-    values: [string]
-  ): string;
-  encodeFunctionData(
     functionFragment: "getNativeTotal",
     values?: undefined
   ): string;
@@ -242,24 +184,12 @@ export interface UPv2Interface extends utils.Interface {
   encodeFunctionData(functionFragment: "isMinter", values: [string]): string;
   encodeFunctionData(functionFragment: "isOwner", values: [string]): string;
   encodeFunctionData(
-    functionFragment: "isZeroFeeContract",
-    values: [string]
-  ): string;
-  encodeFunctionData(
     functionFragment: "justBurn",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "justDeposit",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "loanFeeAmount",
-    values: [string, BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "loanReturnAmount",
-    values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "mint",
@@ -312,28 +242,8 @@ export interface UPv2Interface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
-    functionFragment: "updateDefaultFlashLoanEnable",
-    values: [boolean]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "updateDefaultFlashLoanFees",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "updateFlashLoanEnable",
-    values: [string, boolean]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "updateFlashLoanFees",
-    values: [string, BigNumberish]
-  ): string;
-  encodeFunctionData(
     functionFragment: "updateMintRate",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "updateisZeroFeeContract",
-    values: [string, boolean]
   ): string;
 
   decodeFunctionResult(functionFragment: "addMinter", data: BytesLike): Result;
@@ -362,31 +272,6 @@ export interface UPv2Interface extends utils.Interface {
   decodeFunctionResult(functionFragment: "decimals", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "decreaseAllowance",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "defaultFeesDenominator",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "defaultFlashLoanEnabled",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "defaultFlashLoanFees",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(functionFragment: "flashLoan", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "flashLoanFees",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "flashloanEnabled",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getFlashloanFee",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -419,21 +304,9 @@ export interface UPv2Interface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "isMinter", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "isOwner", data: BytesLike): Result;
-  decodeFunctionResult(
-    functionFragment: "isZeroFeeContract",
-    data: BytesLike
-  ): Result;
   decodeFunctionResult(functionFragment: "justBurn", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "justDeposit",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "loanFeeAmount",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "loanReturnAmount",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
@@ -478,27 +351,7 @@ export interface UPv2Interface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "updateDefaultFlashLoanEnable",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "updateDefaultFlashLoanFees",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "updateFlashLoanEnable",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "updateFlashLoanFees",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "updateMintRate",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "updateisZeroFeeContract",
     data: BytesLike
   ): Result;
 
@@ -515,12 +368,7 @@ export interface UPv2Interface extends utils.Interface {
     "OwnershipTransferred(address,address)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
     "UpdateControllerAddress(address)": EventFragment;
-    "UpdateDefaultFlashLoanEnable(bool)": EventFragment;
-    "UpdateDefaultFlashLoanFees(uint256)": EventFragment;
-    "UpdateFlashLoanEnable(address,bool)": EventFragment;
-    "UpdateFlashLoanFees(address,uint256)": EventFragment;
     "UpdateMintRate(uint256)": EventFragment;
-    "UpdateisZeroFeeContract(address,bool)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
@@ -535,14 +383,7 @@ export interface UPv2Interface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "OwnershipTransferred"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateControllerAddress"): EventFragment;
-  getEvent(
-    nameOrSignatureOrTopic: "UpdateDefaultFlashLoanEnable"
-  ): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "UpdateDefaultFlashLoanFees"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "UpdateFlashLoanEnable"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "UpdateFlashLoanFees"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateMintRate"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "UpdateisZeroFeeContract"): EventFragment;
 }
 
 export interface ApprovalEventObject {
@@ -658,52 +499,6 @@ export type UpdateControllerAddressEvent = TypedEvent<
 export type UpdateControllerAddressEventFilter =
   TypedEventFilter<UpdateControllerAddressEvent>;
 
-export interface UpdateDefaultFlashLoanEnableEventObject {
-  _value: boolean;
-}
-export type UpdateDefaultFlashLoanEnableEvent = TypedEvent<
-  [boolean],
-  UpdateDefaultFlashLoanEnableEventObject
->;
-
-export type UpdateDefaultFlashLoanEnableEventFilter =
-  TypedEventFilter<UpdateDefaultFlashLoanEnableEvent>;
-
-export interface UpdateDefaultFlashLoanFeesEventObject {
-  _amount: BigNumber;
-}
-export type UpdateDefaultFlashLoanFeesEvent = TypedEvent<
-  [BigNumber],
-  UpdateDefaultFlashLoanFeesEventObject
->;
-
-export type UpdateDefaultFlashLoanFeesEventFilter =
-  TypedEventFilter<UpdateDefaultFlashLoanFeesEvent>;
-
-export interface UpdateFlashLoanEnableEventObject {
-  _pool: string;
-  _value: boolean;
-}
-export type UpdateFlashLoanEnableEvent = TypedEvent<
-  [string, boolean],
-  UpdateFlashLoanEnableEventObject
->;
-
-export type UpdateFlashLoanEnableEventFilter =
-  TypedEventFilter<UpdateFlashLoanEnableEvent>;
-
-export interface UpdateFlashLoanFeesEventObject {
-  _pool: string;
-  _amount: BigNumber;
-}
-export type UpdateFlashLoanFeesEvent = TypedEvent<
-  [string, BigNumber],
-  UpdateFlashLoanFeesEventObject
->;
-
-export type UpdateFlashLoanFeesEventFilter =
-  TypedEventFilter<UpdateFlashLoanFeesEvent>;
-
 export interface UpdateMintRateEventObject {
   _amount: BigNumber;
 }
@@ -713,18 +508,6 @@ export type UpdateMintRateEvent = TypedEvent<
 >;
 
 export type UpdateMintRateEventFilter = TypedEventFilter<UpdateMintRateEvent>;
-
-export interface UpdateisZeroFeeContractEventObject {
-  _pool: string;
-  _value: boolean;
-}
-export type UpdateisZeroFeeContractEvent = TypedEvent<
-  [string, boolean],
-  UpdateisZeroFeeContractEventObject
->;
-
-export type UpdateisZeroFeeContractEventFilter =
-  TypedEventFilter<UpdateisZeroFeeContractEvent>;
 
 export interface UPv2 extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -816,33 +599,6 @@ export interface UPv2 extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    defaultFeesDenominator(overrides?: CallOverrides): Promise<[BigNumber]>;
-
-    defaultFlashLoanEnabled(overrides?: CallOverrides): Promise<[boolean]>;
-
-    defaultFlashLoanFees(overrides?: CallOverrides): Promise<[BigNumber]>;
-
-    flashLoan(
-      to: string,
-      amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    flashLoanFees(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
-    flashloanEnabled(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<[boolean]>;
-
-    getFlashloanFee(
-      _pool: string,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
     getNativeTotal(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     getRedeemValue(overrides?: CallOverrides): Promise<[BigNumber]>;
@@ -868,11 +624,6 @@ export interface UPv2 extends BaseContract {
 
     isOwner(account: string, overrides?: CallOverrides): Promise<[boolean]>;
 
-    isZeroFeeContract(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<[boolean]>;
-
     justBurn(
       value: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -882,18 +633,6 @@ export interface UPv2 extends BaseContract {
       value: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
-
-    loanFeeAmount(
-      from: string,
-      loanAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
-
-    loanReturnAmount(
-      from: string,
-      loanAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<[BigNumber]>;
 
     mint(
       to: string,
@@ -954,36 +693,8 @@ export interface UPv2 extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    updateDefaultFlashLoanEnable(
-      _value: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    updateDefaultFlashLoanFees(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    updateFlashLoanEnable(
-      _pool: string,
-      _value: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    updateFlashLoanFees(
-      _pool: string,
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
     updateMintRate(
       _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
-
-    updateisZeroFeeContract(
-      _pool: string,
-      _value: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
@@ -1048,24 +759,6 @@ export interface UPv2 extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  defaultFeesDenominator(overrides?: CallOverrides): Promise<BigNumber>;
-
-  defaultFlashLoanEnabled(overrides?: CallOverrides): Promise<boolean>;
-
-  defaultFlashLoanFees(overrides?: CallOverrides): Promise<BigNumber>;
-
-  flashLoan(
-    to: string,
-    amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  flashLoanFees(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
-
-  flashloanEnabled(arg0: string, overrides?: CallOverrides): Promise<boolean>;
-
-  getFlashloanFee(_pool: string, overrides?: CallOverrides): Promise<BigNumber>;
-
   getNativeTotal(overrides?: CallOverrides): Promise<BigNumber>;
 
   getRedeemValue(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1091,8 +784,6 @@ export interface UPv2 extends BaseContract {
 
   isOwner(account: string, overrides?: CallOverrides): Promise<boolean>;
 
-  isZeroFeeContract(arg0: string, overrides?: CallOverrides): Promise<boolean>;
-
   justBurn(
     value: BigNumberish,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -1102,18 +793,6 @@ export interface UPv2 extends BaseContract {
     value: BigNumberish,
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
-
-  loanFeeAmount(
-    from: string,
-    loanAmount: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
-
-  loanReturnAmount(
-    from: string,
-    loanAmount: BigNumberish,
-    overrides?: CallOverrides
-  ): Promise<BigNumber>;
 
   mint(
     to: string,
@@ -1174,36 +853,8 @@ export interface UPv2 extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  updateDefaultFlashLoanEnable(
-    _value: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  updateDefaultFlashLoanFees(
-    _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  updateFlashLoanEnable(
-    _pool: string,
-    _value: boolean,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  updateFlashLoanFees(
-    _pool: string,
-    _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
   updateMintRate(
     _amount: BigNumberish,
-    overrides?: Overrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
-
-  updateisZeroFeeContract(
-    _pool: string,
-    _value: boolean,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -1259,27 +910,6 @@ export interface UPv2 extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    defaultFeesDenominator(overrides?: CallOverrides): Promise<BigNumber>;
-
-    defaultFlashLoanEnabled(overrides?: CallOverrides): Promise<boolean>;
-
-    defaultFlashLoanFees(overrides?: CallOverrides): Promise<BigNumber>;
-
-    flashLoan(
-      to: string,
-      amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    flashLoanFees(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
-
-    flashloanEnabled(arg0: string, overrides?: CallOverrides): Promise<boolean>;
-
-    getFlashloanFee(
-      _pool: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getNativeTotal(overrides?: CallOverrides): Promise<BigNumber>;
 
     getRedeemValue(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1305,26 +935,9 @@ export interface UPv2 extends BaseContract {
 
     isOwner(account: string, overrides?: CallOverrides): Promise<boolean>;
 
-    isZeroFeeContract(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
-
     justBurn(value: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
     justDeposit(value: BigNumberish, overrides?: CallOverrides): Promise<void>;
-
-    loanFeeAmount(
-      from: string,
-      loanAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    loanReturnAmount(
-      from: string,
-      loanAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
 
     mint(
       to: string,
@@ -1381,36 +994,8 @@ export interface UPv2 extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    updateDefaultFlashLoanEnable(
-      _value: boolean,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    updateDefaultFlashLoanFees(
-      _amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    updateFlashLoanEnable(
-      _pool: string,
-      _value: boolean,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
-    updateFlashLoanFees(
-      _pool: string,
-      _amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
-
     updateMintRate(
       _amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<boolean>;
-
-    updateisZeroFeeContract(
-      _pool: string,
-      _value: boolean,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -1481,49 +1066,8 @@ export interface UPv2 extends BaseContract {
       _newController?: null
     ): UpdateControllerAddressEventFilter;
 
-    "UpdateDefaultFlashLoanEnable(bool)"(
-      _value?: null
-    ): UpdateDefaultFlashLoanEnableEventFilter;
-    UpdateDefaultFlashLoanEnable(
-      _value?: null
-    ): UpdateDefaultFlashLoanEnableEventFilter;
-
-    "UpdateDefaultFlashLoanFees(uint256)"(
-      _amount?: null
-    ): UpdateDefaultFlashLoanFeesEventFilter;
-    UpdateDefaultFlashLoanFees(
-      _amount?: null
-    ): UpdateDefaultFlashLoanFeesEventFilter;
-
-    "UpdateFlashLoanEnable(address,bool)"(
-      _pool?: null,
-      _value?: null
-    ): UpdateFlashLoanEnableEventFilter;
-    UpdateFlashLoanEnable(
-      _pool?: null,
-      _value?: null
-    ): UpdateFlashLoanEnableEventFilter;
-
-    "UpdateFlashLoanFees(address,uint256)"(
-      _pool?: null,
-      _amount?: null
-    ): UpdateFlashLoanFeesEventFilter;
-    UpdateFlashLoanFees(
-      _pool?: null,
-      _amount?: null
-    ): UpdateFlashLoanFeesEventFilter;
-
     "UpdateMintRate(uint256)"(_amount?: null): UpdateMintRateEventFilter;
     UpdateMintRate(_amount?: null): UpdateMintRateEventFilter;
-
-    "UpdateisZeroFeeContract(address,bool)"(
-      _pool?: null,
-      _value?: null
-    ): UpdateisZeroFeeContractEventFilter;
-    UpdateisZeroFeeContract(
-      _pool?: null,
-      _value?: null
-    ): UpdateisZeroFeeContractEventFilter;
   };
 
   estimateGas: {
@@ -1587,30 +1131,6 @@ export interface UPv2 extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    defaultFeesDenominator(overrides?: CallOverrides): Promise<BigNumber>;
-
-    defaultFlashLoanEnabled(overrides?: CallOverrides): Promise<BigNumber>;
-
-    defaultFlashLoanFees(overrides?: CallOverrides): Promise<BigNumber>;
-
-    flashLoan(
-      to: string,
-      amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    flashLoanFees(arg0: string, overrides?: CallOverrides): Promise<BigNumber>;
-
-    flashloanEnabled(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    getFlashloanFee(
-      _pool: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     getNativeTotal(overrides?: CallOverrides): Promise<BigNumber>;
 
     getRedeemValue(overrides?: CallOverrides): Promise<BigNumber>;
@@ -1636,11 +1156,6 @@ export interface UPv2 extends BaseContract {
 
     isOwner(account: string, overrides?: CallOverrides): Promise<BigNumber>;
 
-    isZeroFeeContract(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
     justBurn(
       value: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1649,18 +1164,6 @@ export interface UPv2 extends BaseContract {
     justDeposit(
       value: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    loanFeeAmount(
-      from: string,
-      loanAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<BigNumber>;
-
-    loanReturnAmount(
-      from: string,
-      loanAmount: BigNumberish,
-      overrides?: CallOverrides
     ): Promise<BigNumber>;
 
     mint(
@@ -1722,36 +1225,8 @@ export interface UPv2 extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    updateDefaultFlashLoanEnable(
-      _value: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    updateDefaultFlashLoanFees(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    updateFlashLoanEnable(
-      _pool: string,
-      _value: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    updateFlashLoanFees(
-      _pool: string,
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
     updateMintRate(
       _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
-
-    updateisZeroFeeContract(
-      _pool: string,
-      _value: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
@@ -1820,39 +1295,6 @@ export interface UPv2 extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    defaultFeesDenominator(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    defaultFlashLoanEnabled(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    defaultFlashLoanFees(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    flashLoan(
-      to: string,
-      amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    flashLoanFees(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    flashloanEnabled(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    getFlashloanFee(
-      _pool: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     getNativeTotal(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     getRedeemValue(overrides?: CallOverrides): Promise<PopulatedTransaction>;
@@ -1884,11 +1326,6 @@ export interface UPv2 extends BaseContract {
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
-    isZeroFeeContract(
-      arg0: string,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     justBurn(
       value: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1897,18 +1334,6 @@ export interface UPv2 extends BaseContract {
     justDeposit(
       value: BigNumberish,
       overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    loanFeeAmount(
-      from: string,
-      loanAmount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
-    loanReturnAmount(
-      from: string,
-      loanAmount: BigNumberish,
-      overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     mint(
@@ -1970,36 +1395,8 @@ export interface UPv2 extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    updateDefaultFlashLoanEnable(
-      _value: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    updateDefaultFlashLoanFees(
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    updateFlashLoanEnable(
-      _pool: string,
-      _value: boolean,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    updateFlashLoanFees(
-      _pool: string,
-      _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
     updateMintRate(
       _amount: BigNumberish,
-      overrides?: Overrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
-
-    updateisZeroFeeContract(
-      _pool: string,
-      _value: boolean,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

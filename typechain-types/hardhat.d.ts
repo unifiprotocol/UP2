@@ -37,10 +37,6 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IBEP20__factory>;
     getContractFactory(
-      name: "IUnifiCallee",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IUnifiCallee__factory>;
-    getContractFactory(
       name: "MinterRole",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.MinterRole__factory>;
@@ -83,11 +79,6 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.IBEP20>;
-    getContractAt(
-      name: "IUnifiCallee",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IUnifiCallee>;
     getContractAt(
       name: "MinterRole",
       address: string,

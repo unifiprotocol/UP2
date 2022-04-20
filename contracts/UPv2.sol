@@ -253,8 +253,8 @@ contract UPv2 is MinterRole {
      * @param value The amount of token to be burned.
      */
     function justDeposit(uint256 value) public payable {
-        _justDeposit(msg.sender, msg.value);
-        
+        _justDeposit(msg.sender, value);
+
     }
 
     /**
@@ -370,7 +370,7 @@ contract UPv2 is MinterRole {
      * @dev Update UP mintrate
      * @param _amount amount based of 100000
      */  
-    function updateMintRate(uint _amount)public onlyOwner returns(bool){
+    function updateMintRate(uint _amount)public onlyOwner {
         _mintRate = _amount;
         emit UpdateMintRate(_amount);
     }

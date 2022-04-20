@@ -2,7 +2,6 @@
 /* tslint:disable */
 /* eslint-disable */
 export type { IBEP20 } from "./IBEP20";
-export type { IUnifiCallee } from "./IUnifiCallee";
 export type { MinterRole } from "./MinterRole";
 export type { OwnerRole } from "./OwnerRole";
 export type { UPv2 } from "./UPv2";

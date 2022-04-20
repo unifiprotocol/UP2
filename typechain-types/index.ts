@@ -14,7 +14,5 @@ export { IBEP20__factory } from "./factories/IBEP20__factory";
 export { MinterRole__factory } from "./factories/MinterRole__factory";
 export { OwnerRole__factory } from "./factories/OwnerRole__factory";
 export { UnifiProtocolTokens__factory } from "./factories/UnifiProtocolTokens__factory";
-export type { IUnifiCallee } from "./UPv2.sol/IUnifiCallee";
-export { IUnifiCallee__factory } from "./factories/UPv2.sol/IUnifiCallee__factory";
 export type { UPv2 } from "./UPv2.sol/UPv2";
 export { UPv2__factory } from "./factories/UPv2.sol/UPv2__factory";
