@@ -14,12 +14,12 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const UPv2New = await hre.ethers.getContractFactory("UPv2New");
-  const upv2New = await UPv2New.deploy();
+  const UPbnb = await hre.ethers.getContractFactory("UPbnb");
+  const upbnb = await UPbnb.deploy();
 
-  await upv2New.deployed();
+  await upbnb.deployed();
 
-  console.log("UP V2 has been deployed to:", upv2New.address);
+  console.log("UP V2 has been deployed to:", upbnb.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

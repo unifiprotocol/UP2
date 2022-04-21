@@ -1,14 +1,16 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("UPv2New", function () {
+describe("UPbnb", function () {
   it("Should return the name & symbol of the token", async function () {
-    const UPv2 = await ethers.getContractFactory("UPv2New");
-    const upv2 = await UPv2.deploy();
-    await upv2.deployed();
-
-    expect(await upv2.name()).to.equal("UPv2");
-    expect(await upv2.symbol()).to.equal("UPv2");
-    /// Currently Fails
+    const UPbnb = await ethers.getContractFactory("UPbnb");
+    const upbnb = await UPbnb.deploy();
+    await upbnb.deployed();
+    const nameReturn = await upbnb.name();
+    const symbolReturn = await upbnb.symbol();
+    const totalSupplyReturn = await upbnb.totalSupply();
+    expect(nameReturn).equal("UPbnb");
+    expect(symbolReturn).equal("UPbnb");
+    expect(totalSupplyReturn).equal(0);
   });
 });

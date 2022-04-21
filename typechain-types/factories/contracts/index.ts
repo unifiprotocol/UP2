@@ -6,5 +6,5 @@ export { AdminRole__factory } from "./AdminRole__factory";
 export { IBEP20__factory } from "./IBEP20__factory";
 export { MinterRole__factory } from "./MinterRole__factory";
 export { OwnerRole__factory } from "./OwnerRole__factory";
-export { UPv2New__factory } from "./UPv2New__factory";
+export { UPbnb__factory } from "./UPbnb__factory";
 export { UnifiProtocolTokens__factory } from "./UnifiProtocolTokens__factory";

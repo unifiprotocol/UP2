@@ -13,69 +13,37 @@ import * as Contracts from ".";
 declare module "hardhat/types/runtime" {
   interface HardhatEthersHelpers extends HardhatEthersHelpersBase {
     getContractFactory(
-      name: "AccessControlUpgradeable",
+      name: "AccessControl",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.AccessControlUpgradeable__factory>;
+    ): Promise<Contracts.AccessControl__factory>;
     getContractFactory(
-      name: "IAccessControlUpgradeable",
+      name: "IAccessControl",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IAccessControlUpgradeable__factory>;
+    ): Promise<Contracts.IAccessControl__factory>;
     getContractFactory(
-      name: "IERC1822ProxiableUpgradeable",
+      name: "ERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC1822ProxiableUpgradeable__factory>;
+    ): Promise<Contracts.ERC20__factory>;
     getContractFactory(
-      name: "IBeaconUpgradeable",
+      name: "ERC20Burnable",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IBeaconUpgradeable__factory>;
+    ): Promise<Contracts.ERC20Burnable__factory>;
     getContractFactory(
-      name: "ERC1967UpgradeUpgradeable",
+      name: "IERC20Metadata",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC1967UpgradeUpgradeable__factory>;
+    ): Promise<Contracts.IERC20Metadata__factory>;
     getContractFactory(
-      name: "UUPSUpgradeable",
+      name: "IERC20",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.UUPSUpgradeable__factory>;
+    ): Promise<Contracts.IERC20__factory>;
     getContractFactory(
-      name: "PausableUpgradeable",
+      name: "ERC165",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.PausableUpgradeable__factory>;
+    ): Promise<Contracts.ERC165__factory>;
     getContractFactory(
-      name: "ERC20Upgradeable",
+      name: "IERC165",
       signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC20Upgradeable__factory>;
-    getContractFactory(
-      name: "ERC20PermitUpgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC20PermitUpgradeable__factory>;
-    getContractFactory(
-      name: "IERC20PermitUpgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC20PermitUpgradeable__factory>;
-    getContractFactory(
-      name: "ERC20BurnableUpgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC20BurnableUpgradeable__factory>;
-    getContractFactory(
-      name: "ERC20SnapshotUpgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC20SnapshotUpgradeable__factory>;
-    getContractFactory(
-      name: "IERC20MetadataUpgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC20MetadataUpgradeable__factory>;
-    getContractFactory(
-      name: "IERC20Upgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC20Upgradeable__factory>;
-    getContractFactory(
-      name: "ERC165Upgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.ERC165Upgradeable__factory>;
-    getContractFactory(
-      name: "IERC165Upgradeable",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.IERC165Upgradeable__factory>;
+    ): Promise<Contracts.IERC165__factory>;
     getContractFactory(
       name: "AdminRole",
       signerOrOptions?: ethers.Signer | FactoryOptions
@@ -97,6 +65,10 @@ declare module "hardhat/types/runtime" {
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.UnifiProtocolTokens__factory>;
     getContractFactory(
+      name: "UPbnb",
+      signerOrOptions?: ethers.Signer | FactoryOptions
+    ): Promise<Contracts.UPbnb__factory>;
+    getContractFactory(
       name: "IBEP20",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.IBEP20__factory>;
@@ -112,91 +84,47 @@ declare module "hardhat/types/runtime" {
       name: "UPv2",
       signerOrOptions?: ethers.Signer | FactoryOptions
     ): Promise<Contracts.UPv2__factory>;
-    getContractFactory(
-      name: "UPv2New",
-      signerOrOptions?: ethers.Signer | FactoryOptions
-    ): Promise<Contracts.UPv2New__factory>;
 
     getContractAt(
-      name: "AccessControlUpgradeable",
+      name: "AccessControl",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.AccessControlUpgradeable>;
+    ): Promise<Contracts.AccessControl>;
     getContractAt(
-      name: "IAccessControlUpgradeable",
+      name: "IAccessControl",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.IAccessControlUpgradeable>;
+    ): Promise<Contracts.IAccessControl>;
     getContractAt(
-      name: "IERC1822ProxiableUpgradeable",
+      name: "ERC20",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.IERC1822ProxiableUpgradeable>;
+    ): Promise<Contracts.ERC20>;
     getContractAt(
-      name: "IBeaconUpgradeable",
+      name: "ERC20Burnable",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.IBeaconUpgradeable>;
+    ): Promise<Contracts.ERC20Burnable>;
     getContractAt(
-      name: "ERC1967UpgradeUpgradeable",
+      name: "IERC20Metadata",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.ERC1967UpgradeUpgradeable>;
+    ): Promise<Contracts.IERC20Metadata>;
     getContractAt(
-      name: "UUPSUpgradeable",
+      name: "IERC20",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.UUPSUpgradeable>;
+    ): Promise<Contracts.IERC20>;
     getContractAt(
-      name: "PausableUpgradeable",
+      name: "ERC165",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.PausableUpgradeable>;
+    ): Promise<Contracts.ERC165>;
     getContractAt(
-      name: "ERC20Upgradeable",
+      name: "IERC165",
       address: string,
       signer?: ethers.Signer
-    ): Promise<Contracts.ERC20Upgradeable>;
-    getContractAt(
-      name: "ERC20PermitUpgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC20PermitUpgradeable>;
-    getContractAt(
-      name: "IERC20PermitUpgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC20PermitUpgradeable>;
-    getContractAt(
-      name: "ERC20BurnableUpgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC20BurnableUpgradeable>;
-    getContractAt(
-      name: "ERC20SnapshotUpgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC20SnapshotUpgradeable>;
-    getContractAt(
-      name: "IERC20MetadataUpgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC20MetadataUpgradeable>;
-    getContractAt(
-      name: "IERC20Upgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC20Upgradeable>;
-    getContractAt(
-      name: "ERC165Upgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.ERC165Upgradeable>;
-    getContractAt(
-      name: "IERC165Upgradeable",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.IERC165Upgradeable>;
+    ): Promise<Contracts.IERC165>;
     getContractAt(
       name: "AdminRole",
       address: string,
@@ -223,6 +151,11 @@ declare module "hardhat/types/runtime" {
       signer?: ethers.Signer
     ): Promise<Contracts.UnifiProtocolTokens>;
     getContractAt(
+      name: "UPbnb",
+      address: string,
+      signer?: ethers.Signer
+    ): Promise<Contracts.UPbnb>;
+    getContractAt(
       name: "IBEP20",
       address: string,
       signer?: ethers.Signer
@@ -242,11 +175,6 @@ declare module "hardhat/types/runtime" {
       address: string,
       signer?: ethers.Signer
     ): Promise<Contracts.UPv2>;
-    getContractAt(
-      name: "UPv2New",
-      address: string,
-      signer?: ethers.Signer
-    ): Promise<Contracts.UPv2New>;
 
     // default types
     getContractFactory(

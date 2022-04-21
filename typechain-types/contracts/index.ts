@@ -7,5 +7,5 @@ export type { AdminRole } from "./AdminRole";
 export type { IBEP20 } from "./IBEP20";
 export type { MinterRole } from "./MinterRole";
 export type { OwnerRole } from "./OwnerRole";
-export type { UPv2New } from "./UPv2New";
+export type { UPbnb } from "./UPbnb";
 export type { UnifiProtocolTokens } from "./UnifiProtocolTokens";
