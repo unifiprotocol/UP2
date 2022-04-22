@@ -12,5 +12,6 @@ describe("UPbnb", function () {
     expect(nameReturn).equal("UPbnb");
     expect(symbolReturn).equal("UPbnb");
     expect(totalSupplyReturn).equal(0);
+    expect(MINTER_ROLE).equal("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
   });
 });
