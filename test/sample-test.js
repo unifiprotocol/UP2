@@ -9,9 +9,12 @@ describe("UPbnb", function () {
     const nameReturn = await upbnb.name();
     const symbolReturn = await upbnb.symbol();
     const totalSupplyReturn = await upbnb.totalSupply();
+    const darbiAddressReturn = await upbnb.darbiAddress();
     expect(nameReturn).equal("UPbnb");
     expect(symbolReturn).equal("UPbnb");
     expect(totalSupplyReturn).equal(0);
-    expect(MINTER_ROLE).equal("0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266");
+    expect(darbiAddressReturn).equal(
+      "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
+    );
   });
 });

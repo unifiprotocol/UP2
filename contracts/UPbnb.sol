@@ -7,35 +7,37 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 /// @custom:security-contact adam@unifiprotocol.com
 contract UPbnb is ERC20, ERC20Burnable, AccessControl {
+    //Beginning to think we can just have one admin role, which is arguably simplier. Will revisit.
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
-    bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
-    bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
+   
 
     constructor() ERC20("UPbnb", "UPbnb") {
         _grantRole(ADMIN_ROLE, msg.sender); // Multi Sig
         _grantRole(MINTER_ROLE, msg.sender); // 5% Mint Rate
-        _grantRole(DARBI_ROLE, msg.sender); // 0% Mint Rate
-        _grantRole(STAKING_ROLE, msg.sender);
     }
 
- 
+ // Variables 
     string private _name;
     string private _symbol;
     uint8 private _decimals;
     uint256 private _mintRate = 95000;
     uint256 private _publicMintRate = 95000;
     uint256 private _darbiMintRate = 100000;
+    uint256 private _controllerRate = 95000;
     uint256 private totalUPBurnt = 0;
     uint256 private totalFeesGiven = 0;
     mapping (address => uint256) private _balances;  
     mapping (address => mapping (address => uint256)) private _allowed;
-    uint256 private _totalSupply;
-    address public controllerAddress;
-    address public darbiAddress;
+    uint256 private _totalSupply;  
     uint public nativedBorrowed = 0;
     uint public upBorrowed = 0 ;
-    
+    address public upControllerAddress;
+    address public darbiAddress = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public controllerAddress;
+
+// Events
+
     event JustDeposit(
         address indexed owner,
         uint256 value
@@ -46,6 +48,18 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     event UpdateControllerAddress(address _newController);
     event ClearNativeDebt(uint amount);
     event ClearUPDebt(uint amount);
+
+// Modifiers
+
+    modifier onlyDarbi() {
+        require(msg.sender == darbiAddress , "Unifi : Only Darbi");
+         _;
+    }
+
+    modifier onlyController() {
+        require(msg.sender == controllerAddress , "Unifi : Only Controller");
+         _;
+    }
 
 // Read Functions
   function totalSupply() public view virtual override returns (uint256) {
@@ -79,28 +93,38 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     function getNativeTotal() public view returns(uint){
         return (address(this).balance + nativedBorrowed);
     }
+
  // Write Functions
-    // Legacy Mint for uTrade and any other 5% 
-   function mint(address to, uint256 amount) public payable onlyRole(MINTER_ROLE) {
+    // Legacy Mint for uTrade
+   function mint(address to, uint256 amount) public payable {
         require(msg.value == amount, "Invalid native token");
-        require(hasRole(MINTER_ROLE, msg.sender), "Caller is not a minter");
+        require(msg.sender == controllerAddress, "Caller is not a minter");
         uint256 Value = getVirtualPriceForMinting(amount);
         uint256 MintAmount = amount*(_mintRate)*(1e18)/(Value*(100000));  //Unused Variable?
         _mint(to, amount);
     }
+    // Controller Mint Function
+    function controllerMint(address to, uint256 amount) public payable {
+        require(msg.value == amount, "Invalid native token");
+        require(msg.sender == upControllerAddress, "Caller is not a minter");
+        uint256 Value = getVirtualPriceForMinting(amount);
+        uint256 MintAmount = amount*(_controllerRate)*(1e18)/(Value*(100000));  //Unused Variable?
+        _mint(to, amount);
+    }
 
+    // Darby Mint Function
+    function darbiMint(address to, uint256 amount) public payable onlyDarbi {
+        require(msg.value == amount, "Invalid native token");
+        uint256 Value = getVirtualPriceForMinting(amount);
+        uint256 MintAmount = amount*(_darbiMintRate)*(1e18)/(Value*(100000));  //Unused Variable?
+        _mint(to, amount);
+    }
+
+    // Public Mint Function
     function publicMint(address to, uint256 amount) public payable {
         require(msg.value == amount, "Invalid native token");
         uint256 Value = getVirtualPriceForMinting(amount);
         uint256 MintAmount = amount*(_publicMintRate)*(1e18)/(Value*(100000));  //Unused Variable?
-        _mint(to, amount);
-    }
-
-    function darbiMint(address to, uint256 amount) public payable onlyRole(DARBI_ROLE) {
-        require(msg.value == amount, "Invalid native token");
-        require(hasRole(DARBI_ROLE, msg.sender), "Caller is not a minter");
-        uint256 Value = getVirtualPriceForMinting(amount);
-        uint256 MintAmount = amount*(_darbiMintRate)*(1e18)/(Value*(100000));  //Unused Variable?
         _mint(to, amount);
     }
 

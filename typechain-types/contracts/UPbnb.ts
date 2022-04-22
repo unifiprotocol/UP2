@@ -30,16 +30,15 @@ import type {
 export interface UPbnbInterface extends utils.Interface {
   functions: {
     "ADMIN_ROLE()": FunctionFragment;
-    "DARBI_ROLE()": FunctionFragment;
     "DEFAULT_ADMIN_ROLE()": FunctionFragment;
     "MINTER_ROLE()": FunctionFragment;
-    "STAKING_ROLE()": FunctionFragment;
     "allowance(address,address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
     "burn(uint256)": FunctionFragment;
     "burnFrom(address,uint256)": FunctionFragment;
     "controllerAddress()": FunctionFragment;
+    "controllerMint(address,uint256)": FunctionFragment;
     "darbiAddress()": FunctionFragment;
     "darbiMint(address,uint256)": FunctionFragment;
     "decimals()": FunctionFragment;
@@ -64,22 +63,22 @@ export interface UPbnbInterface extends utils.Interface {
     "transfer(address,uint256)": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
     "upBorrowed()": FunctionFragment;
+    "upControllerAddress()": FunctionFragment;
     "updateControllerAddress(address)": FunctionFragment;
   };
 
   getFunction(
     nameOrSignatureOrTopic:
       | "ADMIN_ROLE"
-      | "DARBI_ROLE"
       | "DEFAULT_ADMIN_ROLE"
       | "MINTER_ROLE"
-      | "STAKING_ROLE"
       | "allowance"
       | "approve"
       | "balanceOf"
       | "burn"
       | "burnFrom"
       | "controllerAddress"
+      | "controllerMint"
       | "darbiAddress"
       | "darbiMint"
       | "decimals"
@@ -104,6 +103,7 @@ export interface UPbnbInterface extends utils.Interface {
       | "transfer"
       | "transferFrom"
       | "upBorrowed"
+      | "upControllerAddress"
       | "updateControllerAddress"
   ): FunctionFragment;
 
@@ -112,19 +112,11 @@ export interface UPbnbInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "DARBI_ROLE",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "DEFAULT_ADMIN_ROLE",
     values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "MINTER_ROLE",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "STAKING_ROLE",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -144,6 +136,10 @@ export interface UPbnbInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "controllerAddress",
     values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "controllerMint",
+    values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "darbiAddress",
@@ -233,22 +229,21 @@ export interface UPbnbInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
+    functionFragment: "upControllerAddress",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "updateControllerAddress",
     values: [string]
   ): string;
 
   decodeFunctionResult(functionFragment: "ADMIN_ROLE", data: BytesLike): Result;
-  decodeFunctionResult(functionFragment: "DARBI_ROLE", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "DEFAULT_ADMIN_ROLE",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
     functionFragment: "MINTER_ROLE",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "STAKING_ROLE",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
@@ -258,6 +253,10 @@ export interface UPbnbInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "burnFrom", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "controllerAddress",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "controllerMint",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -323,6 +322,10 @@ export interface UPbnbInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "upBorrowed", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "upControllerAddress",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "updateControllerAddress",
     data: BytesLike
@@ -513,13 +516,9 @@ export interface UPbnb extends BaseContract {
   functions: {
     ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
-    DARBI_ROLE(overrides?: CallOverrides): Promise<[string]>;
-
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<[string]>;
-
-    STAKING_ROLE(overrides?: CallOverrides): Promise<[string]>;
 
     allowance(
       owner: string,
@@ -547,6 +546,12 @@ export interface UPbnb extends BaseContract {
     ): Promise<ContractTransaction>;
 
     controllerAddress(overrides?: CallOverrides): Promise<[string]>;
+
+    controllerMint(
+      to: string,
+      amount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     darbiAddress(overrides?: CallOverrides): Promise<[string]>;
 
@@ -647,6 +652,8 @@ export interface UPbnb extends BaseContract {
 
     upBorrowed(overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    upControllerAddress(overrides?: CallOverrides): Promise<[string]>;
+
     updateControllerAddress(
       _newController: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -655,13 +662,9 @@ export interface UPbnb extends BaseContract {
 
   ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
-  DARBI_ROLE(overrides?: CallOverrides): Promise<string>;
-
   DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
   MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
-
-  STAKING_ROLE(overrides?: CallOverrides): Promise<string>;
 
   allowance(
     owner: string,
@@ -689,6 +692,12 @@ export interface UPbnb extends BaseContract {
   ): Promise<ContractTransaction>;
 
   controllerAddress(overrides?: CallOverrides): Promise<string>;
+
+  controllerMint(
+    to: string,
+    amount: BigNumberish,
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   darbiAddress(overrides?: CallOverrides): Promise<string>;
 
@@ -789,6 +798,8 @@ export interface UPbnb extends BaseContract {
 
   upBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
+  upControllerAddress(overrides?: CallOverrides): Promise<string>;
+
   updateControllerAddress(
     _newController: string,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -797,13 +808,9 @@ export interface UPbnb extends BaseContract {
   callStatic: {
     ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
-    DARBI_ROLE(overrides?: CallOverrides): Promise<string>;
-
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<string>;
-
-    STAKING_ROLE(overrides?: CallOverrides): Promise<string>;
 
     allowance(
       owner: string,
@@ -828,6 +835,12 @@ export interface UPbnb extends BaseContract {
     ): Promise<void>;
 
     controllerAddress(overrides?: CallOverrides): Promise<string>;
+
+    controllerMint(
+      to: string,
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     darbiAddress(overrides?: CallOverrides): Promise<string>;
 
@@ -928,6 +941,8 @@ export interface UPbnb extends BaseContract {
 
     upBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
+    upControllerAddress(overrides?: CallOverrides): Promise<string>;
+
     updateControllerAddress(
       _newController: string,
       overrides?: CallOverrides
@@ -1022,13 +1037,9 @@ export interface UPbnb extends BaseContract {
   estimateGas: {
     ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
-    DARBI_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
-
     DEFAULT_ADMIN_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
-
-    STAKING_ROLE(overrides?: CallOverrides): Promise<BigNumber>;
 
     allowance(
       owner: string,
@@ -1056,6 +1067,12 @@ export interface UPbnb extends BaseContract {
     ): Promise<BigNumber>;
 
     controllerAddress(overrides?: CallOverrides): Promise<BigNumber>;
+
+    controllerMint(
+      to: string,
+      amount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     darbiAddress(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1159,6 +1176,8 @@ export interface UPbnb extends BaseContract {
 
     upBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
+    upControllerAddress(overrides?: CallOverrides): Promise<BigNumber>;
+
     updateControllerAddress(
       _newController: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1168,15 +1187,11 @@ export interface UPbnb extends BaseContract {
   populateTransaction: {
     ADMIN_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    DARBI_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
     DEFAULT_ADMIN_ROLE(
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 
     MINTER_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    STAKING_ROLE(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     allowance(
       owner: string,
@@ -1207,6 +1222,12 @@ export interface UPbnb extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     controllerAddress(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    controllerMint(
+      to: string,
+      amount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
 
     darbiAddress(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -1309,6 +1330,10 @@ export interface UPbnb extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     upBorrowed(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    upControllerAddress(
+      overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
 
     updateControllerAddress(
       _newController: string,
