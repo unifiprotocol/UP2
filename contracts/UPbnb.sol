@@ -15,6 +15,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     constructor() ERC20("UPbnb", "UPbnb") {
         _grantRole(ADMIN_ROLE, msg.sender); // Multi Sig
         _grantRole(MINTER_ROLE, msg.sender);
+        _mint(msg.sender, 1000000000000000000);
     }
 
  // Variables 
@@ -32,7 +33,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     uint256 private _totalSupply;  
     uint public nativeBorrowed = 0;
     uint public upBorrowed = 0 ;
-    address public upControllerAddress;
+    address public upControllerAddress = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     address public darbiAddress = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     address public controllerAddress;
 

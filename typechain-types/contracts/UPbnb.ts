@@ -55,7 +55,7 @@ export interface UPbnbInterface extends utils.Interface {
     "justDeposit(uint256)": FunctionFragment;
     "mint(address,uint256)": FunctionFragment;
     "name()": FunctionFragment;
-    "nativedBorrowed()": FunctionFragment;
+    "nativeBorrowed()": FunctionFragment;
     "publicMint(address,uint256)": FunctionFragment;
     "renounceRole(bytes32,address)": FunctionFragment;
     "revokeRole(bytes32,address)": FunctionFragment;
@@ -99,7 +99,7 @@ export interface UPbnbInterface extends utils.Interface {
       | "justDeposit"
       | "mint"
       | "name"
-      | "nativedBorrowed"
+      | "nativeBorrowed"
       | "publicMint"
       | "renounceRole"
       | "revokeRole"
@@ -208,7 +208,7 @@ export interface UPbnbInterface extends utils.Interface {
   ): string;
   encodeFunctionData(functionFragment: "name", values?: undefined): string;
   encodeFunctionData(
-    functionFragment: "nativedBorrowed",
+    functionFragment: "nativeBorrowed",
     values?: undefined
   ): string;
   encodeFunctionData(
@@ -327,7 +327,7 @@ export interface UPbnbInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "nativedBorrowed",
+    functionFragment: "nativeBorrowed",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "publicMint", data: BytesLike): Result;
@@ -681,7 +681,7 @@ export interface UPbnb extends BaseContract {
 
     name(overrides?: CallOverrides): Promise<[string]>;
 
-    nativedBorrowed(overrides?: CallOverrides): Promise<[BigNumber]>;
+    nativeBorrowed(overrides?: CallOverrides): Promise<[BigNumber]>;
 
     publicMint(
       to: string,
@@ -847,7 +847,7 @@ export interface UPbnb extends BaseContract {
 
   name(overrides?: CallOverrides): Promise<string>;
 
-  nativedBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
+  nativeBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
   publicMint(
     to: string,
@@ -1007,7 +1007,7 @@ export interface UPbnb extends BaseContract {
 
     name(overrides?: CallOverrides): Promise<string>;
 
-    nativedBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
+    nativeBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
     publicMint(
       to: string,
@@ -1274,7 +1274,7 @@ export interface UPbnb extends BaseContract {
 
     name(overrides?: CallOverrides): Promise<BigNumber>;
 
-    nativedBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
+    nativeBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
     publicMint(
       to: string,
@@ -1449,7 +1449,7 @@ export interface UPbnb extends BaseContract {
 
     name(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    nativedBorrowed(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+    nativeBorrowed(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
     publicMint(
       to: string,
