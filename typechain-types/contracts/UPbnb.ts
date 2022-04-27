@@ -35,6 +35,7 @@ export interface UPbnbInterface extends utils.Interface {
     "allowance(address,address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
+    "borrowUP(uint256)": FunctionFragment;
     "burn(uint256)": FunctionFragment;
     "burnFrom(address,uint256)": FunctionFragment;
     "controllerAddress()": FunctionFragment;
@@ -51,6 +52,7 @@ export interface UPbnbInterface extends utils.Interface {
     "grantRole(bytes32,address)": FunctionFragment;
     "hasRole(bytes32,address)": FunctionFragment;
     "increaseAllowance(address,uint256)": FunctionFragment;
+    "justDeposit(uint256)": FunctionFragment;
     "mint(address,uint256)": FunctionFragment;
     "name()": FunctionFragment;
     "nativedBorrowed()": FunctionFragment;
@@ -65,6 +67,8 @@ export interface UPbnbInterface extends utils.Interface {
     "upBorrowed()": FunctionFragment;
     "upControllerAddress()": FunctionFragment;
     "updateControllerAddress(address)": FunctionFragment;
+    "updateDarbiAddress(address)": FunctionFragment;
+    "updateUPControllerAddress(address)": FunctionFragment;
   };
 
   getFunction(
@@ -75,6 +79,7 @@ export interface UPbnbInterface extends utils.Interface {
       | "allowance"
       | "approve"
       | "balanceOf"
+      | "borrowUP"
       | "burn"
       | "burnFrom"
       | "controllerAddress"
@@ -91,6 +96,7 @@ export interface UPbnbInterface extends utils.Interface {
       | "grantRole"
       | "hasRole"
       | "increaseAllowance"
+      | "justDeposit"
       | "mint"
       | "name"
       | "nativedBorrowed"
@@ -105,6 +111,8 @@ export interface UPbnbInterface extends utils.Interface {
       | "upBorrowed"
       | "upControllerAddress"
       | "updateControllerAddress"
+      | "updateDarbiAddress"
+      | "updateUPControllerAddress"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -128,6 +136,10 @@ export interface UPbnbInterface extends utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "balanceOf", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "borrowUP",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(functionFragment: "burn", values: [BigNumberish]): string;
   encodeFunctionData(
     functionFragment: "burnFrom",
@@ -187,6 +199,10 @@ export interface UPbnbInterface extends utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "justDeposit",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "mint",
     values: [string, BigNumberish]
   ): string;
@@ -236,6 +252,14 @@ export interface UPbnbInterface extends utils.Interface {
     functionFragment: "updateControllerAddress",
     values: [string]
   ): string;
+  encodeFunctionData(
+    functionFragment: "updateDarbiAddress",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "updateUPControllerAddress",
+    values: [string]
+  ): string;
 
   decodeFunctionResult(functionFragment: "ADMIN_ROLE", data: BytesLike): Result;
   decodeFunctionResult(
@@ -249,6 +273,7 @@ export interface UPbnbInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "borrowUP", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burnFrom", data: BytesLike): Result;
   decodeFunctionResult(
@@ -295,6 +320,10 @@ export interface UPbnbInterface extends utils.Interface {
     functionFragment: "increaseAllowance",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "justDeposit",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "mint", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "name", data: BytesLike): Result;
   decodeFunctionResult(
@@ -330,6 +359,14 @@ export interface UPbnbInterface extends utils.Interface {
     functionFragment: "updateControllerAddress",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "updateDarbiAddress",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "updateUPControllerAddress",
+    data: BytesLike
+  ): Result;
 
   events: {
     "Approval(address,address,uint256)": EventFragment;
@@ -343,7 +380,9 @@ export interface UPbnbInterface extends utils.Interface {
     "RoleRevoked(bytes32,address,address)": EventFragment;
     "Transfer(address,address,uint256)": EventFragment;
     "UpdateControllerAddress(address)": EventFragment;
+    "UpdateDarbiAddress(address)": EventFragment;
     "UpdateMintRate(uint256)": EventFragment;
+    "UpdateUPControllerAddress(address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
@@ -357,7 +396,9 @@ export interface UPbnbInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "RoleRevoked"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "Transfer"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateControllerAddress"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "UpdateDarbiAddress"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateMintRate"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "UpdateUPControllerAddress"): EventFragment;
 }
 
 export interface ApprovalEventObject {
@@ -477,6 +518,17 @@ export type UpdateControllerAddressEvent = TypedEvent<
 export type UpdateControllerAddressEventFilter =
   TypedEventFilter<UpdateControllerAddressEvent>;
 
+export interface UpdateDarbiAddressEventObject {
+  _newDarbi: string;
+}
+export type UpdateDarbiAddressEvent = TypedEvent<
+  [string],
+  UpdateDarbiAddressEventObject
+>;
+
+export type UpdateDarbiAddressEventFilter =
+  TypedEventFilter<UpdateDarbiAddressEvent>;
+
 export interface UpdateMintRateEventObject {
   _amount: BigNumber;
 }
@@ -486,6 +538,17 @@ export type UpdateMintRateEvent = TypedEvent<
 >;
 
 export type UpdateMintRateEventFilter = TypedEventFilter<UpdateMintRateEvent>;
+
+export interface UpdateUPControllerAddressEventObject {
+  _newUPController: string;
+}
+export type UpdateUPControllerAddressEvent = TypedEvent<
+  [string],
+  UpdateUPControllerAddressEventObject
+>;
+
+export type UpdateUPControllerAddressEventFilter =
+  TypedEventFilter<UpdateUPControllerAddressEvent>;
 
 export interface UPbnb extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -533,6 +596,11 @@ export interface UPbnb extends BaseContract {
     ): Promise<ContractTransaction>;
 
     balanceOf(account: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+
+    borrowUP(
+      _borrowUPAmount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
 
     burn(
       amount: BigNumberish,
@@ -600,6 +668,11 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    justDeposit(
+      value: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     mint(
       to: string,
       amount: BigNumberish,
@@ -658,6 +731,16 @@ export interface UPbnb extends BaseContract {
       _newController: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
+
+    updateDarbiAddress(
+      _newDarbi: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
+    updateUPControllerAddress(
+      _newUPController: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
   };
 
   ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
@@ -679,6 +762,11 @@ export interface UPbnb extends BaseContract {
   ): Promise<ContractTransaction>;
 
   balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  borrowUP(
+    _borrowUPAmount: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   burn(
     amount: BigNumberish,
@@ -746,6 +834,11 @@ export interface UPbnb extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  justDeposit(
+    value: BigNumberish,
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   mint(
     to: string,
     amount: BigNumberish,
@@ -805,6 +898,16 @@ export interface UPbnb extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  updateDarbiAddress(
+    _newDarbi: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
+  updateUPControllerAddress(
+    _newUPController: string,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   callStatic: {
     ADMIN_ROLE(overrides?: CallOverrides): Promise<string>;
 
@@ -825,6 +928,11 @@ export interface UPbnb extends BaseContract {
     ): Promise<boolean>;
 
     balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    borrowUP(
+      _borrowUPAmount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     burn(amount: BigNumberish, overrides?: CallOverrides): Promise<void>;
 
@@ -889,6 +997,8 @@ export interface UPbnb extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
+    justDeposit(value: BigNumberish, overrides?: CallOverrides): Promise<void>;
+
     mint(
       to: string,
       amount: BigNumberish,
@@ -945,6 +1055,16 @@ export interface UPbnb extends BaseContract {
 
     updateControllerAddress(
       _newController: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    updateDarbiAddress(
+      _newDarbi: string,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
+    updateUPControllerAddress(
+      _newUPController: string,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -1030,8 +1150,20 @@ export interface UPbnb extends BaseContract {
       _newController?: null
     ): UpdateControllerAddressEventFilter;
 
+    "UpdateDarbiAddress(address)"(
+      _newDarbi?: null
+    ): UpdateDarbiAddressEventFilter;
+    UpdateDarbiAddress(_newDarbi?: null): UpdateDarbiAddressEventFilter;
+
     "UpdateMintRate(uint256)"(_amount?: null): UpdateMintRateEventFilter;
     UpdateMintRate(_amount?: null): UpdateMintRateEventFilter;
+
+    "UpdateUPControllerAddress(address)"(
+      _newUPController?: null
+    ): UpdateUPControllerAddressEventFilter;
+    UpdateUPControllerAddress(
+      _newUPController?: null
+    ): UpdateUPControllerAddressEventFilter;
   };
 
   estimateGas: {
@@ -1054,6 +1186,11 @@ export interface UPbnb extends BaseContract {
     ): Promise<BigNumber>;
 
     balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    borrowUP(
+      _borrowUPAmount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     burn(
       amount: BigNumberish,
@@ -1124,6 +1261,11 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    justDeposit(
+      value: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     mint(
       to: string,
       amount: BigNumberish,
@@ -1182,6 +1324,16 @@ export interface UPbnb extends BaseContract {
       _newController: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
+
+    updateDarbiAddress(
+      _newDarbi: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
+    updateUPControllerAddress(
+      _newUPController: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
   };
 
   populateTransaction: {
@@ -1208,6 +1360,11 @@ export interface UPbnb extends BaseContract {
     balanceOf(
       account: string,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    borrowUP(
+      _borrowUPAmount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     burn(
@@ -1279,6 +1436,11 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
+    justDeposit(
+      value: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     mint(
       to: string,
       amount: BigNumberish,
@@ -1337,6 +1499,16 @@ export interface UPbnb extends BaseContract {
 
     updateControllerAddress(
       _newController: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    updateDarbiAddress(
+      _newDarbi: string,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    updateUPControllerAddress(
+      _newUPController: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };

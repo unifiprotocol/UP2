@@ -14,7 +14,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
 
     constructor() ERC20("UPbnb", "UPbnb") {
         _grantRole(ADMIN_ROLE, msg.sender); // Multi Sig
-        _grantRole(MINTER_ROLE, msg.sender); // 5% Mint Rate
+        _grantRole(MINTER_ROLE, msg.sender);
     }
 
  // Variables 
@@ -46,6 +46,8 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     event BorrowNative(uint _amount);
     event BorrowUP(uint _amount);
     event UpdateControllerAddress(address _newController);
+    event UpdateDarbiAddress(address _newDarbi);
+    event UpdateUPControllerAddress(address _newUPController);
     event ClearNativeDebt(uint amount);
     event ClearUPDebt(uint amount);
 
@@ -58,6 +60,11 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
 
     modifier onlyController() {
         require(msg.sender == controllerAddress , "Unifi : Only Controller");
+         _;
+    }
+
+    modifier onlyUPController() {
+        require(msg.sender == upControllerAddress , "Unifi : Only UP Controller");
          _;
     }
 
@@ -128,6 +135,13 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         _mint(to, amount);
     }
 
+    // Synthetic Mint Function
+    function borrowUP( uint _borrowUPAmount) onlyUPController external {
+        upBorrowed += _borrowUPAmount ;
+        _mint(upControllerAddress,_borrowUPAmount);
+         emit BorrowUP(_borrowUPAmount);       
+    }
+
     function _mint(address account, uint256 value) internal override {
         require(account != address(0));
         _totalSupply = _totalSupply + (value);
@@ -135,8 +149,42 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         emit Transfer(address(0), account, value);
     }
 
+    function justDeposit(uint256 value) public payable {
+        _justDeposit(msg.sender, value);
+
+    }
+
+    function _justDeposit(address depositor, uint256 value) internal {
+        emit JustDeposit(depositor,value);
+    }
+
+    //Admin Functions
+
     function updateControllerAddress(address  _newController) public onlyRole(ADMIN_ROLE) {
         controllerAddress = _newController;
         emit UpdateControllerAddress( _newController) ;    
-    }   
+    }
+
+    function updateDarbiAddress(address  _newDarbi) public onlyRole(ADMIN_ROLE) {
+        darbiAddress = _newDarbi;
+        emit UpdateDarbiAddress( _newDarbi);    
+    }
+
+    function updateUPControllerAddress(address  _newUPController) public onlyRole(ADMIN_ROLE) {
+        upControllerAddress = _newUPController;
+        emit UpdateUPControllerAddress(_newUPController) ;    
+    }  
+
+    fallback() external payable {
+        if(msg.value > 0 ){
+            _justDeposit(msg.sender,msg.value);
+        }
+    }
+
+    receive() external payable {
+        if(msg.value > 0 ){
+            _justDeposit(msg.sender,msg.value);
+        }
+    }
+
 }
