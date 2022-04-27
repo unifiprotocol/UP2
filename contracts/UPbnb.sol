@@ -108,32 +108,32 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         require(msg.value == amount, "Invalid native token");
         require(msg.sender == controllerAddress, "Caller is not a minter");
         uint256 Value = getVirtualPriceForMinting(amount);
-        uint256 MintAmount = amount*(_mintRate)*(1e18)/(Value*(100000));  //Unused Variable?
-        _mint(to, amount);
+        uint256 MintAmount = amount*(_mintRate)*(1e18)/(Value*(100000));
+        _mint(to, MintAmount);
     }
     // Controller Mint Function
     function controllerMint(address to, uint256 amount) public payable {
         require(msg.value == amount, "Invalid native token");
         require(msg.sender == upControllerAddress, "Caller is not a minter");
         uint256 Value = getVirtualPriceForMinting(amount);
-        uint256 MintAmount = amount*(_controllerRate)*(1e18)/(Value*(100000));  //Unused Variable?
-        _mint(to, amount);
+        uint256 MintAmount = amount*(_controllerRate)*(1e18)/(Value*(100000));
+        _mint(to, MintAmount);
     }
 
     // Darby Mint Function
     function darbiMint(address to, uint256 amount) public payable onlyDarbi {
         require(msg.value == amount, "Invalid native token");
         uint256 Value = getVirtualPriceForMinting(amount);
-        uint256 MintAmount = amount*(_darbiMintRate)*(1e18)/(Value*(100000));  //Unused Variable?
-        _mint(to, amount);
+        uint256 MintAmount = amount*(_darbiMintRate)*(1e18)/(Value*(100000)); 
+        _mint(to, MintAmount);
     }
 
     // Public Mint Function
     function publicMint(address to, uint256 amount) public payable {
         require(msg.value == amount, "Invalid native token");
         uint256 Value = getVirtualPriceForMinting(amount);
-        uint256 MintAmount = amount*(_publicMintRate)*(1e18)/(Value*(100000));  //Unused Variable?
-        _mint(to, amount);
+        uint256 MintAmount = amount*(_publicMintRate)*(1e18)/(Value*(100000));
+        _mint(to, MintAmount);
     }
 
     // Synthetic Mint Function
