@@ -30,7 +30,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     mapping (address => uint256) private _balances;  
     mapping (address => mapping (address => uint256)) private _allowed;
     uint256 private _totalSupply;  
-    uint public nativedBorrowed = 0;
+    uint public nativeBorrowed = 0;
     uint public upBorrowed = 0 ;
     address public upControllerAddress;
     address public darbiAddress = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
@@ -98,7 +98,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
      * @return the total number of native token backing UP
      */
     function getNativeTotal() public view returns(uint){
-        return (address(this).balance + nativedBorrowed);
+        return (address(this).balance + nativeBorrowed);
     }
 
  // Write Functions
@@ -141,7 +141,8 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         _mint(upControllerAddress,_borrowUPAmount);
          emit BorrowUP(_borrowUPAmount);       
     }
-
+    
+    // Internal Mint Function
     function _mint(address account, uint256 value) internal override {
         require(account != address(0));
         _totalSupply = _totalSupply + (value);
@@ -149,6 +150,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         emit Transfer(address(0), account, value);
     }
 
+    // 
     function justDeposit(uint256 value) public payable {
         _justDeposit(msg.sender, value);
 
@@ -174,6 +176,8 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         upControllerAddress = _newUPController;
         emit UpdateUPControllerAddress(_newUPController) ;    
     }  
+
+    // Fallback Functions
 
     fallback() external payable {
         if(msg.value > 0 ){
