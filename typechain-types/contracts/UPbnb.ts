@@ -595,7 +595,7 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    balanceOf(account: string, overrides?: CallOverrides): Promise<[BigNumber]>;
+    balanceOf(holder: string, overrides?: CallOverrides): Promise<[BigNumber]>;
 
     borrowUP(
       _borrowUPAmount: BigNumberish,
@@ -761,7 +761,7 @@ export interface UPbnb extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+  balanceOf(holder: string, overrides?: CallOverrides): Promise<BigNumber>;
 
   borrowUP(
     _borrowUPAmount: BigNumberish,
@@ -927,7 +927,7 @@ export interface UPbnb extends BaseContract {
       overrides?: CallOverrides
     ): Promise<boolean>;
 
-    balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+    balanceOf(holder: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     borrowUP(
       _borrowUPAmount: BigNumberish,
@@ -1185,7 +1185,7 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    balanceOf(account: string, overrides?: CallOverrides): Promise<BigNumber>;
+    balanceOf(holder: string, overrides?: CallOverrides): Promise<BigNumber>;
 
     borrowUP(
       _borrowUPAmount: BigNumberish,
@@ -1358,7 +1358,7 @@ export interface UPbnb extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     balanceOf(
-      account: string,
+      holder: string,
       overrides?: CallOverrides
     ): Promise<PopulatedTransaction>;
 

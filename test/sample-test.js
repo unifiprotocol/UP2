@@ -56,11 +56,13 @@ describe("UPbnb", function () {
     const [signer, second] = await ethers.getSigners();
     const signerAddress = await signer.getAddress();
     const secondAddress = await second.getAddress();
-    console.log(upbnb.address, signerAddress, secondAddress);
     const totalSupplyBefore = await upbnb.totalSupply();
     const one = ethers.utils.parseEther("1");
     expect(totalSupplyBefore).equal(one);
     console.log("Total Supply Equals 1 on Deploy");
+    const getUpMintedSigner = await upbnb.balanceOf(signerAddress);
+    expect(getUpMintedSigner).equal(ethers.utils.parseEther("1"));
+    console.log("Signer has 1 UP");
     const nativeTotalBefore = await upbnb.getNativeTotal();
     expect(nativeTotalBefore).equal(0);
     console.log("Native Tokens Equals 0 on Deploy");
@@ -84,8 +86,6 @@ describe("UPbnb", function () {
     const publicmint = await upbnb
       .connect(second)
       .publicMint(secondAddress, one, { value: one });
-    const receipt = await publicmint.wait();
-    console.log(receipt);
     const totalSupplyAfterMint = await upbnb.totalSupply();
     expect(totalSupplyAfterMint).equal(ethers.utils.parseEther("1.95"));
     console.log("Total Supply Equals 1.95 After Public Mint");
@@ -97,10 +97,8 @@ describe("UPbnb", function () {
       ethers.utils.parseEther("1.025641025641025641")
     );
     console.log("Redeem Value equals 1.025641025641025641 After Public Mint");
-    console.log(upbnb.address, signerAddress, secondAddress);
-    const getUpMintedUP = await upbnb.balanceOf(upbnb.address);
-    const getUpMintedSigner = await upbnb.balanceOf(signerAddress);
     const getUpMintedSecond = await upbnb.balanceOf(secondAddress);
-    console.log(getUpMintedUP, getUpMintedSigner, getUpMintedSecond); /// WHERE THE UP GO?
+    expect(getUpMintedSecond).equal(ethers.utils.parseEther("0.95"));
+    console.log("Public Minted has 0.95 UP");
   });
 });

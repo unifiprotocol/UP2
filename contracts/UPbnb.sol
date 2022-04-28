@@ -19,9 +19,9 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     }
 
  // Variables 
-    string private _name;
-    string private _symbol;
-    uint8 private _decimals;
+    // string private _name;
+    // string private _symbol;
+    // uint8 private _decimals;
     uint256 private _mintRate = 95000;
     uint256 private _publicMintRate = 95000;
     uint256 private _darbiMintRate = 100000;
@@ -29,7 +29,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     uint256 private totalUPBurnt = 0;
     uint256 private totalFeesGiven = 0;
     mapping (address => uint256) private _balances;  
-    mapping (address => mapping (address => uint256)) private _allowed;
+    // mapping (address => mapping (address => uint256)) private _allowed;
     uint256 private _totalSupply;  
     uint public nativeBorrowed = 0;
     uint public upBorrowed = 0 ;
@@ -70,8 +70,13 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     }
 
 // Read Functions
-  function totalSupply() public view virtual override returns (uint256) {
+
+    function totalSupply() public view virtual override returns (uint256) {
         return _totalSupply - upBorrowed;
+    }
+
+    function balanceOf(address holder) public view virtual override returns (uint256) {
+        return _balances[holder];
     }
 
     function getVirtualPrice() public view returns(uint256){
