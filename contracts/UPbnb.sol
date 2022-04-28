@@ -53,13 +53,14 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
 
 // Modifiers
 
-    modifier onlyDarbi() {
-        require(msg.sender == darbiAddress , "Unifi : Only Darbi");
-         _;
-    }
 
     modifier onlyController() {
         require(msg.sender == controllerAddress , "Unifi : Only Controller");
+         _;
+    }
+
+    modifier onlyDarbi() {
+        require(msg.sender == darbiAddress , "Unifi : Only Darbi");
          _;
     }
 
