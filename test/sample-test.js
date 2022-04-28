@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("UPbnb", function () {
+describe("UPbnb Parameters", function () {
   it("Should return the name & symbol of the token", async function () {
     const UPbnb = await ethers.getContractFactory("UPbnb");
     const upbnb = await UPbnb.deploy();
@@ -17,7 +17,9 @@ describe("UPbnb", function () {
       "0x70997970C51812dc3A010C7d01b50e0d17dc79C8"
     );
   });
+});
 
+describe("UPbnb UP Minting", function () {
   it("Should deploy with a supply of 1 UP, receive a transaction worth 1 ETH, update redeem value", async function () {
     const UPbnb = await ethers.getContractFactory("UPbnb");
     const upbnb = await UPbnb.deploy();
@@ -34,10 +36,7 @@ describe("UPbnb", function () {
     expect(redeemValueBefore).equal(0);
     console.log("Redeem Value Equals 0 on Deploy");
     const upAddress = await upbnb.address;
-    const fundingTX = await signer.sendTransaction({
-      to: upAddress,
-      value: one,
-    });
+    await signer.sendTransaction({ to: upAddress, value: one });
     const totalSupplyAfter = await upbnb.totalSupply();
     expect(totalSupplyAfter).equal(one);
     console.log("Total Supply Equals 1 on After Funding");
@@ -70,10 +69,7 @@ describe("UPbnb", function () {
     expect(redeemValueBefore).equal(0);
     console.log("Redeem Value Equals 0 on Deploy");
     const upAddress = await upbnb.address;
-    const fundingTX = await signer.sendTransaction({
-      to: upAddress,
-      value: one,
-    });
+    await signer.sendTransaction({ to: upAddress, value: one });
     const totalSupplyAfter = await upbnb.totalSupply();
     expect(totalSupplyAfter).equal(one);
     console.log("Total Supply Equals 1 on After Funding");
@@ -83,9 +79,7 @@ describe("UPbnb", function () {
     const redeemValueAfter = await upbnb.getVirtualPrice();
     expect(redeemValueAfter).equal(one);
     console.log("Redeem Value Equals 1 on After Funding");
-    const publicmint = await upbnb
-      .connect(second)
-      .publicMint(secondAddress, one, { value: one });
+    await upbnb.connect(second).publicMint(secondAddress, one, { value: one });
     const totalSupplyAfterMint = await upbnb.totalSupply();
     expect(totalSupplyAfterMint).equal(ethers.utils.parseEther("1.95"));
     console.log("Total Supply Equals 1.95 After Public Mint");

@@ -44,13 +44,12 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         uint256 value
     );
     event UpdateMintRate(uint _amount);
-    event BorrowNative(uint _amount);
-    event BorrowUP(uint _amount);
+    event BorrowNative(uint _borrowNativeAmount);
+    event BorrowUP(uint _borrowUPAmount);
+    event RepayNative(uint _repayNativeAmount);
     event UpdateControllerAddress(address _newController);
     event UpdateDarbiAddress(address _newDarbi);
     event UpdateRebalancerAddress(address _newRebalancer);
-    event ClearNativeDebt(uint amount);
-    event ClearUPDebt(uint amount);
 
 // Modifiers
 
@@ -154,6 +153,25 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         _balances[account] = _balances[account] + (value);
         emit Transfer(address(0), account, value);
     }
+
+    // Borrow Native Tokens
+
+    function borrowNative(uint _borrowNativeAmount) public onlyRebalancer {
+        nativeBorrowed += _borrowNativeAmount;
+        payable(address(rebalancerAddress)).transfer(_borrowNativeAmount);
+        emit BorrowNative(_borrowNativeAmount);       
+    }
+
+    // Repay Native Tokens
+
+    function repayNative(uint _repayNativeAmount) public payable onlyRebalancer {
+        require(_repayNativeAmount <= nativeBorrowed, "Transaction is repaying more than is owed");
+        require(msg.value == _repayNativeAmount, "Repay Native Amount parameter differs from Payable amount");
+        nativeBorrowed -= _repayNativeAmount;
+        emit RepayNative(_repayNativeAmount);       
+    }
+
+
 
     // 
     function justDeposit(uint256 value) public payable {

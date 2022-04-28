@@ -35,6 +35,7 @@ export interface UPbnbInterface extends utils.Interface {
     "allowance(address,address)": FunctionFragment;
     "approve(address,uint256)": FunctionFragment;
     "balanceOf(address)": FunctionFragment;
+    "borrowNative(uint256)": FunctionFragment;
     "borrowUP(uint256)": FunctionFragment;
     "burn(uint256)": FunctionFragment;
     "burnFrom(address,uint256)": FunctionFragment;
@@ -59,6 +60,7 @@ export interface UPbnbInterface extends utils.Interface {
     "rebalancerAddress()": FunctionFragment;
     "rebalancerMint(address,uint256)": FunctionFragment;
     "renounceRole(bytes32,address)": FunctionFragment;
+    "repayNative(uint256)": FunctionFragment;
     "revokeRole(bytes32,address)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
     "symbol()": FunctionFragment;
@@ -79,6 +81,7 @@ export interface UPbnbInterface extends utils.Interface {
       | "allowance"
       | "approve"
       | "balanceOf"
+      | "borrowNative"
       | "borrowUP"
       | "burn"
       | "burnFrom"
@@ -103,6 +106,7 @@ export interface UPbnbInterface extends utils.Interface {
       | "rebalancerAddress"
       | "rebalancerMint"
       | "renounceRole"
+      | "repayNative"
       | "revokeRole"
       | "supportsInterface"
       | "symbol"
@@ -136,6 +140,10 @@ export interface UPbnbInterface extends utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(functionFragment: "balanceOf", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "borrowNative",
+    values: [BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "borrowUP",
     values: [BigNumberish]
@@ -224,6 +232,10 @@ export interface UPbnbInterface extends utils.Interface {
     values: [BytesLike, string]
   ): string;
   encodeFunctionData(
+    functionFragment: "repayNative",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "revokeRole",
     values: [BytesLike, string]
   ): string;
@@ -273,6 +285,10 @@ export interface UPbnbInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "borrowNative",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "borrowUP", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burn", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "burnFrom", data: BytesLike): Result;
@@ -339,6 +355,10 @@ export interface UPbnbInterface extends utils.Interface {
     functionFragment: "renounceRole",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "repayNative",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "revokeRole", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "supportsInterface",
@@ -372,9 +392,8 @@ export interface UPbnbInterface extends utils.Interface {
     "Approval(address,address,uint256)": EventFragment;
     "BorrowNative(uint256)": EventFragment;
     "BorrowUP(uint256)": EventFragment;
-    "ClearNativeDebt(uint256)": EventFragment;
-    "ClearUPDebt(uint256)": EventFragment;
     "JustDeposit(address,uint256)": EventFragment;
+    "RepayNative(uint256)": EventFragment;
     "RoleAdminChanged(bytes32,bytes32,bytes32)": EventFragment;
     "RoleGranted(bytes32,address,address)": EventFragment;
     "RoleRevoked(bytes32,address,address)": EventFragment;
@@ -388,9 +407,8 @@ export interface UPbnbInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "BorrowNative"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "BorrowUP"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "ClearNativeDebt"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "ClearUPDebt"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "JustDeposit"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "RepayNative"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleAdminChanged"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleGranted"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "RoleRevoked"): EventFragment;
@@ -414,7 +432,7 @@ export type ApprovalEvent = TypedEvent<
 export type ApprovalEventFilter = TypedEventFilter<ApprovalEvent>;
 
 export interface BorrowNativeEventObject {
-  _amount: BigNumber;
+  _borrowNativeAmount: BigNumber;
 }
 export type BorrowNativeEvent = TypedEvent<
   [BigNumber],
@@ -424,28 +442,11 @@ export type BorrowNativeEvent = TypedEvent<
 export type BorrowNativeEventFilter = TypedEventFilter<BorrowNativeEvent>;
 
 export interface BorrowUPEventObject {
-  _amount: BigNumber;
+  _borrowUPAmount: BigNumber;
 }
 export type BorrowUPEvent = TypedEvent<[BigNumber], BorrowUPEventObject>;
 
 export type BorrowUPEventFilter = TypedEventFilter<BorrowUPEvent>;
-
-export interface ClearNativeDebtEventObject {
-  amount: BigNumber;
-}
-export type ClearNativeDebtEvent = TypedEvent<
-  [BigNumber],
-  ClearNativeDebtEventObject
->;
-
-export type ClearNativeDebtEventFilter = TypedEventFilter<ClearNativeDebtEvent>;
-
-export interface ClearUPDebtEventObject {
-  amount: BigNumber;
-}
-export type ClearUPDebtEvent = TypedEvent<[BigNumber], ClearUPDebtEventObject>;
-
-export type ClearUPDebtEventFilter = TypedEventFilter<ClearUPDebtEvent>;
 
 export interface JustDepositEventObject {
   owner: string;
@@ -457,6 +458,13 @@ export type JustDepositEvent = TypedEvent<
 >;
 
 export type JustDepositEventFilter = TypedEventFilter<JustDepositEvent>;
+
+export interface RepayNativeEventObject {
+  _repayNativeAmount: BigNumber;
+}
+export type RepayNativeEvent = TypedEvent<[BigNumber], RepayNativeEventObject>;
+
+export type RepayNativeEventFilter = TypedEventFilter<RepayNativeEvent>;
 
 export interface RoleAdminChangedEventObject {
   role: string;
@@ -597,6 +605,11 @@ export interface UPbnb extends BaseContract {
 
     balanceOf(holder: string, overrides?: CallOverrides): Promise<[BigNumber]>;
 
+    borrowNative(
+      _borrowNativeAmount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     borrowUP(
       _borrowUPAmount: BigNumberish,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -697,6 +710,11 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    repayNative(
+      _repayNativeAmount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     revokeRole(
       role: BytesLike,
       account: string,
@@ -762,6 +780,11 @@ export interface UPbnb extends BaseContract {
   ): Promise<ContractTransaction>;
 
   balanceOf(holder: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+  borrowNative(
+    _borrowNativeAmount: BigNumberish,
+    overrides?: Overrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
 
   borrowUP(
     _borrowUPAmount: BigNumberish,
@@ -863,6 +886,11 @@ export interface UPbnb extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  repayNative(
+    _repayNativeAmount: BigNumberish,
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   revokeRole(
     role: BytesLike,
     account: string,
@@ -928,6 +956,11 @@ export interface UPbnb extends BaseContract {
     ): Promise<boolean>;
 
     balanceOf(holder: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    borrowNative(
+      _borrowNativeAmount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
 
     borrowUP(
       _borrowUPAmount: BigNumberish,
@@ -1023,6 +1056,11 @@ export interface UPbnb extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    repayNative(
+      _repayNativeAmount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     revokeRole(
       role: BytesLike,
       account: string,
@@ -1081,23 +1119,22 @@ export interface UPbnb extends BaseContract {
       value?: null
     ): ApprovalEventFilter;
 
-    "BorrowNative(uint256)"(_amount?: null): BorrowNativeEventFilter;
-    BorrowNative(_amount?: null): BorrowNativeEventFilter;
+    "BorrowNative(uint256)"(
+      _borrowNativeAmount?: null
+    ): BorrowNativeEventFilter;
+    BorrowNative(_borrowNativeAmount?: null): BorrowNativeEventFilter;
 
-    "BorrowUP(uint256)"(_amount?: null): BorrowUPEventFilter;
-    BorrowUP(_amount?: null): BorrowUPEventFilter;
-
-    "ClearNativeDebt(uint256)"(amount?: null): ClearNativeDebtEventFilter;
-    ClearNativeDebt(amount?: null): ClearNativeDebtEventFilter;
-
-    "ClearUPDebt(uint256)"(amount?: null): ClearUPDebtEventFilter;
-    ClearUPDebt(amount?: null): ClearUPDebtEventFilter;
+    "BorrowUP(uint256)"(_borrowUPAmount?: null): BorrowUPEventFilter;
+    BorrowUP(_borrowUPAmount?: null): BorrowUPEventFilter;
 
     "JustDeposit(address,uint256)"(
       owner?: string | null,
       value?: null
     ): JustDepositEventFilter;
     JustDeposit(owner?: string | null, value?: null): JustDepositEventFilter;
+
+    "RepayNative(uint256)"(_repayNativeAmount?: null): RepayNativeEventFilter;
+    RepayNative(_repayNativeAmount?: null): RepayNativeEventFilter;
 
     "RoleAdminChanged(bytes32,bytes32,bytes32)"(
       role?: BytesLike | null,
@@ -1186,6 +1223,11 @@ export interface UPbnb extends BaseContract {
     ): Promise<BigNumber>;
 
     balanceOf(holder: string, overrides?: CallOverrides): Promise<BigNumber>;
+
+    borrowNative(
+      _borrowNativeAmount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
 
     borrowUP(
       _borrowUPAmount: BigNumberish,
@@ -1290,6 +1332,11 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    repayNative(
+      _repayNativeAmount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     revokeRole(
       role: BytesLike,
       account: string,
@@ -1360,6 +1407,11 @@ export interface UPbnb extends BaseContract {
     balanceOf(
       holder: string,
       overrides?: CallOverrides
+    ): Promise<PopulatedTransaction>;
+
+    borrowNative(
+      _borrowNativeAmount: BigNumberish,
+      overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     borrowUP(
@@ -1463,6 +1515,11 @@ export interface UPbnb extends BaseContract {
       role: BytesLike,
       account: string,
       overrides?: Overrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
+    repayNative(
+      _repayNativeAmount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
     revokeRole(
