@@ -25,7 +25,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     uint256 private _mintRate = 95000;
     uint256 private _publicMintRate = 95000;
     uint256 private _darbiMintRate = 100000;
-    uint256 private _controllerRate = 95000;
+    uint256 private _rebalancerRate = 95000;
     uint256 private totalUPBurnt = 0;
     uint256 private totalFeesGiven = 0;
     mapping (address => uint256) private _balances;  
@@ -33,7 +33,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     uint256 private _totalSupply;  
     uint public nativeBorrowed = 0;
     uint public upBorrowed = 0 ;
-    address public upControllerAddress = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
+    address public rebalancerAddress = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     address public darbiAddress = 0x70997970C51812dc3A010C7d01b50e0d17dc79C8;
     address public controllerAddress;
 
@@ -48,7 +48,7 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     event BorrowUP(uint _amount);
     event UpdateControllerAddress(address _newController);
     event UpdateDarbiAddress(address _newDarbi);
-    event UpdateUPControllerAddress(address _newUPController);
+    event UpdateRebalancerAddress(address _newRebalancer);
     event ClearNativeDebt(uint amount);
     event ClearUPDebt(uint amount);
 
@@ -64,8 +64,8 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
          _;
     }
 
-    modifier onlyUPController() {
-        require(msg.sender == upControllerAddress , "Unifi : Only UP Controller");
+    modifier onlyRebalancer() {
+        require(msg.sender == rebalancerAddress , "Unifi : Only Rebalancer");
          _;
     }
 
@@ -116,12 +116,11 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         uint256 MintAmount = amount*(_mintRate)*(1e18)/(Value*(100000));
         _mint(to, MintAmount);
     }
-    // Controller Mint Function
-    function controllerMint(address to, uint256 amount) public payable {
+    // Rebalancer Mint Function
+    function rebalancerMint(address to, uint256 amount) public payable onlyRebalancer {
         require(msg.value == amount, "Invalid native token");
-        require(msg.sender == upControllerAddress, "Caller is not a minter");
         uint256 Value = getVirtualPriceForMinting(amount);
-        uint256 MintAmount = amount*(_controllerRate)*(1e18)/(Value*(100000));
+        uint256 MintAmount = amount*(_rebalancerRate)*(1e18)/(Value*(100000));
         _mint(to, MintAmount);
     }
 
@@ -142,9 +141,9 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
     }
 
     // Synthetic Mint Function
-    function borrowUP( uint _borrowUPAmount) onlyUPController external {
+    function borrowUP(uint _borrowUPAmount) public onlyRebalancer {
         upBorrowed += _borrowUPAmount ;
-        _mint(upControllerAddress,_borrowUPAmount);
+        _mint(rebalancerAddress, _borrowUPAmount);
          emit BorrowUP(_borrowUPAmount);       
     }
     
@@ -178,9 +177,9 @@ contract UPbnb is ERC20, ERC20Burnable, AccessControl {
         emit UpdateDarbiAddress( _newDarbi);    
     }
 
-    function updateUPControllerAddress(address  _newUPController) public onlyRole(ADMIN_ROLE) {
-        upControllerAddress = _newUPController;
-        emit UpdateUPControllerAddress(_newUPController) ;    
+    function updateRebalancerAddress(address  _newRebalancer) public onlyRole(ADMIN_ROLE) {
+        rebalancerAddress = _newRebalancer;
+        emit UpdateRebalancerAddress(_newRebalancer);    
     }  
 
     // Fallback Functions

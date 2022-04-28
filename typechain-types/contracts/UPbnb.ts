@@ -39,7 +39,6 @@ export interface UPbnbInterface extends utils.Interface {
     "burn(uint256)": FunctionFragment;
     "burnFrom(address,uint256)": FunctionFragment;
     "controllerAddress()": FunctionFragment;
-    "controllerMint(address,uint256)": FunctionFragment;
     "darbiAddress()": FunctionFragment;
     "darbiMint(address,uint256)": FunctionFragment;
     "decimals()": FunctionFragment;
@@ -57,6 +56,8 @@ export interface UPbnbInterface extends utils.Interface {
     "name()": FunctionFragment;
     "nativeBorrowed()": FunctionFragment;
     "publicMint(address,uint256)": FunctionFragment;
+    "rebalancerAddress()": FunctionFragment;
+    "rebalancerMint(address,uint256)": FunctionFragment;
     "renounceRole(bytes32,address)": FunctionFragment;
     "revokeRole(bytes32,address)": FunctionFragment;
     "supportsInterface(bytes4)": FunctionFragment;
@@ -65,10 +66,9 @@ export interface UPbnbInterface extends utils.Interface {
     "transfer(address,uint256)": FunctionFragment;
     "transferFrom(address,address,uint256)": FunctionFragment;
     "upBorrowed()": FunctionFragment;
-    "upControllerAddress()": FunctionFragment;
     "updateControllerAddress(address)": FunctionFragment;
     "updateDarbiAddress(address)": FunctionFragment;
-    "updateUPControllerAddress(address)": FunctionFragment;
+    "updateRebalancerAddress(address)": FunctionFragment;
   };
 
   getFunction(
@@ -83,7 +83,6 @@ export interface UPbnbInterface extends utils.Interface {
       | "burn"
       | "burnFrom"
       | "controllerAddress"
-      | "controllerMint"
       | "darbiAddress"
       | "darbiMint"
       | "decimals"
@@ -101,6 +100,8 @@ export interface UPbnbInterface extends utils.Interface {
       | "name"
       | "nativeBorrowed"
       | "publicMint"
+      | "rebalancerAddress"
+      | "rebalancerMint"
       | "renounceRole"
       | "revokeRole"
       | "supportsInterface"
@@ -109,10 +110,9 @@ export interface UPbnbInterface extends utils.Interface {
       | "transfer"
       | "transferFrom"
       | "upBorrowed"
-      | "upControllerAddress"
       | "updateControllerAddress"
       | "updateDarbiAddress"
-      | "updateUPControllerAddress"
+      | "updateRebalancerAddress"
   ): FunctionFragment;
 
   encodeFunctionData(
@@ -148,10 +148,6 @@ export interface UPbnbInterface extends utils.Interface {
   encodeFunctionData(
     functionFragment: "controllerAddress",
     values?: undefined
-  ): string;
-  encodeFunctionData(
-    functionFragment: "controllerMint",
-    values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "darbiAddress",
@@ -216,6 +212,14 @@ export interface UPbnbInterface extends utils.Interface {
     values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "rebalancerAddress",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
+    functionFragment: "rebalancerMint",
+    values: [string, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "renounceRole",
     values: [BytesLike, string]
   ): string;
@@ -245,10 +249,6 @@ export interface UPbnbInterface extends utils.Interface {
     values?: undefined
   ): string;
   encodeFunctionData(
-    functionFragment: "upControllerAddress",
-    values?: undefined
-  ): string;
-  encodeFunctionData(
     functionFragment: "updateControllerAddress",
     values: [string]
   ): string;
@@ -257,7 +257,7 @@ export interface UPbnbInterface extends utils.Interface {
     values: [string]
   ): string;
   encodeFunctionData(
-    functionFragment: "updateUPControllerAddress",
+    functionFragment: "updateRebalancerAddress",
     values: [string]
   ): string;
 
@@ -278,10 +278,6 @@ export interface UPbnbInterface extends utils.Interface {
   decodeFunctionResult(functionFragment: "burnFrom", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "controllerAddress",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "controllerMint",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -332,6 +328,14 @@ export interface UPbnbInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "publicMint", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "rebalancerAddress",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "rebalancerMint",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "renounceRole",
     data: BytesLike
   ): Result;
@@ -352,10 +356,6 @@ export interface UPbnbInterface extends utils.Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "upBorrowed", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "upControllerAddress",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "updateControllerAddress",
     data: BytesLike
   ): Result;
@@ -364,7 +364,7 @@ export interface UPbnbInterface extends utils.Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "updateUPControllerAddress",
+    functionFragment: "updateRebalancerAddress",
     data: BytesLike
   ): Result;
 
@@ -382,7 +382,7 @@ export interface UPbnbInterface extends utils.Interface {
     "UpdateControllerAddress(address)": EventFragment;
     "UpdateDarbiAddress(address)": EventFragment;
     "UpdateMintRate(uint256)": EventFragment;
-    "UpdateUPControllerAddress(address)": EventFragment;
+    "UpdateRebalancerAddress(address)": EventFragment;
   };
 
   getEvent(nameOrSignatureOrTopic: "Approval"): EventFragment;
@@ -398,7 +398,7 @@ export interface UPbnbInterface extends utils.Interface {
   getEvent(nameOrSignatureOrTopic: "UpdateControllerAddress"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateDarbiAddress"): EventFragment;
   getEvent(nameOrSignatureOrTopic: "UpdateMintRate"): EventFragment;
-  getEvent(nameOrSignatureOrTopic: "UpdateUPControllerAddress"): EventFragment;
+  getEvent(nameOrSignatureOrTopic: "UpdateRebalancerAddress"): EventFragment;
 }
 
 export interface ApprovalEventObject {
@@ -539,16 +539,16 @@ export type UpdateMintRateEvent = TypedEvent<
 
 export type UpdateMintRateEventFilter = TypedEventFilter<UpdateMintRateEvent>;
 
-export interface UpdateUPControllerAddressEventObject {
-  _newUPController: string;
+export interface UpdateRebalancerAddressEventObject {
+  _newRebalancer: string;
 }
-export type UpdateUPControllerAddressEvent = TypedEvent<
+export type UpdateRebalancerAddressEvent = TypedEvent<
   [string],
-  UpdateUPControllerAddressEventObject
+  UpdateRebalancerAddressEventObject
 >;
 
-export type UpdateUPControllerAddressEventFilter =
-  TypedEventFilter<UpdateUPControllerAddressEvent>;
+export type UpdateRebalancerAddressEventFilter =
+  TypedEventFilter<UpdateRebalancerAddressEvent>;
 
 export interface UPbnb extends BaseContract {
   connect(signerOrProvider: Signer | Provider | string): this;
@@ -614,12 +614,6 @@ export interface UPbnb extends BaseContract {
     ): Promise<ContractTransaction>;
 
     controllerAddress(overrides?: CallOverrides): Promise<[string]>;
-
-    controllerMint(
-      to: string,
-      amount: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<ContractTransaction>;
 
     darbiAddress(overrides?: CallOverrides): Promise<[string]>;
 
@@ -689,6 +683,14 @@ export interface UPbnb extends BaseContract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
+    rebalancerAddress(overrides?: CallOverrides): Promise<[string]>;
+
+    rebalancerMint(
+      to: string,
+      amount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<ContractTransaction>;
+
     renounceRole(
       role: BytesLike,
       account: string,
@@ -725,8 +727,6 @@ export interface UPbnb extends BaseContract {
 
     upBorrowed(overrides?: CallOverrides): Promise<[BigNumber]>;
 
-    upControllerAddress(overrides?: CallOverrides): Promise<[string]>;
-
     updateControllerAddress(
       _newController: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -737,8 +737,8 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
 
-    updateUPControllerAddress(
-      _newUPController: string,
+    updateRebalancerAddress(
+      _newRebalancer: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<ContractTransaction>;
   };
@@ -780,12 +780,6 @@ export interface UPbnb extends BaseContract {
   ): Promise<ContractTransaction>;
 
   controllerAddress(overrides?: CallOverrides): Promise<string>;
-
-  controllerMint(
-    to: string,
-    amount: BigNumberish,
-    overrides?: PayableOverrides & { from?: string | Promise<string> }
-  ): Promise<ContractTransaction>;
 
   darbiAddress(overrides?: CallOverrides): Promise<string>;
 
@@ -855,6 +849,14 @@ export interface UPbnb extends BaseContract {
     overrides?: PayableOverrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
+  rebalancerAddress(overrides?: CallOverrides): Promise<string>;
+
+  rebalancerMint(
+    to: string,
+    amount: BigNumberish,
+    overrides?: PayableOverrides & { from?: string | Promise<string> }
+  ): Promise<ContractTransaction>;
+
   renounceRole(
     role: BytesLike,
     account: string,
@@ -891,8 +893,6 @@ export interface UPbnb extends BaseContract {
 
   upBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
-  upControllerAddress(overrides?: CallOverrides): Promise<string>;
-
   updateControllerAddress(
     _newController: string,
     overrides?: Overrides & { from?: string | Promise<string> }
@@ -903,8 +903,8 @@ export interface UPbnb extends BaseContract {
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
-  updateUPControllerAddress(
-    _newUPController: string,
+  updateRebalancerAddress(
+    _newRebalancer: string,
     overrides?: Overrides & { from?: string | Promise<string> }
   ): Promise<ContractTransaction>;
 
@@ -943,12 +943,6 @@ export interface UPbnb extends BaseContract {
     ): Promise<void>;
 
     controllerAddress(overrides?: CallOverrides): Promise<string>;
-
-    controllerMint(
-      to: string,
-      amount: BigNumberish,
-      overrides?: CallOverrides
-    ): Promise<void>;
 
     darbiAddress(overrides?: CallOverrides): Promise<string>;
 
@@ -1015,6 +1009,14 @@ export interface UPbnb extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
+    rebalancerAddress(overrides?: CallOverrides): Promise<string>;
+
+    rebalancerMint(
+      to: string,
+      amount: BigNumberish,
+      overrides?: CallOverrides
+    ): Promise<void>;
+
     renounceRole(
       role: BytesLike,
       account: string,
@@ -1051,8 +1053,6 @@ export interface UPbnb extends BaseContract {
 
     upBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
-    upControllerAddress(overrides?: CallOverrides): Promise<string>;
-
     updateControllerAddress(
       _newController: string,
       overrides?: CallOverrides
@@ -1063,8 +1063,8 @@ export interface UPbnb extends BaseContract {
       overrides?: CallOverrides
     ): Promise<void>;
 
-    updateUPControllerAddress(
-      _newUPController: string,
+    updateRebalancerAddress(
+      _newRebalancer: string,
       overrides?: CallOverrides
     ): Promise<void>;
   };
@@ -1158,12 +1158,12 @@ export interface UPbnb extends BaseContract {
     "UpdateMintRate(uint256)"(_amount?: null): UpdateMintRateEventFilter;
     UpdateMintRate(_amount?: null): UpdateMintRateEventFilter;
 
-    "UpdateUPControllerAddress(address)"(
-      _newUPController?: null
-    ): UpdateUPControllerAddressEventFilter;
-    UpdateUPControllerAddress(
-      _newUPController?: null
-    ): UpdateUPControllerAddressEventFilter;
+    "UpdateRebalancerAddress(address)"(
+      _newRebalancer?: null
+    ): UpdateRebalancerAddressEventFilter;
+    UpdateRebalancerAddress(
+      _newRebalancer?: null
+    ): UpdateRebalancerAddressEventFilter;
   };
 
   estimateGas: {
@@ -1204,12 +1204,6 @@ export interface UPbnb extends BaseContract {
     ): Promise<BigNumber>;
 
     controllerAddress(overrides?: CallOverrides): Promise<BigNumber>;
-
-    controllerMint(
-      to: string,
-      amount: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<BigNumber>;
 
     darbiAddress(overrides?: CallOverrides): Promise<BigNumber>;
 
@@ -1282,6 +1276,14 @@ export interface UPbnb extends BaseContract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
+    rebalancerAddress(overrides?: CallOverrides): Promise<BigNumber>;
+
+    rebalancerMint(
+      to: string,
+      amount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<BigNumber>;
+
     renounceRole(
       role: BytesLike,
       account: string,
@@ -1318,8 +1320,6 @@ export interface UPbnb extends BaseContract {
 
     upBorrowed(overrides?: CallOverrides): Promise<BigNumber>;
 
-    upControllerAddress(overrides?: CallOverrides): Promise<BigNumber>;
-
     updateControllerAddress(
       _newController: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1330,8 +1330,8 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
 
-    updateUPControllerAddress(
-      _newUPController: string,
+    updateRebalancerAddress(
+      _newRebalancer: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<BigNumber>;
   };
@@ -1379,12 +1379,6 @@ export interface UPbnb extends BaseContract {
     ): Promise<PopulatedTransaction>;
 
     controllerAddress(overrides?: CallOverrides): Promise<PopulatedTransaction>;
-
-    controllerMint(
-      to: string,
-      amount: BigNumberish,
-      overrides?: PayableOverrides & { from?: string | Promise<string> }
-    ): Promise<PopulatedTransaction>;
 
     darbiAddress(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
@@ -1457,6 +1451,14 @@ export interface UPbnb extends BaseContract {
       overrides?: PayableOverrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
+    rebalancerAddress(overrides?: CallOverrides): Promise<PopulatedTransaction>;
+
+    rebalancerMint(
+      to: string,
+      amount: BigNumberish,
+      overrides?: PayableOverrides & { from?: string | Promise<string> }
+    ): Promise<PopulatedTransaction>;
+
     renounceRole(
       role: BytesLike,
       account: string,
@@ -1493,10 +1495,6 @@ export interface UPbnb extends BaseContract {
 
     upBorrowed(overrides?: CallOverrides): Promise<PopulatedTransaction>;
 
-    upControllerAddress(
-      overrides?: CallOverrides
-    ): Promise<PopulatedTransaction>;
-
     updateControllerAddress(
       _newController: string,
       overrides?: Overrides & { from?: string | Promise<string> }
@@ -1507,8 +1505,8 @@ export interface UPbnb extends BaseContract {
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
 
-    updateUPControllerAddress(
-      _newUPController: string,
+    updateRebalancerAddress(
+      _newRebalancer: string,
       overrides?: Overrides & { from?: string | Promise<string> }
     ): Promise<PopulatedTransaction>;
   };
