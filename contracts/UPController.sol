@@ -94,8 +94,7 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
    * @param _mintRate - mint rate in percent terms, _mintRate = 5 = 5%.
    */
   function setMintRate(uint256 _mintRate) public onlyOwner {
-    require(_mintRate >= 0);
-    require(_mintRate <= 100);
+    require(_mintRate <= 100, "MINT_RATE_GT_100");
     mintRate = _mintRate;
     emit NewMintRate(_mintRate);
   }
