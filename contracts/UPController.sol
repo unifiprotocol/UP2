@@ -4,7 +4,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./UP.sol";
-import "./Safe.sol";
+import "./Helpers/Safe.sol";
 
 contract UPController is Ownable, Safe {
   address public UP_TOKEN = address(0);

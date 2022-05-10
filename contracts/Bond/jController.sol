@@ -2,11 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "../Helpers/Safe.sol";
 
-contract jController is Ownable {
-  using SafeERC20 for IERC20;
-
+contract jController is Ownable, Safe {
   address public WETH = address(0);
   address public UP = address(0);
   address public liquidityPool = address(0);
@@ -39,11 +37,8 @@ contract jController is Ownable {
     liquidityPool = newAddress;
   }
 
-  // SAFETY
   function withdrawFunds(address target) public onlyOwner returns (bool) {
-    (bool sent, ) = address(target).call{value: address(this).balance}("");
-    require(sent, "Failed to send Ether");
-    return sent;
+    return _withdrawFunds(target);
   }
 
   function withdrawFundsERC20(address target, address tokenAddress)
@@ -51,8 +46,6 @@ contract jController is Ownable {
     onlyOwner
     returns (bool)
   {
-    IERC20 token = IERC20(tokenAddress);
-    token.safeTransferFrom(address(this), target, token.balanceOf(address(this)));
-    return true;
+    return _withdrawFundsERC20(target, tokenAddress);
   }
 }
