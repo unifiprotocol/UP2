@@ -10,11 +10,18 @@ contract UPController is Ownable, Safe {
   address public UP_TOKEN = address(0);
   uint256 public nativeBorrowed = 0;
   uint256 public upBorrowed = 0;
-  uint256 public mintRate = 5;
+  uint256 public mintRate = 0;
 
-  constructor(address _UP) {
+  event PremiumMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
+  event SyntheticMint(address indexed _from, uint256 _amount, uint256 _newUpBorrowed);
+  event BorrowNative(address indexed _from, uint256 _amount, uint256 _newNativeBorrowed);
+  event NewMintRate(uint256 _newMintRate);
+  event Repay(uint256 _nativeAmount, uint256 _upAmount);
+
+  constructor(address _UP, uint256 _mintRate) {
     require(_UP != address(0), "Invalid UP address");
     UP_TOKEN = _UP;
+    setMintRate(_mintRate);
   }
 
   fallback() external payable {}
@@ -38,12 +45,23 @@ contract UPController is Ownable, Safe {
     nativeBorrowed += _borrowAmount;
     (bool success, ) = _to.call{value: _borrowAmount}("");
     require(success, "BORROW_NATIVE_FAILED");
+    emit BorrowNative(_to, _borrowAmount, nativeBorrowed);
     return success;
   }
 
   function borrowUP(uint256 _borrowAmount, address _to) public onlyOwner returns (bool) {
     upBorrowed += _borrowAmount;
     UP(UP_TOKEN).mint(_to, _borrowAmount);
+    emit SyntheticMint(msg.sender, _borrowAmount, upBorrowed);
+    return true;
+  }
+
+  // TODO: ARE THE SAME?????
+
+  function mintSyntheticUP(uint256 _mintAmount) public onlyOwner returns (bool) {
+    upBorrowed += _mintAmount;
+    UP(UP_TOKEN).mint(msg.sender, _mintAmount);
+    emit SyntheticMint(msg.sender, _mintAmount, upBorrowed);
     return true;
   }
 
@@ -53,12 +71,7 @@ contract UPController is Ownable, Safe {
     UP(UP_TOKEN).transferFrom(msg.sender, address(this), upAmount);
     upBorrowed -= upAmount;
     nativeBorrowed -= msg.value;
-  }
-
-  function mintSyntheticUP(uint256 _mintAmount) public onlyOwner returns (bool) {
-    upBorrowed += _mintAmount;
-    UP(UP_TOKEN).mint(msg.sender, _mintAmount);
-    return true;
+    emit Repay(msg.value, upAmount);
   }
 
   /**
@@ -68,8 +81,10 @@ contract UPController is Ownable, Safe {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     // TODO: VERY CAREFUL! DECIMALS CAN MESS EVERYTHING ASFGASFGHJAJS, BUT IT SHOULDN'T 🥲
     // TODO: SHOULD I GET THE PRICE FROM THE VIRTUAL PRICE OR FROM THE LP!?
-    uint256 mintAmount = (msg.value * getVirtualPrice()) - (getVirtualPrice() * (mintRate / 100));
+    uint256 currentPrice = getVirtualPrice();
+    uint256 mintAmount = (msg.value * currentPrice) - (currentPrice * (mintRate / 100));
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
+    emit PremiumMint(msg.sender, mintAmount, currentPrice, msg.value);
     return true;
   }
 
@@ -80,6 +95,7 @@ contract UPController is Ownable, Safe {
     require(_mintRate >= 0);
     require(_mintRate <= 100);
     mintRate = _mintRate;
+    emit NewMintRate(_mintRate);
   }
 
   function withdrawFunds(address target) public onlyOwner returns (bool) {
