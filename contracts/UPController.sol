@@ -13,8 +13,8 @@ contract UPController is Ownable, Safe {
   uint256 public mintRate = 0;
 
   event PremiumMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
-  event SyntheticMint(address indexed _from, uint256 _amount, uint256 _newUpBorrowed);
-  event BorrowNative(address indexed _from, uint256 _amount, uint256 _newNativeBorrowed);
+  event SyntheticMint(address _from, uint256 _amount, uint256 _newUpBorrowed);
+  event BorrowNative(address _from, uint256 _amount, uint256 _newNativeBorrowed);
   event NewMintRate(uint256 _newMintRate);
   event Repay(uint256 _nativeAmount, uint256 _upAmount);
 
