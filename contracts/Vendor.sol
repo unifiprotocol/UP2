@@ -13,6 +13,8 @@ contract Vendor is ReentrancyGuard, Pausable, Ownable {
   address OLD_UP = address(0);
   address UP = address(0);
 
+  event Swap(address _from, uint256 _amount);
+
   constructor(address oldUp, address newUp) {
     OLD_UP = oldUp;
     UP = newUp;
@@ -25,6 +27,8 @@ contract Vendor is ReentrancyGuard, Pausable, Ownable {
 
     IERC20 up = IERC20(UP);
     up.safeTransferFrom(address(this), msg.sender, _amount);
+
+    emit Swap(msg.sender, _amount);
   }
 
   function balance() public view returns (uint256) {
