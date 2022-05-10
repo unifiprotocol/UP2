@@ -3,10 +3,12 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UP.sol";
 import "./Helpers/Safe.sol";
 
-contract UPController is Ownable, Safe {
+contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
   address public UP_TOKEN = address(0);
   uint256 public nativeBorrowed = 0;
   uint256 public upBorrowed = 0;
@@ -77,7 +79,7 @@ contract UPController is Ownable, Safe {
   /**
    * @dev Mints UP token at premium rates (virtualPrice - PREMIUM_RATE_%).
    */
-  function mintUP() public payable returns (bool) {
+  function mintUP() public payable nonReentrant whenNotPaused returns (bool) {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     // TODO: VERY CAREFUL! DECIMALS CAN MESS EVERYTHING ASFGASFGHJAJS, BUT IT SHOULDN'T 🥲
     // TODO: SHOULD I GET THE PRICE FROM THE VIRTUAL PRICE OR FROM THE LP!?
@@ -96,6 +98,14 @@ contract UPController is Ownable, Safe {
     require(_mintRate <= 100);
     mintRate = _mintRate;
     emit NewMintRate(_mintRate);
+  }
+
+  function pause() public onlyOwner {
+    _pause();
+  }
+
+  function unpause() public onlyOwner {
+    _pause();
   }
 
   function withdrawFunds(address target) public onlyOwner returns (bool) {
