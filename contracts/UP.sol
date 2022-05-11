@@ -20,6 +20,7 @@ contract UP is ERC20, AccessControl {
 
   function burn(uint256 amount) public {
     _burn(_msgSender(), amount);
+    totalBurnt += amount;
   }
 
   function burnFrom(address account, uint256 amount) public {
