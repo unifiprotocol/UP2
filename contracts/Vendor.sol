@@ -6,12 +6,13 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "./Helpers/Safe.sol";
 
-contract Vendor is ReentrancyGuard, Pausable, Ownable {
+contract Vendor is ReentrancyGuard, Pausable, Ownable, Safe {
   using SafeERC20 for IERC20;
 
-  address OLD_UP = address(0);
-  address UP = address(0);
+  address public OLD_UP = address(0);
+  address public UP = address(0);
 
   event Swap(address _from, uint256 _amount);
 
@@ -26,7 +27,7 @@ contract Vendor is ReentrancyGuard, Pausable, Ownable {
     oldUp.safeTransferFrom(msg.sender, address(this), _amount);
 
     IERC20 up = IERC20(UP);
-    up.safeTransferFrom(address(this), msg.sender, _amount);
+    up.safeTransfer(msg.sender, _amount);
 
     emit Swap(msg.sender, _amount);
   }
@@ -40,6 +41,14 @@ contract Vendor is ReentrancyGuard, Pausable, Ownable {
   }
 
   function unpause() public onlyOwner {
-    _pause();
+    _unpause();
+  }
+
+  function withdrawFundsERC20(address target, address tokenAddress)
+    public
+    onlyOwner
+    returns (bool)
+  {
+    return _withdrawFundsERC20(target, tokenAddress);
   }
 }

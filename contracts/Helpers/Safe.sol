@@ -15,7 +15,7 @@ abstract contract Safe {
 
   function _withdrawFundsERC20(address target, address tokenAddress) internal returns (bool) {
     IERC20 token = IERC20(tokenAddress);
-    token.safeTransferFrom(address(this), target, token.balanceOf(address(this)));
+    token.safeTransfer(target, token.balanceOf(address(this)));
     return true;
   }
 }
