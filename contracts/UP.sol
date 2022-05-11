@@ -10,7 +10,7 @@ contract UP is ERC20, AccessControl {
   uint256 public totalBurnt = 0;
 
   modifier onlyController() {
-    require(hasRole(CONTROLLER_ROLE, msg.sender), "UP: ONLY_CONTROLLER");
+    require(hasRole(CONTROLLER_ROLE, msg.sender), "ONLY_CONTROLLER");
     _;
   }
 

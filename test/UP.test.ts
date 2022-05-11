@@ -34,11 +34,13 @@ describe("UPv2", function () {
 
   describe("Mint/Burn", () => {
     let upTokenAddr2: UP
+    let addr1: SignerWithAddress
     let addr2: SignerWithAddress
 
     beforeEach(async () => {
-      const [, a2] = await ethers.getSigners()
+      const [a1, a2] = await ethers.getSigners()
       upTokenAddr2 = upToken.connect(a2)
+      addr1 = a1
       addr2 = a2
     })
 
@@ -50,10 +52,20 @@ describe("UPv2", function () {
       expect(await upTokenAddr2.balanceOf(addr2.address)).equal(ethers.constants.WeiPerEther)
     })
 
+    it("Should mint 1 UP and transfer it", async () => {
+      const controllerRoleNS = await upToken.CONTROLLER_ROLE()
+      await upToken.grantRole(controllerRoleNS, addr2.address)
+      await upTokenAddr2.mint(addr2.address, ethers.constants.WeiPerEther)
+      await upTokenAddr2.transfer(addr1.address, ethers.constants.WeiPerEther)
+      expect(await upTokenAddr2.balanceOf(addr1.address)).equal(ethers.constants.WeiPerEther)
+      expect(await upTokenAddr2.balanceOf(addr2.address)).equal(0)
+    })
+
     it("Should mint 1 UP and burn it", async () => {
       const controllerRoleNS = await upToken.CONTROLLER_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
       await upTokenAddr2.mint(addr2.address, ethers.constants.WeiPerEther)
+      expect(await upTokenAddr2.totalSupply()).equal(ethers.constants.WeiPerEther)
       await upTokenAddr2.burn(ethers.constants.WeiPerEther)
       expect(await upTokenAddr2.totalSupply()).equal(0)
       expect(await upTokenAddr2.totalBurnt()).equal(ethers.constants.WeiPerEther)
@@ -65,6 +77,9 @@ describe("UPv2", function () {
       await upToken.grantRole(controllerRoleNS, addr2.address)
       await upTokenAddr2.mint(addr2.address, ethers.constants.WeiPerEther)
       await upTokenAddr2.approve(addr2.address, ethers.constants.WeiPerEther)
+      expect(await upTokenAddr2.allowance(addr2.address, addr2.address)).equal(
+        ethers.constants.WeiPerEther
+      )
       await upTokenAddr2.burnFrom(addr2.address, ethers.constants.WeiPerEther)
       expect(await upTokenAddr2.totalSupply()).equal(0)
       expect(await upTokenAddr2.totalBurnt()).equal(ethers.constants.WeiPerEther)
@@ -102,13 +117,13 @@ describe("UPv2", function () {
 
     it("ADMIN_ROLE shouldn't be able to mint tokens", async () => {
       const [, addr2] = await ethers.getSigners()
-      await expect(upToken.mint(addr2.address, 1)).revertedWith("UP: ONLY_CONTROLLER")
+      await expect(upToken.mint(addr2.address, 1)).revertedWith("ONLY_CONTROLLER")
     })
 
     it("3rd party shouldn't be able to mint tokens", async () => {
       const [, , addr3] = await ethers.getSigners()
       const upAddr3 = upToken.connect(addr3)
-      await expect(upAddr3.mint(addr3.address, 1)).revertedWith("UP: ONLY_CONTROLLER")
+      await expect(upAddr3.mint(addr3.address, 1)).revertedWith("ONLY_CONTROLLER")
     })
   })
 })
