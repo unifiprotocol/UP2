@@ -31,7 +31,7 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
   receive() external payable {}
 
   function getVirtualPrice() public view returns (uint256) {
-    return getNativeBalance() / (UP(UP_TOKEN).totalSupply() - upBorrowed);
+    return (UP(UP_TOKEN).totalSupply() - upBorrowed) / getNativeBalance();
   }
 
   function getNativeBalance() public view returns (uint256) {
