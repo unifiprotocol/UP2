@@ -59,25 +59,23 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
     return success;
   }
 
-  function borrowUP(uint256 _borrowAmount, address _to) public onlyOwner returns (bool) {
+  function borrowUP(uint256 _borrowAmount, address _to) public onlyOwner {
     upBorrowed += _borrowAmount;
     UP(UP_TOKEN).mint(_to, _borrowAmount);
     emit SyntheticMint(msg.sender, _borrowAmount, upBorrowed);
-    return true;
   }
 
   // TODO: ARE THE SAME?????
 
-  function mintSyntheticUP(uint256 _mintAmount) public onlyOwner returns (bool) {
+  function mintSyntheticUP(uint256 _mintAmount) public onlyOwner {
     upBorrowed += _mintAmount;
     UP(UP_TOKEN).mint(msg.sender, _mintAmount);
     emit SyntheticMint(msg.sender, _mintAmount, upBorrowed);
-    return true;
   }
 
   function repay(uint256 upAmount) public payable onlyOwner {
-    require(upAmount <= upBorrowed, "UP_AMOUNT_GT_UP_BORROWED");
-    require(msg.value <= nativeBorrowed, "UP_AMOUNT_GT_UP_BORROWED");
+    require(upAmount <= upBorrowed, "UP_AMOUNT_GT_BORROWED");
+    require(msg.value <= nativeBorrowed, "NATIVE_AMOUNT_GT_BORROWED");
     UP(UP_TOKEN).transferFrom(msg.sender, address(this), upAmount);
     upBorrowed -= upAmount;
     nativeBorrowed -= msg.value;
