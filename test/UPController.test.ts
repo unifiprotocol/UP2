@@ -87,7 +87,7 @@ describe("UPController", function () {
     ).revertedWith("NOT_ENOUGH_BALANCE")
   })
 
-  it("Should mint up at premium rates #1", async () => {
+  it("Should mint UP at premium rates #1", async () => {
     await addr1.sendTransaction({
       to: upController.address,
       value: ethers.utils.parseEther("5")
@@ -97,7 +97,7 @@ describe("UPController", function () {
     expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("237.5"))
   })
 
-  it("Should mint up at premium rates #2", async () => {
+  it("Should mint UP at premium rates #2", async () => {
     await addr1.sendTransaction({
       to: upController.address,
       value: ethers.utils.parseEther("5")
@@ -107,7 +107,7 @@ describe("UPController", function () {
     expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("73.625"))
   })
 
-  it("Should mint up at premium rates #3", async () => {
+  it("Should mint UP at premium rates #3", async () => {
     await addr1.sendTransaction({
       to: upController.address,
       value: ethers.utils.parseEther("5")
@@ -117,7 +117,7 @@ describe("UPController", function () {
     expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("2928.375"))
   })
 
-  it("Should mint up at premium rates #4", async () => {
+  it("Should mint UP at premium rates #4", async () => {
     await addr1.sendTransaction({
       to: upController.address,
       value: ethers.utils.parseEther("5")
@@ -127,7 +127,7 @@ describe("UPController", function () {
     expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("2372.8625"))
   })
 
-  it("Should mint up at premium rates #5", async () => {
+  it("Should mint UP at premium rates #5", async () => {
     await network.provider.send("hardhat_setBalance", [
       addr1.address,
       ethers.utils.parseEther("99900").toHexString()
@@ -139,6 +139,15 @@ describe("UPController", function () {
     await upToken.mint(upController.address, ethers.utils.parseEther("2"))
     await upController.mintUP({ value: ethers.utils.parseEther("91132.42") })
     expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("216439.4975"))
+  })
+
+  it("Should fail minting UP because payable value is zero", async () => {
+    await expect(upController.mintUP({ value: 0 })).revertedWith("INVALID_PAYABLE_AMOUNT")
+  })
+
+  it("Should mint zero UP because virtual price is zero", async () => {
+    await upController.mintUP({ value: ethers.utils.parseEther("100") })
+    expect(await upToken.balanceOf(addr1.address)).equal(0)
   })
 
   it("Shouldn't mint up because contract is paused", async () => {

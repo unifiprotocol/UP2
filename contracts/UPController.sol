@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UP.sol";
 import "./Helpers/Safe.sol";
+import "hardhat/console.sol";
 
 contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
   address public UP_TOKEN = address(0);
@@ -36,7 +37,7 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
   }
 
   function getVirtualMintPrice(uint256 _depositedAmount) public view returns (uint256) {
-    if (getNativeBalance() == 0) return 0;
+    if (getNativeBalance() - _depositedAmount == 0) return 0;
     return (((getNativeBalance() - _depositedAmount) * 1e18) /
       (UP(UP_TOKEN).totalSupply() - upBorrowed));
   }
@@ -86,18 +87,18 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
   /**
    * @dev Mints UP token at premium rates (virtualPrice - PREMIUM_RATE_%).
    */
-  function mintUP() public payable nonReentrant whenNotPaused returns (bool) {
+  function mintUP() public payable nonReentrant whenNotPaused {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = getVirtualMintPrice(msg.value);
+    if (currentPrice == 0) return;
     uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
     uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
     emit PremiumMint(msg.sender, mintAmount, currentPrice, msg.value);
-    return true;
   }
 
   /**
-   * @param _mintRate - mint rate in percent terms, _mintRate = 5 = 5%.
+   * @param _mintRate - mint rate in percent texrms, _mintRate = 5 = 5%.
    */
   function setMintRate(uint256 _mintRate) public onlyOwner {
     require(_mintRate <= 100, "MINT_RATE_GT_100");
