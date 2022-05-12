@@ -31,7 +31,14 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
   receive() external payable {}
 
   function getVirtualPrice() public view returns (uint256) {
-    return (UP(UP_TOKEN).totalSupply() - upBorrowed) / getNativeBalance();
+    if (getNativeBalance() == 0) return 0;
+    return ((getNativeBalance() * 1e18) / (UP(UP_TOKEN).totalSupply() - upBorrowed));
+  }
+
+  function getVirtualMintPrice(uint256 _depositedAmount) public view returns (uint256) {
+    if (getNativeBalance() == 0) return 0;
+    return (((getNativeBalance() - _depositedAmount) * 1e18) /
+      (UP(UP_TOKEN).totalSupply() - upBorrowed));
   }
 
   function getNativeBalance() public view returns (uint256) {
@@ -44,8 +51,8 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
 
   function borrowNative(uint256 _borrowAmount, address _to) public onlyOwner returns (bool) {
     require(address(this).balance >= _borrowAmount, "NOT_ENOUGH_BALANCE");
-    nativeBorrowed += _borrowAmount;
     (bool success, ) = _to.call{value: _borrowAmount}("");
+    nativeBorrowed += _borrowAmount;
     require(success, "BORROW_NATIVE_FAILED");
     emit BorrowNative(_to, _borrowAmount, nativeBorrowed);
     return success;
@@ -81,10 +88,9 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
    */
   function mintUP() public payable nonReentrant whenNotPaused returns (bool) {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
-    // TODO: VERY CAREFUL! DECIMALS CAN MESS EVERYTHING ASFGASFGHJAJS, BUT IT SHOULDN'T 🥲
-    // TODO: SHOULD I GET THE PRICE FROM THE VIRTUAL PRICE OR FROM THE LP!?
-    uint256 currentPrice = getVirtualPrice();
-    uint256 mintAmount = (msg.value * currentPrice) - (currentPrice * (mintRate / 100));
+    uint256 currentPrice = getVirtualMintPrice(msg.value);
+    uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
+    uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
     emit PremiumMint(msg.sender, mintAmount, currentPrice, msg.value);
     return true;
@@ -104,7 +110,7 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
   }
 
   function unpause() public onlyOwner {
-    _pause();
+    _unpause();
   }
 
   function withdrawFunds(address target) public onlyOwner returns (bool) {
