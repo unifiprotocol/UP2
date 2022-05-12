@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract UP is ERC20, AccessControl {
   bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
-  uint256 public totalBurnt = 0;
 
   modifier onlyController() {
     require(hasRole(CONTROLLER_ROLE, msg.sender), "ONLY_CONTROLLER");
@@ -20,13 +19,11 @@ contract UP is ERC20, AccessControl {
 
   function burn(uint256 amount) public {
     _burn(_msgSender(), amount);
-    totalBurnt += amount;
   }
 
   function burnFrom(address account, uint256 amount) public {
     _spendAllowance(account, _msgSender(), amount);
     _burn(account, amount);
-    totalBurnt += amount;
   }
 
   function justBurn(uint256 amount) external {

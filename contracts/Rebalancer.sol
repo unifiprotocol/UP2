@@ -2,9 +2,9 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "../Helpers/Safe.sol";
+import "./Helpers/Safe.sol";
 
-contract jController is Ownable, Safe {
+contract Rebalancer is Ownable, Safe {
   address public WETH = address(0);
   address public UP = address(0);
   address public liquidityPool = address(0);

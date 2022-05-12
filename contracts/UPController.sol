@@ -65,12 +65,8 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
     emit SyntheticMint(msg.sender, _borrowAmount, upBorrowed);
   }
 
-  // TODO: ARE THE SAME?????
-
-  function mintSyntheticUP(uint256 _mintAmount) public onlyOwner {
-    upBorrowed += _mintAmount;
-    UP(UP_TOKEN).mint(msg.sender, _mintAmount);
-    emit SyntheticMint(msg.sender, _mintAmount, upBorrowed);
+  function mintSyntheticUP(uint256 _mintAmount, address _to) public onlyOwner {
+    borrowUP(_mintAmount, _to);
   }
 
   function repay(uint256 upAmount) public payable onlyOwner {
@@ -82,27 +78,30 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
     emit Repay(msg.value, upAmount);
   }
 
+  // redeem = you UP tokens, you get back Native tokens, where price is getVirtualPrice()
+  // ONLY DARBI
+
   /**
    * @dev Mints UP token at premium rates (virtualPrice - PREMIUM_RATE_%).
    */
-  function mintUP() public payable nonReentrant whenNotPaused {
-    require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
-    uint256 currentPrice = getVirtualMintPrice(msg.value);
-    if (currentPrice == 0) return;
-    uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
-    uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
-    UP(UP_TOKEN).mint(msg.sender, mintAmount);
-    emit PremiumMint(msg.sender, mintAmount, currentPrice, msg.value);
-  }
+  // function mintUP() public payable nonReentrant whenNotPaused {
+  //   require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
+  //   uint256 currentPrice = getVirtualMintPrice(msg.value);
+  //   if (currentPrice == 0) return;
+  //   uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
+  //   uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
+  //   UP(UP_TOKEN).mint(msg.sender, mintAmount);
+  //   emit PremiumMint(msg.sender, mintAmount, currentPrice, msg.value);
+  // }
 
-  /**
-   * @param _mintRate - mint rate in percent texrms, _mintRate = 5 = 5%.
-   */
-  function setMintRate(uint256 _mintRate) public onlyOwner {
-    require(_mintRate <= 100, "MINT_RATE_GT_100");
-    mintRate = _mintRate;
-    emit NewMintRate(_mintRate);
-  }
+  // /**
+  //  * @param _mintRate - mint rate in percent texrms, _mintRate = 5 = 5%.
+  //  */
+  // function setMintRate(uint256 _mintRate) public onlyOwner {
+  //   require(_mintRate <= 100, "MINT_RATE_GT_100");
+  //   mintRate = _mintRate;
+  //   emit NewMintRate(_mintRate);
+  // }
 
   function pause() public onlyOwner {
     _pause();
