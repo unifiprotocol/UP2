@@ -29,6 +29,10 @@ contract UP is ERC20, AccessControl {
     totalBurnt += amount;
   }
 
+  function justBurn(uint256 amount) external {
+    burn(amount);
+  }
+
   function mint(address account, uint256 amount) public onlyController {
     _mint(account, amount);
   }
