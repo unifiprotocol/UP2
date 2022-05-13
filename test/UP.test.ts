@@ -20,7 +20,6 @@ describe("UPv2", function () {
     const symbol = await upToken.symbol()
     const decimals = await upToken.decimals()
     const totalSupply = await upToken.totalSupply()
-    const totalBurn = await upToken.totalBurnt()
 
     const adminRoleNS = await upToken.DEFAULT_ADMIN_ROLE()
 
@@ -28,7 +27,6 @@ describe("UPv2", function () {
     expect(symbol).equal("UP")
     expect(decimals).equal(18)
     expect(totalSupply).equal(0)
-    expect(totalBurn).equal(0)
     expect(await upToken.hasRole(adminRoleNS, addr1.address)).equal(true)
   })
 
@@ -68,7 +66,6 @@ describe("UPv2", function () {
       expect(await upTokenAddr2.totalSupply()).equal(ethers.constants.WeiPerEther)
       await upTokenAddr2.burn(ethers.constants.WeiPerEther)
       expect(await upTokenAddr2.totalSupply()).equal(0)
-      expect(await upTokenAddr2.totalBurnt()).equal(ethers.constants.WeiPerEther)
       expect(await upTokenAddr2.balanceOf(addr2.address)).equal(0)
     })
 
@@ -82,7 +79,6 @@ describe("UPv2", function () {
       )
       await upTokenAddr2.burnFrom(addr2.address, ethers.constants.WeiPerEther)
       expect(await upTokenAddr2.totalSupply()).equal(0)
-      expect(await upTokenAddr2.totalBurnt()).equal(ethers.constants.WeiPerEther)
       expect(await upTokenAddr2.allowance(addr2.address, addr2.address)).equal(0)
       expect(await upTokenAddr2.balanceOf(addr2.address)).equal(0)
     })

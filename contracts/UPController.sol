@@ -2,29 +2,43 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UP.sol";
 import "./Helpers/Safe.sol";
 import "hardhat/console.sol";
 
-contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
+contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
+  bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
+
   address public UP_TOKEN = address(0);
   uint256 public nativeBorrowed = 0;
   uint256 public upBorrowed = 0;
-  uint256 public mintRate = 0;
+  // uint256 public mintRate = 0;
 
   event PremiumMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
   event SyntheticMint(address _from, uint256 _amount, uint256 _newUpBorrowed);
   event BorrowNative(address _from, uint256 _amount, uint256 _newNativeBorrowed);
   event NewMintRate(uint256 _newMintRate);
   event Repay(uint256 _nativeAmount, uint256 _upAmount);
+  event Redeem(uint256 _upAmount, uint256 _redeemAmount);
 
-  constructor(address _UP, uint256 _mintRate) {
+  modifier onlyRebalancer() {
+    require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
+    _;
+  }
+
+  modifier onlyAdmin() {
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    _;
+  }
+
+  constructor(address _UP) {
     require(_UP != address(0), "Invalid UP address");
     UP_TOKEN = _UP;
-    setMintRate(_mintRate);
+    _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    // setMintRate(_mintRate);
   }
 
   fallback() external payable {}
@@ -36,11 +50,11 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
     return ((getNativeBalance() * 1e18) / (UP(UP_TOKEN).totalSupply() - upBorrowed));
   }
 
-  function getVirtualMintPrice(uint256 _depositedAmount) public view returns (uint256) {
-    if (getNativeBalance() - _depositedAmount == 0) return 0;
-    return (((getNativeBalance() - _depositedAmount) * 1e18) /
-      (UP(UP_TOKEN).totalSupply() - upBorrowed));
-  }
+  // function getVirtualMintPrice(uint256 _depositedAmount) public view returns (uint256) {
+  //   if (getNativeBalance() - _depositedAmount == 0) return 0;
+  //   return (((getNativeBalance() - _depositedAmount) * 1e18) /
+  //     (UP(UP_TOKEN).totalSupply() - upBorrowed));
+  // }
 
   function getNativeBalance() public view returns (uint256) {
     return address(this).balance + nativeBorrowed;
@@ -50,26 +64,25 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
     return UP(UP_TOKEN).totalSupply() - upBorrowed;
   }
 
-  function borrowNative(uint256 _borrowAmount, address _to) public onlyOwner returns (bool) {
+  function borrowNative(uint256 _borrowAmount, address _to) public onlyRebalancer {
     require(address(this).balance >= _borrowAmount, "NOT_ENOUGH_BALANCE");
     (bool success, ) = _to.call{value: _borrowAmount}("");
     nativeBorrowed += _borrowAmount;
     require(success, "BORROW_NATIVE_FAILED");
     emit BorrowNative(_to, _borrowAmount, nativeBorrowed);
-    return success;
   }
 
-  function borrowUP(uint256 _borrowAmount, address _to) public onlyOwner {
+  function borrowUP(uint256 _borrowAmount, address _to) public onlyRebalancer {
     upBorrowed += _borrowAmount;
     UP(UP_TOKEN).mint(_to, _borrowAmount);
     emit SyntheticMint(msg.sender, _borrowAmount, upBorrowed);
   }
 
-  function mintSyntheticUP(uint256 _mintAmount, address _to) public onlyOwner {
+  function mintSyntheticUP(uint256 _mintAmount, address _to) public onlyRebalancer {
     borrowUP(_mintAmount, _to);
   }
 
-  function repay(uint256 upAmount) public payable onlyOwner {
+  function repay(uint256 upAmount) public payable onlyRebalancer {
     require(upAmount <= upBorrowed, "UP_AMOUNT_GT_BORROWED");
     require(msg.value <= nativeBorrowed, "NATIVE_AMOUNT_GT_BORROWED");
     UP(UP_TOKEN).transferFrom(msg.sender, address(this), upAmount);
@@ -78,8 +91,13 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
     emit Repay(msg.value, upAmount);
   }
 
-  // redeem = you UP tokens, you get back Native tokens, where price is getVirtualPrice()
-  // ONLY DARBI
+  function redeem(uint256 upAmount) public onlyRebalancer {
+    require(upAmount > 0, "AMOUNT_EQ_0");
+    uint256 redeemAmount = (getVirtualPrice() * upAmount) / 1e18;
+    (bool success, ) = msg.sender.call{value: redeemAmount}("");
+    require(success, "REDEEM_FAILED");
+    emit Redeem(upAmount, redeemAmount);
+  }
 
   /**
    * @dev Mints UP token at premium rates (virtualPrice - PREMIUM_RATE_%).
@@ -103,21 +121,21 @@ contract UPController is Ownable, Safe, Pausable, ReentrancyGuard {
   //   emit NewMintRate(_mintRate);
   // }
 
-  function pause() public onlyOwner {
+  function pause() public onlyAdmin {
     _pause();
   }
 
-  function unpause() public onlyOwner {
+  function unpause() public onlyAdmin {
     _unpause();
   }
 
-  function withdrawFunds(address target) public onlyOwner returns (bool) {
+  function withdrawFunds(address target) public onlyAdmin returns (bool) {
     return _withdrawFunds(target);
   }
 
   function withdrawFundsERC20(address target, address tokenAddress)
     public
-    onlyOwner
+    onlyAdmin
     returns (bool)
   {
     return _withdrawFundsERC20(target, tokenAddress);
