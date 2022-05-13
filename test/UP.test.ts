@@ -86,10 +86,12 @@ describe("UPv2", function () {
 
   describe("AccessControl", () => {
     it("Should grant CONTROLLER_ROLE", async () => {
-      const [, addr2] = await ethers.getSigners()
+      const [, addr2, addr3] = await ethers.getSigners()
       const controllerRoleNS = await upToken.CONTROLLER_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
+      await upToken.grantRole(controllerRoleNS, addr3.address)
       expect(await upToken.hasRole(controllerRoleNS, addr2.address)).equal(true)
+      expect(await upToken.hasRole(controllerRoleNS, addr3.address)).equal(true)
     })
 
     it("CONTROLLER_ROLE should be able to mint tokens", async () => {
