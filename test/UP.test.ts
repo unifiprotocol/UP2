@@ -43,7 +43,7 @@ describe("UPv2", function () {
     })
 
     it("Should mint 1 UP", async () => {
-      const controllerRoleNS = await upToken.CONTROLLER_ROLE()
+      const controllerRoleNS = await upToken.MINT_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
       await upTokenAddr2.mint(addr2.address, ethers.constants.WeiPerEther)
       expect(await upTokenAddr2.totalSupply()).equal(ethers.constants.WeiPerEther)
@@ -51,7 +51,7 @@ describe("UPv2", function () {
     })
 
     it("Should mint 1 UP and transfer it", async () => {
-      const controllerRoleNS = await upToken.CONTROLLER_ROLE()
+      const controllerRoleNS = await upToken.MINT_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
       await upTokenAddr2.mint(addr2.address, ethers.constants.WeiPerEther)
       await upTokenAddr2.transfer(addr1.address, ethers.constants.WeiPerEther)
@@ -60,7 +60,7 @@ describe("UPv2", function () {
     })
 
     it("Should mint 1 UP and burn it", async () => {
-      const controllerRoleNS = await upToken.CONTROLLER_ROLE()
+      const controllerRoleNS = await upToken.MINT_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
       await upTokenAddr2.mint(addr2.address, ethers.constants.WeiPerEther)
       expect(await upTokenAddr2.totalSupply()).equal(ethers.constants.WeiPerEther)
@@ -70,7 +70,7 @@ describe("UPv2", function () {
     })
 
     it("Should mint 1 UP and burn it using burnFrom", async () => {
-      const controllerRoleNS = await upToken.CONTROLLER_ROLE()
+      const controllerRoleNS = await upToken.MINT_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
       await upTokenAddr2.mint(addr2.address, ethers.constants.WeiPerEther)
       await upTokenAddr2.approve(addr2.address, ethers.constants.WeiPerEther)
@@ -85,18 +85,18 @@ describe("UPv2", function () {
   })
 
   describe("AccessControl", () => {
-    it("Should grant CONTROLLER_ROLE", async () => {
+    it("Should grant MINT_ROLE", async () => {
       const [, addr2, addr3] = await ethers.getSigners()
-      const controllerRoleNS = await upToken.CONTROLLER_ROLE()
+      const controllerRoleNS = await upToken.MINT_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
       await upToken.grantRole(controllerRoleNS, addr3.address)
       expect(await upToken.hasRole(controllerRoleNS, addr2.address)).equal(true)
       expect(await upToken.hasRole(controllerRoleNS, addr3.address)).equal(true)
     })
 
-    it("CONTROLLER_ROLE should be able to mint tokens", async () => {
+    it("MINT_ROLE should be able to mint tokens", async () => {
       const [, addr2] = await ethers.getSigners()
-      const controllerRoleNS = await upToken.CONTROLLER_ROLE()
+      const controllerRoleNS = await upToken.MINT_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
       const upAddr2 = upToken.connect(addr2)
       await upAddr2.mint(addr2.address, 1)
@@ -104,9 +104,9 @@ describe("UPv2", function () {
       expect(await upAddr2.balanceOf(addr2.address)).equal(1)
     })
 
-    it("CONTROLLER_ROLE account shouldn't be able to assing roles", async () => {
+    it("MINT_ROLE account shouldn't be able to assing roles", async () => {
       const [, addr2, addr3] = await ethers.getSigners()
-      const controllerRoleNS = await upToken.CONTROLLER_ROLE()
+      const controllerRoleNS = await upToken.MINT_ROLE()
       await upToken.grantRole(controllerRoleNS, addr2.address)
       const upAddr2 = upToken.connect(addr2)
       await expect(upAddr2.grantRole(controllerRoleNS, addr3.address)).to.be.reverted
@@ -115,13 +115,13 @@ describe("UPv2", function () {
 
     it("ADMIN_ROLE shouldn't be able to mint tokens", async () => {
       const [, addr2] = await ethers.getSigners()
-      await expect(upToken.mint(addr2.address, 1)).revertedWith("ONLY_CONTROLLER")
+      await expect(upToken.mint(addr2.address, 1)).revertedWith("ONLY_MINT")
     })
 
     it("3rd party shouldn't be able to mint tokens", async () => {
       const [, , addr3] = await ethers.getSigners()
       const upAddr3 = upToken.connect(addr3)
-      await expect(upAddr3.mint(addr3.address, 1)).revertedWith("ONLY_CONTROLLER")
+      await expect(upAddr3.mint(addr3.address, 1)).revertedWith("ONLY_MINT")
     })
   })
 })

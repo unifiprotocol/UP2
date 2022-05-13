@@ -26,8 +26,8 @@ describe("Vendor", function () {
       .then((factory) => factory.deploy(upToken1.address, upToken2.address))
       .then((instance) => instance.deployed())
 
-    const controllerRoleNS1 = await upToken1.CONTROLLER_ROLE()
-    const controllerRoleNS2 = await upToken2.CONTROLLER_ROLE()
+    const controllerRoleNS1 = await upToken1.MINT_ROLE()
+    const controllerRoleNS2 = await upToken2.MINT_ROLE()
     await upToken1.grantRole(controllerRoleNS1, addr1.address)
     await upToken2.grantRole(controllerRoleNS2, addr1.address)
   })

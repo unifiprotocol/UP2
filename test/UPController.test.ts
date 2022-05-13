@@ -15,12 +15,12 @@ describe("UPController", function () {
       .getContractFactory("UP")
       .then((factory) => factory.deploy())
       .then((instance) => instance.deployed())
-    await upToken.grantRole(await upToken.CONTROLLER_ROLE(), addr1.address)
+    await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
     upController = await ethers
       .getContractFactory("UPController")
       .then((factory) => factory.deploy(upToken.address))
       .then((instance) => instance.deployed())
-    await upToken.grantRole(await upToken.CONTROLLER_ROLE(), upController.address)
+    await upToken.grantRole(await upToken.MINT_ROLE(), upController.address)
     await upController.grantRole(await upController.REBALANCER_ROLE(), addr1.address)
   })
 

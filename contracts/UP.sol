@@ -6,10 +6,10 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract UP is ERC20, AccessControl {
-  bytes32 public constant CONTROLLER_ROLE = keccak256("CONTROLLER_ROLE");
+  bytes32 public constant MINT_ROLE = keccak256("MINT_ROLE");
 
-  modifier onlyController() {
-    require(hasRole(CONTROLLER_ROLE, msg.sender), "ONLY_CONTROLLER");
+  modifier onlyMint() {
+    require(hasRole(MINT_ROLE, msg.sender), "ONLY_MINT");
     _;
   }
 
@@ -30,7 +30,7 @@ contract UP is ERC20, AccessControl {
     burn(amount);
   }
 
-  function mint(address account, uint256 amount) public onlyController {
+  function mint(address account, uint256 amount) public onlyMint {
     _mint(account, amount);
   }
 }
