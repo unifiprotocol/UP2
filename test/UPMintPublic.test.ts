@@ -16,6 +16,7 @@ describe("UPMintPublic", () => {
       .getContractFactory("UP")
       .then((factory) => factory.deploy())
       .then((instance) => instance.deployed())
+    await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
     upController = await ethers
       .getContractFactory("UPController")
       .then((factory) => factory.deploy(upToken.address))
@@ -24,10 +25,10 @@ describe("UPMintPublic", () => {
       .getContractFactory("UPMintPublic")
       .then((factory) => factory.deploy(upToken.address, upController.address, 100))
       .then((instance) => instance.deployed())
+    // await upToken.grantRole(await upToken.MINT_ROLE(), UPMintPublic.address)
   })
 
   it('Should set a new "mintRate"', async () => {
-    const signerUpController = upMintPublic.connect(addr1)
     await upMintPublic.setMintRate(100)
     expect(await upMintPublic.mintRate()).equal(100)
   })
@@ -46,7 +47,13 @@ describe("UPMintPublic", () => {
       value: ethers.utils.parseEther("5")
     })
     await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
-    await upMintPublic.mintUP({ value: ethers.utils.parseEther("100") })
+    const userPublic = await upMintPublic.connect(addr1)
+    userPublic.mintUP({ value: ethers.utils.parseEther("5") })
+    const receipt = await addr1.sendTransaction({
+      to: upMintPublic.address,
+      value: ethers.utils.parseEther("5")
+    })
+    console.log(receipt)
     expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("237.5"))
   })
 

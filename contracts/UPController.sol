@@ -98,6 +98,8 @@ contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
     emit Redeem(upAmount, redeemAmount);
   }
 
+  //Where is the transfer on redeem?
+
   function pause() public onlyAdmin {
     _pause();
   }
