@@ -8,6 +8,10 @@ import "./UP.sol";
 import "./UPController.sol";
 import "./Helpers/Safe.sol";
 
+/// @title UP Public Mint 
+/// @author Daniel Blanco & A Fistful of Stray Cat Hair
+/// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
+
 contract UPMintPublic is Ownable, Pausable, Safe {
   uint256 public mintRate;
   address public UP_TOKEN = address(0);
@@ -28,6 +32,8 @@ contract UPMintPublic is Ownable, Pausable, Safe {
     setMintRate(_mintRate);
   }
 
+  /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
+  /// @param msg.value is the amount of native tokens to be minted. 
   function mintUP() public payable whenNotPaused {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
@@ -40,9 +46,8 @@ contract UPMintPublic is Ownable, Pausable, Safe {
     emit PublicMint(msg.sender, mintAmount, currentPrice, msg.value);
   }
 
-  /**
-   * @param _mintRate - mint rate in percent texrms, _mintRate = 5 = 5%.
-   */
+  ///@notice Permissioned function that sets the public rint of UP.
+  ///@param _mintRate - mint rate in percent texrms, _mintRate = 5 = 5%.
   function setMintRate(uint256 _mintRate) public onlyOwner {
     require(_mintRate <= 100, "MINT_RATE_GT_100");
     require(_mintRate > 0, "MINT_RATE_EQ_0");
@@ -50,24 +55,30 @@ contract UPMintPublic is Ownable, Pausable, Safe {
     emit NewPublicMintRate(_mintRate);
   }
 
+  ///@notice Permissioned function to update the address of the UP Controller
+  ///@param _upController - the address of the new UP Controller
   function updateController(address _upController) public onlyOwner {
     require(_upController != address(0), "INVALID_ADDRESS");
     UP_CONTROLLER = payable(_upController);
     emit UpdateController(_upController);
   }
 
+  ///@notice Permissioned function to pause public minting
   function pause() public onlyOwner {
     _pause();
   }
 
+  ///@notice Permissioned function to unpause public minting
   function unpause() public onlyOwner {
     _unpause();
   }
 
+  ///@notice Permissioned function to withdraw any native coins accidentally deposited to the Public Mint contract.
   function withdrawFunds(address target) public onlyOwner returns (bool) {
     return _withdrawFunds(target);
   }
 
+  ///@notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
   function withdrawFundsERC20(address target, address tokenAddress)
     public
     onlyOwner
