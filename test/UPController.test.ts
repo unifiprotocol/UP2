@@ -87,39 +87,40 @@ describe("UPController", function () {
       })
     })
 
-    describe("redeem", () => {
-      it("Should redeem UP by native tokens", async () => {
-        await addr1.sendTransaction({
-          to: upController.address,
-          value: ethers.utils.parseEther("5")
-        })
-        await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
-        await expect(upController.redeem(ethers.utils.parseEther("2")))
-          .to.emit(upController, "Redeem")
-          .withArgs(ethers.utils.parseEther("2"), ethers.utils.parseEther("5"))
-      })
+    // // Only DARBI can redeem!
+    // describe("redeem", () => {
+    //   it("Should redeem UP by native tokens", async () => {
+    //     await addr1.sendTransaction({
+    //       to: upController.address,
+    //       value: ethers.utils.parseEther("5")
+    //     })
+    //     await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
+    //     await expect(upController.redeem(ethers.utils.parseEther("2")))
+    //       .to.emit(upController, "Redeem")
+    //       .withArgs(ethers.utils.parseEther("2"), ethers.utils.parseEther("5"))
+    //   })
 
-      it("Should fail because redeem amount is zero", async () => {
-        await addr1.sendTransaction({
-          to: upController.address,
-          value: ethers.utils.parseEther("5")
-        })
-        await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
-        await expect(upController.redeem(ethers.utils.parseEther("0"))).revertedWith("AMOUNT_EQ_0")
-      })
+    //   it("Should fail because redeem amount is zero", async () => {
+    //     await addr1.sendTransaction({
+    //       to: upController.address,
+    //       value: ethers.utils.parseEther("5")
+    //     })
+    //     await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
+    //     await expect(upController.redeem(ethers.utils.parseEther("0"))).revertedWith("AMOUNT_EQ_0")
+    //   })
 
-      it("Should fail invoker is not REBALANCER_ROLE", async () => {
-        await addr1.sendTransaction({
-          to: upController.address,
-          value: ethers.utils.parseEther("5")
-        })
-        await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
-        await upController.revokeRole(await upController.REBALANCER_ROLE(), addr1.address)
-        await expect(upController.redeem(ethers.utils.parseEther("0"))).revertedWith(
-          "ONLY_REBALANCER"
-        )
-      })
-    })
+    //   it("Should fail invoker is not REBALANCER_ROLE", async () => {
+    //     await addr1.sendTransaction({
+    //       to: upController.address,
+    //       value: ethers.utils.parseEther("5")
+    //     })
+    //     await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
+    //     await upController.revokeRole(await upController.REBALANCER_ROLE(), addr1.address)
+    //     await expect(upController.redeem(ethers.utils.parseEther("0"))).revertedWith(
+    //       "ONLY_REBALANCER"
+    //     )
+    //   })
+    // })
 
     describe("borrowUP", () => {
       it("Should borrow UP funds and update upBorrowed", async () => {

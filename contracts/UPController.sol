@@ -11,16 +11,15 @@ import "hardhat/console.sol";
 
 contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
+  bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
 
   address public UP_TOKEN = address(0);
   uint256 public nativeBorrowed = 0;
   uint256 public upBorrowed = 0;
-  // uint256 public mintRate = 0;
 
-  event PremiumMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
+  // event PremiumMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
   event SyntheticMint(address _from, uint256 _amount, uint256 _newUpBorrowed);
   event BorrowNative(address _from, uint256 _amount, uint256 _newNativeBorrowed);
-  event NewMintRate(uint256 _newMintRate);
   event Repay(uint256 _nativeAmount, uint256 _upAmount);
   event Redeem(uint256 _upAmount, uint256 _redeemAmount);
 
@@ -31,6 +30,11 @@ contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    _;
+  }
+
+  modifier onlyDarbi() {
+    require(hasRole(DARBI_ROLE, msg.sender), "ONLY_DARBI");
     _;
   }
 
@@ -50,11 +54,6 @@ contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
     return ((getNativeBalance() * 1e18) / (UP(UP_TOKEN).totalSupply() - upBorrowed));
   }
 
-  // function getVirtualMintPrice(uint256 _depositedAmount) public view returns (uint256) {
-  //   if (getNativeBalance() - _depositedAmount == 0) return 0;
-  //   return (((getNativeBalance() - _depositedAmount) * 1e18) /
-  //     (UP(UP_TOKEN).totalSupply() - upBorrowed));
-  // }
 
   function getNativeBalance() public view returns (uint256) {
     return address(this).balance + nativeBorrowed;
@@ -91,35 +90,13 @@ contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
     emit Repay(msg.value, upAmount);
   }
 
-  function redeem(uint256 upAmount) public onlyRebalancer {
+  function redeem(uint256 upAmount) public onlyDarbi {
     require(upAmount > 0, "AMOUNT_EQ_0");
     uint256 redeemAmount = (getVirtualPrice() * upAmount) / 1e18;
     (bool success, ) = msg.sender.call{value: redeemAmount}("");
     require(success, "REDEEM_FAILED");
     emit Redeem(upAmount, redeemAmount);
   }
-
-  /**
-   * @dev Mints UP token at premium rates (virtualPrice - PREMIUM_RATE_%).
-   */
-  // function mintUP() public payable nonReentrant whenNotPaused {
-  //   require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
-  //   uint256 currentPrice = getVirtualMintPrice(msg.value);
-  //   if (currentPrice == 0) return;
-  //   uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
-  //   uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
-  //   UP(UP_TOKEN).mint(msg.sender, mintAmount);
-  //   emit PremiumMint(msg.sender, mintAmount, currentPrice, msg.value);
-  // }
-
-  // /**
-  //  * @param _mintRate - mint rate in percent texrms, _mintRate = 5 = 5%.
-  //  */
-  // function setMintRate(uint256 _mintRate) public onlyOwner {
-  //   require(_mintRate <= 100, "MINT_RATE_GT_100");
-  //   mintRate = _mintRate;
-  //   emit NewMintRate(_mintRate);
-  // }
 
   function pause() public onlyAdmin {
     _pause();
