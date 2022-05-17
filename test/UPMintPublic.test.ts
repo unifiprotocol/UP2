@@ -169,5 +169,23 @@ describe("UPMintPublic", () => {
         "Pausable: pause"
       )
     })
+
+    it("Should mint UP after pause and unpause", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upController.address, ethers.utils.parseEther("2"))
+      await upMintPublic.pause()
+      await expect(
+        addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("100") })
+      ).revertedWith("Pausable: pause")
+      await upMintPublic.unpause()
+      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("100") })
+      expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("237.5"))
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("100").add(ethers.utils.parseEther("5"))
+      )
+    })
   })
 })
