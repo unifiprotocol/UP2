@@ -1,8 +1,6 @@
-// SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UP.sol";
 import "./UPController.sol";
@@ -12,13 +10,26 @@ import "./Helpers/Safe.sol";
 /// @author Daniel Blanco & A Fistful of Stray Cat Hair
 /// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
 
-contract UPMintPublic is Ownable, Pausable, Safe {
+contract UPMintPublic is AccessControl, Pausable, Safe {
+    bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
+
   uint256 public mintRate;
   address public UP_TOKEN = address(0);
+  address public DARBI = address(0);
   address payable public UP_CONTROLLER = payable(address(0));
 
-  event NewPublicMintRate(uint256 _newMintRate);
-  event PublicMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
+  modifier onlyDarbi() {
+    require(hasRole(DARBI_ROLE, msg.sender), "ONLY_DARBI");
+    _;
+  }
+
+  modifier onlyAdmin() {
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    _;
+  }
+
+  event NewDarbiMintRate(uint256 _newMintRate);
+  event DarbiMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
   event UpdateController(address _upController);
 
   constructor(
@@ -33,7 +44,7 @@ contract UPMintPublic is Ownable, Pausable, Safe {
   }
 
   /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
-  function mintUP() public payable whenNotPaused {
+  function mintUP() public payable onlyDarbi whenNotPaused {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     if (currentPrice == 0) return;
@@ -42,45 +53,45 @@ contract UPMintPublic is Ownable, Pausable, Safe {
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
     (bool successTransfer, ) = address(UP_CONTROLLER).call{value: msg.value}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
-    emit PublicMint(msg.sender, mintAmount, currentPrice, msg.value);
+    emit DarbiMint(msg.sender, mintAmount, currentPrice, msg.value);
   }
 
   ///@notice Permissioned function that sets the public rint of UP.
   ///@param _mintRate - mint rate in percent texrms, _mintRate = 5 = 5%.
-  function setMintRate(uint256 _mintRate) public onlyOwner {
+  function setMintRate(uint256 _mintRate) public onlyAdmin {
     require(_mintRate <= 100, "MINT_RATE_GT_100");
-    require(_mintRate > 0, "MINT_RATE_EQ_0");
+    require(_mintRate >= 0, "MINT_RATE_LESS_THAN_0");
     mintRate = _mintRate;
-    emit NewPublicMintRate(_mintRate);
+    emit NewDarbiMintRate(_mintRate);
   }
 
   ///@notice Permissioned function to update the address of the UP Controller
   ///@param _upController - the address of the new UP Controller
-  function updateController(address _upController) public onlyOwner {
+  function updateController(address _upController) public onlyAdmin {
     require(_upController != address(0), "INVALID_ADDRESS");
     UP_CONTROLLER = payable(_upController);
     emit UpdateController(_upController);
   }
 
-  ///@notice Permissioned function to pause public minting
-  function pause() public onlyOwner {
+  ///@notice Permissioned function to pause Darbi minting
+  function pause() public onlyAdmin {
     _pause();
   }
 
-  ///@notice Permissioned function to unpause public minting
-  function unpause() public onlyOwner {
+  ///@notice Permissioned function to unpause Darbi minting
+  function unpause() public onlyAdmin {
     _unpause();
   }
 
-  ///@notice Permissioned function to withdraw any native coins accidentally deposited to the Public Mint contract.
-  function withdrawFunds(address target) public onlyOwner returns (bool) {
+  ///@notice Permissioned function to withdraw any native coins accidentally deposited to the Darbi Mint contract.
+  function withdrawFunds(address target) public onlyAdmin returns (bool) {
     return _withdrawFunds(target);
   }
 
-  ///@notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
+  ///@notice Permissioned function to withdraw any tokens accidentally deposited to the Darbi Mint contract.
   function withdrawFundsERC20(address target, address tokenAddress)
     public
-    onlyOwner
+    onlyAdmin
     returns (bool)
   {
     return _withdrawFundsERC20(target, tokenAddress);
