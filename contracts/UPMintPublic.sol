@@ -7,13 +7,11 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UP.sol";
 import "./UPController.sol";
 import "./Helpers/Safe.sol";
-import "hardhat/console.sol";
 
 contract UPMintPublic is Ownable, Pausable, Safe {
-  uint256 public mintRate = 95000;
+  uint256 public mintRate;
   address public UP_TOKEN = address(0);
-  address public UP_CONTROLLER = address(0);
-  address payable UP_CONTROLLERPAYABLE = payable(UP_CONTROLLER);
+  address payable public UP_CONTROLLER = payable(address(0));
 
   event NewPublicMintRate(uint256 _newMintRate);
   event PublicMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
@@ -21,31 +19,24 @@ contract UPMintPublic is Ownable, Pausable, Safe {
 
   constructor(
     address _UP,
-    address payable _UPController,
+    address _UPController,
     uint256 _mintRate
   ) {
     require(_UP != address(0), "Invalid UP address");
     UP_TOKEN = _UP;
-    UP_CONTROLLER = _UPController;
+    UP_CONTROLLER = payable(_UPController);
     setMintRate(_mintRate);
-  }
-
-  function getVirtualMintPrice(uint256 _depositedAmount) public view returns (uint256) {
-    if (UPController(UP_CONTROLLERPAYABLE).getNativeBalance() - _depositedAmount == 0) return 0;
-    uint256 upTotalSupply = UP(UP_TOKEN).totalSupply();
-    uint256 upBorrowed = UPController(UP_CONTROLLERPAYABLE).upBorrowed();
-    return
-      ((UPController(UP_CONTROLLERPAYABLE).getNativeBalance() - _depositedAmount) * 1e18) /
-      (upTotalSupply - upBorrowed);
   }
 
   function mintUP() public payable whenNotPaused {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
-    uint256 currentPrice = getVirtualMintPrice(msg.value);
+    uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     if (currentPrice == 0) return;
     uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
     uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
+    (bool successTransfer, ) = address(UP_CONTROLLER).call{value: msg.value}("");
+    require(successTransfer, "FAIL_SENDING_NATIVE");
     emit PublicMint(msg.sender, mintAmount, currentPrice, msg.value);
   }
 
@@ -54,13 +45,14 @@ contract UPMintPublic is Ownable, Pausable, Safe {
    */
   function setMintRate(uint256 _mintRate) public onlyOwner {
     require(_mintRate <= 100, "MINT_RATE_GT_100");
+    require(_mintRate > 0, "MINT_RATE_EQ_0");
     mintRate = _mintRate;
     emit NewPublicMintRate(_mintRate);
   }
 
   function updateController(address _upController) public onlyOwner {
     require(_upController != address(0), "INVALID_ADDRESS");
-    UP_CONTROLLER = _upController;
+    UP_CONTROLLER = payable(_upController);
     emit UpdateController(_upController);
   }
 
