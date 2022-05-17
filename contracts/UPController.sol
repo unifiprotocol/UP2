@@ -54,7 +54,6 @@ contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
     return ((getNativeBalance() * 1e18) / (UP(UP_TOKEN).totalSupply() - upBorrowed));
   }
 
-
   function getNativeBalance() public view returns (uint256) {
     return address(this).balance + nativeBorrowed;
   }
