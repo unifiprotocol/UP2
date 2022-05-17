@@ -42,13 +42,14 @@ describe("UPMintPublic", () => {
   })
 
   it("Should mint UP at premium rates #1", async () => {
+    const [, addr2] = await ethers.getSigners()
     await addr1.sendTransaction({
       to: upMintPublic.address,
       value: ethers.utils.parseEther("5")
     })
     await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
-    const userPublic = await upMintPublic.connect(addr1)
-    userPublic.mintUP({ value: ethers.utils.parseEther("5") })
+    const addr2UpMintPublic = upMintPublic.connect(addr2)
+    addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("5") })
     const receipt = await addr1.sendTransaction({
       to: upMintPublic.address,
       value: ethers.utils.parseEther("5")
