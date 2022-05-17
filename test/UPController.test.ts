@@ -87,41 +87,6 @@ describe("UPController", function () {
       })
     })
 
-    // // Only DARBI can redeem!
-    // describe("redeem", () => {
-    //   it("Should redeem UP by native tokens", async () => {
-    //     await addr1.sendTransaction({
-    //       to: upController.address,
-    //       value: ethers.utils.parseEther("5")
-    //     })
-    //     await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
-    //     await expect(upController.redeem(ethers.utils.parseEther("2")))
-    //       .to.emit(upController, "Redeem")
-    //       .withArgs(ethers.utils.parseEther("2"), ethers.utils.parseEther("5"))
-    //   })
-
-    //   it("Should fail because redeem amount is zero", async () => {
-    //     await addr1.sendTransaction({
-    //       to: upController.address,
-    //       value: ethers.utils.parseEther("5")
-    //     })
-    //     await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
-    //     await expect(upController.redeem(ethers.utils.parseEther("0"))).revertedWith("AMOUNT_EQ_0")
-    //   })
-
-    //   it("Should fail invoker is not REBALANCER_ROLE", async () => {
-    //     await addr1.sendTransaction({
-    //       to: upController.address,
-    //       value: ethers.utils.parseEther("5")
-    //     })
-    //     await upToken.mint(addr1.address, ethers.utils.parseEther("2"))
-    //     await upController.revokeRole(await upController.REBALANCER_ROLE(), addr1.address)
-    //     await expect(upController.redeem(ethers.utils.parseEther("0"))).revertedWith(
-    //       "ONLY_REBALANCER"
-    //     )
-    //   })
-    // })
-
     describe("borrowUP", () => {
       it("Should borrow UP funds and update upBorrowed", async () => {
         await expect(upController.borrowUP(ethers.utils.parseEther("3"), addr1.address))
@@ -210,11 +175,97 @@ describe("UPController", function () {
         )
       })
     })
+
+    describe("Redeem", () => {
+      let addr2: SignerWithAddress
+      let addr2UpController: UPController
+      let addr2UpToken: UP
+
+      beforeEach(async () => {
+        const [, a2] = await ethers.getSigners()
+        addr2 = a2
+        await upController.grantRole(await upController.REDEEMER_ROLE(), addr2.address)
+        addr2UpController = upController.connect(addr2)
+        addr2UpToken = upToken.connect(addr2)
+      })
+
+      it("Should redeem UP by native tokens", async () => {
+        await addr1.sendTransaction({
+          to: upController.address,
+          value: ethers.utils.parseEther("5")
+        })
+        await upToken.mint(upController.address, ethers.utils.parseEther("2"))
+        await upToken.mint(addr2.address, ethers.utils.parseEther("2"))
+        expect(await upToken.totalSupply()).equal(ethers.utils.parseEther("4"))
+        await addr2UpToken.approve(upController.address, ethers.utils.parseEther("2"))
+        await expect(addr2UpController.redeem(ethers.utils.parseEther("2")))
+          .to.emit(upController, "Redeem")
+          .withArgs(ethers.utils.parseEther("2"), ethers.utils.parseEther("5"))
+        expect(await upToken.totalSupply()).equal(ethers.utils.parseEther("2"))
+      })
+
+      it("Should fail because redeem amount is zero", async () => {
+        await expect(addr2UpController.redeem(ethers.utils.parseEther("0"))).revertedWith(
+          "AMOUNT_EQ_0"
+        )
+      })
+
+      it("Should fail because not enough UP balance", async () => {
+        await addr1.sendTransaction({
+          to: upController.address,
+          value: ethers.utils.parseEther("5")
+        })
+        await upToken.mint(upController.address, ethers.utils.parseEther("2"))
+        await upToken.mint(addr2.address, ethers.utils.parseEther("2"))
+        await addr2UpToken.approve(upController.address, ethers.utils.parseEther("3"))
+        await expect(addr2UpController.redeem(ethers.utils.parseEther("3"))).revertedWith(
+          "ERC20: burn amount exceeds balance"
+        )
+      })
+
+      it("Should fail invoker is not REDEEMER_ROLE", async () => {
+        await addr1.sendTransaction({
+          to: upController.address,
+          value: ethers.utils.parseEther("5")
+        })
+        await upToken.mint(addr2.address, ethers.utils.parseEther("2"))
+        await upController.revokeRole(await upController.REDEEMER_ROLE(), addr2.address)
+        await expect(upController.redeem(ethers.utils.parseEther("0"))).revertedWith(
+          "ONLY_REDEEMER"
+        )
+      })
+    })
   })
 
-  describe("Pause/Unpause", () => {})
+  describe("WithdrawFunds", () => {
+    it("Should withdraw 1 UP using withdrawFundsERC20", async () => {
+      await upToken.mint(upController.address, ethers.constants.WeiPerEther)
+      await upController.withdrawFundsERC20(addr1.address, upToken.address)
+      expect(await upToken.balanceOf(upController.address)).equal(0)
+      expect(await upToken.balanceOf(addr1.address)).equal(ethers.constants.WeiPerEther)
+    })
 
-  describe("WithdrawFunds", () => {})
+    it("Should withdraw 1 ETH using withdrawFunds", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.constants.WeiPerEther
+      })
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.constants.WeiPerEther
+      )
+      await upController.withdrawFunds(addr1.address)
+      expect(await upController.provider.getBalance(upController.address)).equal(0)
+    })
 
-  describe("ReentrancyGuard", () => {})
+    it("Should fail withdrawing 1 UP using withdrawFundsERC20 because is not owner", async () => {
+      const [, addr2] = await ethers.getSigners()
+      const addr2upController = upController.connect(addr2)
+      await upToken.mint(upController.address, ethers.constants.WeiPerEther)
+      await expect(
+        addr2upController.withdrawFundsERC20(addr2.address, upToken.address)
+      ).revertedWith("ONLY_ADMIN")
+      expect(await upToken.balanceOf(upController.address)).equal(ethers.constants.WeiPerEther)
+      expect(await upToken.balanceOf(addr2.address)).equal(0)
+    })
+  })
 })

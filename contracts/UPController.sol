@@ -3,21 +3,17 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UP.sol";
 import "./Helpers/Safe.sol";
-import "hardhat/console.sol";
 
-contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
+contract UPController is AccessControl, Safe {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
-  bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
+  bytes32 public constant REDEEMER_ROLE = keccak256("REDEEMER_ROLE");
 
   address public UP_TOKEN = address(0);
   uint256 public nativeBorrowed = 0;
   uint256 public upBorrowed = 0;
 
-  // event PremiumMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
   event SyntheticMint(address _from, uint256 _amount, uint256 _newUpBorrowed);
   event BorrowNative(address _from, uint256 _amount, uint256 _newNativeBorrowed);
   event Repay(uint256 _nativeAmount, uint256 _upAmount);
@@ -33,8 +29,8 @@ contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
     _;
   }
 
-  modifier onlyDarbi() {
-    require(hasRole(DARBI_ROLE, msg.sender), "ONLY_DARBI");
+  modifier onlyRedeemer() {
+    require(hasRole(REDEEMER_ROLE, msg.sender), "ONLY_REDEEMER");
     _;
   }
 
@@ -42,7 +38,6 @@ contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
     require(_UP != address(0), "Invalid UP address");
     UP_TOKEN = _UP;
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    // setMintRate(_mintRate);
   }
 
   fallback() external payable {}
@@ -89,22 +84,13 @@ contract UPController is AccessControl, Safe, Pausable, ReentrancyGuard {
     emit Repay(msg.value, upAmount);
   }
 
-  function redeem(uint256 upAmount) public onlyDarbi {
+  function redeem(uint256 upAmount) public onlyRedeemer {
     require(upAmount > 0, "AMOUNT_EQ_0");
+    UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
     uint256 redeemAmount = (getVirtualPrice() * upAmount) / 1e18;
     (bool success, ) = msg.sender.call{value: redeemAmount}("");
     require(success, "REDEEM_FAILED");
     emit Redeem(upAmount, redeemAmount);
-  }
-
-  //Where is the transfer on redeem?
-
-  function pause() public onlyAdmin {
-    _pause();
-  }
-
-  function unpause() public onlyAdmin {
-    _unpause();
   }
 
   function withdrawFunds(address target) public onlyAdmin returns (bool) {
