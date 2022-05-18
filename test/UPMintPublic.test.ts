@@ -158,8 +158,10 @@ describe("UPMintPublic", () => {
       await expect(upMintPublic.mintUP({ value: 0 })).revertedWith("INVALID_PAYABLE_AMOUNT")
     })
 
-    it("Should mint zero UP because virtual price is zero", async () => {
-      await upMintPublic.mintUP({ value: ethers.utils.parseEther("100") })
+    it("Should mint zero UP because virtual price is zero and throw UP_PRICE_0", async () => {
+      await expect(upMintPublic.mintUP({ value: ethers.utils.parseEther("100") })).revertedWith(
+        "UP_PRICE_0"
+      )
       expect(await upToken.balanceOf(addr1.address)).equal(0)
     })
 

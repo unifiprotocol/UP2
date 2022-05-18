@@ -12,7 +12,7 @@ import "./Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
 
-contract UPMintPublic is AccessControl, Pausable, Safe {
+contract UPMintDarbi is AccessControl, Pausable, Safe {
   bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
 
   uint256 public mintRate;
@@ -49,7 +49,7 @@ contract UPMintPublic is AccessControl, Pausable, Safe {
   function mintUP() public payable onlyDarbi whenNotPaused {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
-    if (currentPrice == 0) return;
+    require(currentPrice > 0, "UP_PRICE_0");
     uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
     uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
@@ -98,8 +98,4 @@ contract UPMintPublic is AccessControl, Pausable, Safe {
   {
     return _withdrawFundsERC20(target, tokenAddress);
   }
-
-  fallback() external payable {}
-
-  receive() external payable {}
 }

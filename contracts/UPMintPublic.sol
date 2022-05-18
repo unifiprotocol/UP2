@@ -36,7 +36,7 @@ contract UPMintPublic is Ownable, Pausable, Safe {
   function mintUP() public payable whenNotPaused {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
-    if (currentPrice == 0) return;
+    require(currentPrice > 0, "UP_PRICE_0");
     uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
     uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
@@ -85,8 +85,4 @@ contract UPMintPublic is Ownable, Pausable, Safe {
   {
     return _withdrawFundsERC20(target, tokenAddress);
   }
-
-  fallback() external payable {}
-
-  receive() external payable {}
 }
