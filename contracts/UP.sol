@@ -26,6 +26,7 @@ contract UP is ERC20, AccessControl {
     _burn(account, amount);
   }
 
+  /// @notice Retrocompatible function with v1
   function justBurn(uint256 amount) external {
     burn(amount);
   }
