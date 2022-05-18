@@ -2,22 +2,70 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@uniswap/v2-periphery/contracts/UniswapV2Router02.sol";
+import "./UPController.sol";
+import "./Strategy/IStrategy.sol";
 import "./Helpers/Safe.sol";
 
 contract Rebalancer is Ownable, Safe {
   address public WETH = address(0);
   address public UP = address(0);
-  address public liquidityPool = address(0);
+  address public strategy = address(0);
+  address public unifiRouter = address(0);
+  address payable public UP_CONTROLLER = payable(address(0));
   uint256[3] public distribution = [90, 5, 5];
 
   constructor(
     address _WETH,
     address _UP,
+    address _UPController,
+    address _Strategy,
     address _liquidityPool
   ) {
     WETH = _WETH;
     UP = _UP;
+    UPController = payable(_UPController);
     liquidityPool = _liquidityPool;
+  }
+
+  function rebalance() public onlyOwner {
+    IStrategy(strategy).gather();
+
+    uint256 distribution1 = ((address(this).balance * (distribution[0] * 100)) / 10000);
+    uint256 distribution2 = ((address(this).balance * (distribution[1] * 100)) / 10000);
+    uint256 distribution3 = ((address(this).balance * (distribution[2] * 100)) / 10000);
+    _distribution1(distribution1);
+    _distribution2(distribution2);
+    _distribution3(distribution3);
+  }
+
+  function _distribution1(uint256 _amount) internal {
+    /// distribution 1 goes to the strategy
+    IStrategy(strategy).deposit(_amount);
+  }
+
+  function _distribution2(uint256 _amount) internal {
+    /// distribution 2 goes to the Unifi LP
+    UniswapV2Router02 router = UniswapV2Router02(unifiRouter);
+    uint256 lpPrice = router.getAmountOut(1 ether);
+    uint256 borrowAmount = lpPrice * _amount;
+    UPController(UP_CONTROLLER).borrowUP(borrowAmount, address(this));
+    uint256 distribution2Slippage = ((_amount * (1 * 100)) / 10000); // 1%
+    uint256 amountTokenMin = ((borrowAmount * (1 * 100)) / 10000); // 1%
+    router.addLiquidityETH(
+      UP,
+      distribution2,
+      amountTokenMin,
+      distribution2Slippage,
+      address(this),
+      block.timestamp + 20 minutes
+    );
+  }
+
+  function _distribution3(uint256 _amount) internal {
+    /// distribution 3 goes to the UPController
+    (bool successTransfer, ) = address(UPController).call{value: _amount}("");
+    require(successTransfer, "DISTRIBUTION3_FAILED");
   }
 
   // GETTER & SETTERS
@@ -29,12 +77,16 @@ contract Rebalancer is Ownable, Safe {
     distribution = _distribution;
   }
 
-  function setUPToken(address newAddress) public onlyOwner {
-    UP = newAddress;
+  function setUPController(address newAddress) public onlyOwner {
+    UP_CONTROLLER = payable(newAddress);
   }
 
-  function setLiquidityPool(address newAddress) public onlyOwner {
-    liquidityPool = newAddress;
+  function setStrategy(address newAddress) public onlyOwner {
+    strategy = newAddress;
+  }
+
+  function setUnifiRouter(address newAddress) public onlyOwner {
+    UnifiRouter = newAddress;
   }
 
   function withdrawFunds(address target) public onlyOwner returns (bool) {

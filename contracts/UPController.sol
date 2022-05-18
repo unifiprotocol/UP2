@@ -44,8 +44,6 @@ contract UPController is AccessControl, Safe {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
   }
 
-  fallback() external payable {}
-
   receive() external payable {}
 
   /// @notice Returns price of UP token based on its reserves
