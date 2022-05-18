@@ -1,19 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@uniswap/v2-periphery/contracts/UniswapV2Router02.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UPController.sol";
 import "./Strategy/IStrategy.sol";
 import "./Helpers/Safe.sol";
 
-contract Rebalancer is Ownable, Safe {
+contract Rebalancer is AccessControl, Pausable, Safe {
   address public WETH = address(0);
   address public UP = address(0);
   address public strategy = address(0);
   address public unifiRouter = address(0);
   address payable public UP_CONTROLLER = payable(address(0));
   uint256[3] public distribution = [90, 5, 5];
+
+  modifier onlyStaking() {
+    require(hasRole(STAKING_ROLE, msg.sender), "ONLY_STAKING");
+    _;
+  }
+
+  modifier onlyAdmin() {
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    _;
+  }
 
   constructor(
     address _WETH,
@@ -28,7 +39,7 @@ contract Rebalancer is Ownable, Safe {
     liquidityPool = _liquidityPool;
   }
 
-  function rebalance() public onlyOwner {
+  function rebalance() public onlyAdmin {
     IStrategy(strategy).gather();
 
     uint256 distribution1 = ((address(this).balance * (distribution[0] * 100)) / 10000);
@@ -69,7 +80,7 @@ contract Rebalancer is Ownable, Safe {
   }
 
   // GETTER & SETTERS
-  function setDistribution(uint256[3] memory _distribution) public onlyOwner {
+  function setDistribution(uint256[3] memory _distribution) public onlyAdmin {
     require(_distribution[0] > 0, "INVALID_PARAM_0");
     require(_distribution[1] > 0, "INVALID_PARAM_1");
     require(_distribution[2] > 0, "INVALID_PARAM_2");
@@ -77,27 +88,37 @@ contract Rebalancer is Ownable, Safe {
     distribution = _distribution;
   }
 
-  function setUPController(address newAddress) public onlyOwner {
+  function setUPController(address newAddress) public onlyAdmin {
     UP_CONTROLLER = payable(newAddress);
   }
 
-  function setStrategy(address newAddress) public onlyOwner {
+  function setStrategy(address newAddress) public onlyAdmin {
     strategy = newAddress;
   }
 
-  function setUnifiRouter(address newAddress) public onlyOwner {
+  function setUnifiRouter(address newAddress) public onlyAdmin {
     UnifiRouter = newAddress;
   }
 
-  function withdrawFunds(address target) public onlyOwner returns (bool) {
+  function withdrawFunds(address target) public onlyAdmin returns (bool) {
     return _withdrawFunds(target);
   }
 
   function withdrawFundsERC20(address target, address tokenAddress)
     public
-    onlyOwner
+    onlyAdmin
     returns (bool)
   {
     return _withdrawFundsERC20(target, tokenAddress);
+  }
+
+  /// @notice Permissioned function to pause UP Controller
+  function pause() public onlyAdmin {
+    _pause();
+  }
+
+  /// @notice Permissioned function to unpause UP Controller
+  function unpause() public onlyAdmin {
+    _unpause();
   }
 }
