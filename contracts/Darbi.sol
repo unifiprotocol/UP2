@@ -5,18 +5,32 @@ import '@uniswap/lib/contracts/libraries/Babylonian.sol';
 import '@uniswap/lib/contracts/libraries/TransferHelper.sol';
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 
+import "./Helpers/Safe.sol";
 import './Helpers/SafeMath.sol';
 import './Libraries/UniswapV2LiquidityMathLibrary.sol';
 import './Libraries/UniswapV2Library.sol';
 
-contract ExampleSwapToPrice {
+contract Darbi is AccessControl, Pausable, Safe {
+    bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
+    bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
     using SafeMath for uint256;
 
-    IUniswapV2Router01 public immutable router;
-    address public immutable factory;
+    IUniswapV2Router01 public router;
+    address public factory;
 
-    constructor(address factory_, IUniswapV2Router01 router_) public {
+    modifier onlyMonitor() {
+    require(hasRole(MONITOR_ROLE, msg.sender), "ONLY_MONITOR");
+    _;}
+
+    modifier onlyRebalancer() {
+    require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
+    _;
+  }
+
+    constructor(address factory_, IUniswapV2Router01 router_) {
         factory = factory_;
         router = router_;
     }
@@ -33,7 +47,7 @@ contract ExampleSwapToPrice {
         uint256 maxSpendTokenB,
         address to,
         uint256 deadline
-    ) public {
+    ) public onlyMonitor onlyRebalancer {
         // true price is expressed as a ratio, so both values must be non-zero
         require(truePriceTokenA != 0 && truePriceTokenB != 0, "ExampleSwapToPrice: ZERO_PRICE");
         // caller can specify 0 for either if they wish to swap in only one direction, but not both
