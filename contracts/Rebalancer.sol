@@ -10,6 +10,7 @@ import "./Helpers/Safe.sol";
 
 contract Rebalancer is AccessControl, Pausable, Safe {
   bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
+  IUniswapV2Router01 public router;
   address public WETH = address(0);
   address public UPaddress = address(0);
   address public strategy = address(0);
@@ -64,13 +65,17 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   // function _distribution2(uint256 _amount) internal {
   //   /// distribution 2 goes to the Unifi LP
-  //   IUniswapV2Router02 router = IUniswapV2Router02(unifiRouter);
-  //   uint256 lpPrice = unifiRouter.getAmountOut(1); // should be re-done to not based on getAmountOut but based on LP price using IUniswapPair / Babylonian.
+  //   // IUniswapV2Router02 router = IUniswapV2Router02(unifiRouter);
+  //   // Solutions for LP Price - 
+  //   // Using Library + Factory (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
+  //   // Using Pair - function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
+
+  //   // uint256 lpPrice = router.getAmountsOut(1, [WETH, UPaddress]); // should be re-done to not based on getAmountOut but based on LP price using IUniswapPair / Babylonian.
   //   uint256 borrowAmount = lpPrice * _amount;
   //   UPController(UP_CONTROLLER).borrowUP(borrowAmount, address(this));
   //   uint256 distribution2Slippage = ((_amount * (1 * 100)) / 10000); // 1%
   //   uint256 amountTokenMin = ((borrowAmount * (1 * 100)) / 10000); // 1%
-  //   unifiRouter.addLiquidityETH(
+  //   router.addLiquidityETH(
   //     UPaddress,
   //     _amount,
   //     amountTokenMin,
@@ -82,7 +87,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   function _distribution3(uint256 _amount) internal {
     /// distribution 3 goes to the UPController
-    (bool successTransfer, ) = address(UPController).call{value: _amount}("");
+    (bool successTransfer, ) = address(UP_CONTROLLER).call{value: _amount}("");
     require(successTransfer, "DISTRIBUTION3_FAILED");
   }
 
