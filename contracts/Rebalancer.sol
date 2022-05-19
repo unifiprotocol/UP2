@@ -46,8 +46,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   receive() external payable {}
-
-  function rebalance() public onlyAdmin {
+  
+  // Should be onlyStaking
+  function rebalance() public onlyStaking {
     IStrategy(strategy).gather();
 
     uint256 distribution1 = ((address(this).balance * (distribution[0] * 100)) / 10000);
