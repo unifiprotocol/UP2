@@ -44,6 +44,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     liquidityPool = _liquidityPool;
   }
 
+  receive() external payable {}
+
   function rebalance() public onlyAdmin {
     IStrategy(strategy).gather();
 
