@@ -38,7 +38,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   ) {
     WETH = _WETH;
     UPaddress = _UPAddress;
-    UPController = _UPController;
+    UP_CONTROLLER = payable(_UPController);
     strategy = _Strategy;
     unifiRouter = _unifiRouter;
     liquidityPool = _liquidityPool;
