@@ -24,7 +24,7 @@ contract UPProxy is Proxy, Ownable, Safe {
 
   function mint(address to, uint256 value) public payable returns (bool) {
     UP(UP_TOKEN).mint(to, value);
-    (bool successTransfer, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
+    (bool successTransfer, ) = address(UP_CONTROLLER).call{value: msg.value}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     return true;
   }
