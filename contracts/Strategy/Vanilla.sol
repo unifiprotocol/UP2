@@ -4,7 +4,7 @@ import "./IStrategy.sol";
 
 pragma solidity ^0.8.4;
 
-contract Vanilla is IStrategy {
+contract Vanilla {
   receive() external payable {}
 
   function deposit(uint256 amount) external returns (bool) {}

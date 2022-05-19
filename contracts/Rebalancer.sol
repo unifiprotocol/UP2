@@ -2,17 +2,19 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@uniswap/v2-periphery/contracts/UniswapV2Router02.sol";
+import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UPController.sol";
 import "./Strategy/IStrategy.sol";
 import "./Helpers/Safe.sol";
 
 contract Rebalancer is AccessControl, Pausable, Safe {
+  bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
   address public WETH = address(0);
-  address public UP = address(0);
+  address public UPaddress = address(0);
   address public strategy = address(0);
   address public unifiRouter = address(0);
+  address public liquidityPool = address(0);
   address payable public UP_CONTROLLER = payable(address(0));
   uint256[3] public distribution = [90, 5, 5];
 
@@ -28,14 +30,17 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   constructor(
     address _WETH,
-    address _UP,
+    address _UPAddress,
     address _UPController,
     address _Strategy,
+    address _unifiRouter,
     address _liquidityPool
   ) {
     WETH = _WETH;
-    UP = _UP;
-    UPController = payable(_UPController);
+    UPaddress = _UPAddress;
+    UPController = _UPController;
+    strategy = _Strategy;
+    unifiRouter = _unifiRouter;
     liquidityPool = _liquidityPool;
   }
 
@@ -57,15 +62,14 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   function _distribution2(uint256 _amount) internal {
     /// distribution 2 goes to the Unifi LP
-    UniswapV2Router02 router = UniswapV2Router02(unifiRouter);
-    uint256 lpPrice = router.getAmountOut(1 ether);
+    uint256 lpPrice = unifiRouter.getAmountOut(1); // should be re-done to not based on getAmountOut but based on LP price using IUniswapPair / Babylonian.
     uint256 borrowAmount = lpPrice * _amount;
     UPController(UP_CONTROLLER).borrowUP(borrowAmount, address(this));
     uint256 distribution2Slippage = ((_amount * (1 * 100)) / 10000); // 1%
     uint256 amountTokenMin = ((borrowAmount * (1 * 100)) / 10000); // 1%
-    router.addLiquidityETH(
-      UP,
-      distribution2,
+    unifiRouter.addLiquidityETH(
+      UPaddress,
+      _amount,
       amountTokenMin,
       distribution2Slippage,
       address(this),
@@ -97,7 +101,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function setUnifiRouter(address newAddress) public onlyAdmin {
-    UnifiRouter = newAddress;
+    unifiRouter = newAddress;
   }
 
   function withdrawFunds(address target) public onlyAdmin returns (bool) {
@@ -112,12 +116,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return _withdrawFundsERC20(target, tokenAddress);
   }
 
-  /// @notice Permissioned function to pause UP Controller
+  /// @notice Permissioned function to pause UPaddress Controller
   function pause() public onlyAdmin {
     _pause();
   }
 
-  /// @notice Permissioned function to unpause UP Controller
+  /// @notice Permissioned function to unpause UPaddress Controller
   function unpause() public onlyAdmin {
     _unpause();
   }

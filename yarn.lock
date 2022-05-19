@@ -951,6 +951,11 @@
   "resolved" "https://registry.npmjs.org/@ungap/promise-all-settled/-/promise-all-settled-1.1.2.tgz"
   "version" "1.1.2"
 
+"@uniswap/lib@^4.0.1-alpha":
+  "integrity" "sha512-f6UIliwBbRsgVLxIaBANF6w09tYqc6Y/qXdsrbEmXHyFA7ILiKrIwRFXe1yOg8M3cksgVsO9N7yuL2DdCGQKBA=="
+  "resolved" "https://registry.npmjs.org/@uniswap/lib/-/lib-4.0.1-alpha.tgz"
+  "version" "4.0.1-alpha"
+
 "@uniswap/lib@1.1.1":
   "integrity" "sha512-2yK7sLpKIT91TiS5sewHtOa7YuM8IuBXVl4GZv2jZFys4D2sY7K5vZh6MqD25TPA95Od+0YzCVq6cTF2IKrOmg=="
   "resolved" "https://registry.npmjs.org/@uniswap/lib/-/lib-1.1.1.tgz"
