@@ -5,7 +5,6 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/proxy/Proxy.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "../UP.sol";
-import "../UPController.sol";
 import "../Helpers/Safe.sol";
 
 contract UPProxy is Proxy, Ownable, Safe {
