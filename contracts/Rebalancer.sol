@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UPController.sol";
-import "./Strategy/IStrategy.sol";
+import "./Strategies/IStrategy.sol";
 import "./Helpers/Safe.sol";
 
 contract Rebalancer is AccessControl, Pausable, Safe {
