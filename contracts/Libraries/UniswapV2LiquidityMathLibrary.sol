@@ -1,19 +1,16 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.4;
+pragma solidity =0.6.6;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Factory.sol";
 import "@uniswap/v2-periphery/contracts/libraries/UniswapV2Library.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
-import "@uniswap/v2-periphery/contracts/libraries/SafeMath.sol";
 import "../Helpers/FullMath.sol";
 
 // library containing some math for dealing with the liquidity shares of a pair, e.g. computing their exact value
 // in terms of the underlying tokens
 library UniswapV2LiquidityMathLibrary {
-  using SafeMath for uint256;
-
   // computes the direction and magnitude of the profit-maximizing trade
   function computeProfitMaximizingTrade(
     uint256 truePriceTokenA,

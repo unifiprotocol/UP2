@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UPController.sol";
 import "./Strategies/IStrategy.sol";
@@ -10,7 +10,6 @@ import "./Helpers/Safe.sol";
 
 contract Rebalancer is AccessControl, Pausable, Safe {
   bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
-  IUniswapV2Router01 public router;
   address public WETH = address(0);
   address public UPaddress = address(0);
   address public strategy = address(0);
@@ -46,16 +45,15 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   receive() external payable {}
-  
-  // Should be onlyStaking
-  function rebalance() public onlyStaking {
+
+  function rebalance() public onlyAdmin {
     IStrategy(strategy).gather();
 
     uint256 distribution1 = ((address(this).balance * (distribution[0] * 100)) / 10000);
-    // uint256 distribution2 = ((address(this).balance * (distribution[1] * 100)) / 10000);
+    uint256 distribution2 = ((address(this).balance * (distribution[1] * 100)) / 10000);
     uint256 distribution3 = ((address(this).balance * (distribution[2] * 100)) / 10000);
     _distribution1(distribution1);
-    // _distribution2(distribution2);
+    _distribution2(distribution2);
     _distribution3(distribution3);
   }
 
@@ -64,27 +62,22 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     IStrategy(strategy).deposit(_amount);
   }
 
-  // function _distribution2(uint256 _amount) internal {
-  //   /// distribution 2 goes to the Unifi LP
-  //   // IUniswapV2Router02 router = IUniswapV2Router02(unifiRouter);
-  //   // Solutions for LP Price - 
-  //   // Using Library + Factory (uint256 reserveA, uint256 reserveB) = UniswapV2Library.getReserves(factory, tokenA, tokenB);
-  //   // Using Pair - function getReserves() external view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast);
-
-  //   // uint256 lpPrice = router.getAmountsOut(1, [WETH, UPaddress]); // should be re-done to not based on getAmountOut but based on LP price using IUniswapPair / Babylonian.
-  //   uint256 borrowAmount = lpPrice * _amount;
-  //   UPController(UP_CONTROLLER).borrowUP(borrowAmount, address(this));
-  //   uint256 distribution2Slippage = ((_amount * (1 * 100)) / 10000); // 1%
-  //   uint256 amountTokenMin = ((borrowAmount * (1 * 100)) / 10000); // 1%
-  //   router.addLiquidityETH(
-  //     UPaddress,
-  //     _amount,
-  //     amountTokenMin,
-  //     distribution2Slippage,
-  //     address(this),
-  //     block.timestamp + 20 minutes
-  //   );
-  // }
+  function _distribution2(uint256 _amount) internal {
+    /// distribution 2 goes to the Unifi LP
+    // uint256 lpPrice = unifiRouter.getAmountOut(1); // should be re-done to not based on getAmountOut but based on LP price using IUniswapPair / Babylonian.
+    // uint256 borrowAmount = lpPrice * _amount;
+    // UPController(UP_CONTROLLER).borrowUP(borrowAmount, address(this));
+    // uint256 distribution2Slippage = ((_amount * (1 * 100)) / 10000); // 1%
+    // uint256 amountTokenMin = ((borrowAmount * (1 * 100)) / 10000); // 1%
+    // unifiRouter.addLiquidityETH(
+    //   UPaddress,
+    //   _amount,
+    //   amountTokenMin,
+    //   distribution2Slippage,
+    //   address(this),
+    //   block.timestamp + 20 minutes
+    // );
+  }
 
   function _distribution3(uint256 _amount) internal {
     /// distribution 3 goes to the UPController

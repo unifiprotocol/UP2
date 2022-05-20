@@ -1,40 +1,30 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.4;
+pragma solidity =0.6.6;
 
 import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-periphery/contracts/libraries/UniswapV2Library.sol";
-import "@uniswap/v2-periphery/contracts/libraries/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
-import "../Helpers/Safe.sol";
 import "../Libraries/UniswapV2LiquidityMathLibrary.sol";
 
-contract Darbi is AccessControl, Pausable, Safe {
-  bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
-  bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
+contract Darbi {
   using SafeMath for uint256;
 
-  IUniswapV2Router01 public router;
+  IUniswapV2Router02 public router;
   address public factory;
+  mapping(address => bool) admins;
 
-  modifier onlyMonitor() {
-    require(hasRole(MONITOR_ROLE, msg.sender), "ONLY_MONITOR");
+  modifier onlyAdmin() {
+    require(admins[msg.sender] == true, "ONLY_ADMIN");
     _;
   }
 
-  modifier onlyRebalancer() {
-    require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
-    _;
-  }
-
-  constructor(address factory_, IUniswapV2Router01 router_) {
-    factory = factory_;
-    router = router_;
+  constructor(address _factory, address _router) public {
+    factory = _factory;
+    router = IUniswapV2Router02(_router);
+    admins[msg.sender] = true;
   }
 
   // swaps an amount of either token such that the trade is profit-maximizing, given an external true price
@@ -49,7 +39,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     uint256 maxSpendTokenB,
     address to,
     uint256 deadline
-  ) public onlyMonitor onlyRebalancer {
+  ) public onlyAdmin {
     // true price is expressed as a ratio, so both values must be non-zero
     require(truePriceTokenA != 0 && truePriceTokenB != 0, "ExampleSwapToPrice: ZERO_PRICE");
     // caller can specify 0 for either if they wish to swap in only one direction, but not both
@@ -91,5 +81,15 @@ contract Darbi is AccessControl, Pausable, Safe {
       to,
       deadline
     );
+  }
+
+  function setAdmin(address _newAdmin) public onlyAdmin {
+    require(_newAdmin != address(0));
+    admins[_newAdmin] = true;
+  }
+
+  function removeAdmin(address _adminAddr) public onlyAdmin {
+    require(_adminAddr != address(0));
+    admins[_adminAddr] = false;
   }
 }
