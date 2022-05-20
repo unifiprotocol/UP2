@@ -3,16 +3,16 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "./UP.sol";
-import "./UPController.sol";
-import "./Helpers/Safe.sol";
+import "../UP.sol";
+import "../UPController.sol";
+import "../Helpers/Safe.sol";
 
-/// @title UP Darbi Mint 
+/// @title UP Darbi Mint
 /// @author Daniel Blanco & A Fistful of Stray Cat Hair
 /// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
 
 contract UPMintDarbi is AccessControl, Pausable, Safe {
-    bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
+  bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
 
   uint256 public mintRate;
   address public UP_TOKEN = address(0);
