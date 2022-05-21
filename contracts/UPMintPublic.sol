@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./UP.sol";
 import "./UPController.sol";
 import "./Helpers/Safe.sol";
@@ -12,7 +13,7 @@ import "./Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
 
-contract UPMintPublic is Ownable, Pausable, Safe {
+contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   uint256 public mintRate;
   address public UP_TOKEN = address(0);
   address payable public UP_CONTROLLER = payable(address(0));
@@ -33,7 +34,7 @@ contract UPMintPublic is Ownable, Pausable, Safe {
   }
 
   /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
-  function mintUP() public payable whenNotPaused {
+  function mintUP() public payable whenNotPaused nonReentrant {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     require(currentPrice > 0, "UP_PRICE_0");
