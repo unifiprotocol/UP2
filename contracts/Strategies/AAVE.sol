@@ -23,7 +23,11 @@ contract AAVE is Strategy {
   // function deposit() - deposit to AAVE - send transaction to AAVE pool, updates amountDeposited variable
 
   // function triggerRebalance() - claim rewards over amount deposited - checks total amount on AAVE, subtracts amountDeposited, sends gas refund to msg.sender, sends amount earned to Rebalancer to begin rebalance. Will emit event on amonut earned.
+  
+  // function withdrawAAVE() -
 
+  // function claimWrappedRewardsAAVE() -
+  
   ///@notice Permissioned function to update the address of the Rebalancer
   ///@param _rebalancer - the address of the new rebalancer
   function updateRebalancer(address _rebalancer) public {
