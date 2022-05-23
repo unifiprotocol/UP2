@@ -3,6 +3,7 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./UP.sol";
 import "./Helpers/Safe.sol";
 
@@ -10,7 +11,7 @@ import "./Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This controller back up the UP token and has the logic for borrowing tokens.
 
-contract UPController is AccessControl, Safe {
+contract UPController is AccessControl, Safe, Pausable {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   bytes32 public constant REDEEMER_ROLE = keccak256("REDEEMER_ROLE");
 
@@ -52,6 +53,13 @@ contract UPController is AccessControl, Safe {
     return ((getNativeBalance() * 1e18) / (UP(UP_TOKEN).totalSupply() - upBorrowed));
   }
 
+  /// @notice Returns price of UP token based on its reserves minus amount sent to the contract
+  function getVirtualPrice(uint256 sentValue) public view returns (uint256) {
+    if (getNativeBalance() == 0) return 0;
+    uint256 nativeBalance = getNativeBalance() - sentValue;
+    return ((nativeBalance * 1e18) / (UP(UP_TOKEN).totalSupply() - upBorrowed));
+  }
+
   /// @notice Computed the actual native balances of the contract
   function getNativeBalance() public view returns (uint256) {
     return address(this).balance + nativeBorrowed;
@@ -63,7 +71,7 @@ contract UPController is AccessControl, Safe {
   }
 
   /// @notice Borrows native token from the back up reserves
-  function borrowNative(uint256 _borrowAmount, address _to) public onlyRebalancer {
+  function borrowNative(uint256 _borrowAmount, address _to) public onlyRebalancer whenNotPaused {
     require(address(this).balance >= _borrowAmount, "NOT_ENOUGH_BALANCE");
     (bool success, ) = _to.call{value: _borrowAmount}("");
     nativeBorrowed += _borrowAmount;
@@ -72,7 +80,7 @@ contract UPController is AccessControl, Safe {
   }
 
   /// @notice Borrows UP token minting it
-  function borrowUP(uint256 _borrowAmount, address _to) public onlyRebalancer {
+  function borrowUP(uint256 _borrowAmount, address _to) public onlyRebalancer whenNotPaused {
     upBorrowed += _borrowAmount;
     UP(UP_TOKEN).mint(_to, _borrowAmount);
     emit SyntheticMint(msg.sender, _borrowAmount, upBorrowed);
@@ -82,8 +90,15 @@ contract UPController is AccessControl, Safe {
     borrowUP(_mintAmount, _to);
   }
 
+  /// @notice Mints UP based on virtual price - UPv1 logic
+  function mintUP(address to) external payable whenNotPaused {
+    require(msg.sender == UP_TOKEN, "NON_UP_CONTRACT");
+    uint256 mintAmount = (msg.value * getVirtualPrice(msg.value)) / 1e18;
+    UP(UP_TOKEN).mint(to, mintAmount);
+  }
+
   /// @notice Allows to return back borrowed amounts to the controller
-  function repay(uint256 upAmount) public payable onlyRebalancer {
+  function repay(uint256 upAmount) public payable onlyRebalancer whenNotPaused {
     require(upAmount <= upBorrowed, "UP_AMOUNT_GT_BORROWED");
     require(msg.value <= nativeBorrowed, "NATIVE_AMOUNT_GT_BORROWED");
     UP(UP_TOKEN).transferFrom(msg.sender, address(this), upAmount);
@@ -93,13 +108,21 @@ contract UPController is AccessControl, Safe {
   }
 
   /// @notice Swaps UP token by native token
-  function redeem(uint256 upAmount) public onlyRedeemer {
+  function redeem(uint256 upAmount) public onlyRedeemer whenNotPaused {
     require(upAmount > 0, "AMOUNT_EQ_0");
     UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
     uint256 redeemAmount = (getVirtualPrice() * upAmount) / 1e18;
     (bool success, ) = msg.sender.call{value: redeemAmount}("");
     require(success, "REDEEM_FAILED");
     emit Redeem(upAmount, redeemAmount);
+  }
+
+  function pause() public onlyAdmin {
+    _pause();
+  }
+
+  function unpause() public onlyAdmin {
+    _unpause();
   }
 
   function withdrawFunds(address target) public onlyAdmin returns (bool) {

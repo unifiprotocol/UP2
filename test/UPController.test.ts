@@ -29,7 +29,7 @@ describe("UPController", function () {
     expect(await upController.nativeBorrowed()).equal(0)
     expect(await upController.upBorrowed()).equal(0)
     expect(await upController.getNativeBalance()).equal(0)
-    expect(await upController.getVirtualPrice()).equal(0)
+    expect(await upController["getVirtualPrice()"]()).equal(0)
   })
 
   it("Should change native balance after send funds", async () => {
@@ -48,7 +48,7 @@ describe("UPController", function () {
     expect(await upController.getNativeBalance()).equal(ethers.utils.parseEther("5"))
     await upToken.mint(upController.address, ethers.utils.parseEther("2"))
     expect(await upController.actualTotalSupply()).equal(ethers.utils.parseEther("2"))
-    expect(await upController.getVirtualPrice()).equal(ethers.utils.parseEther("2.5"))
+    expect(await upController["getVirtualPrice()"]()).equal(ethers.utils.parseEther("2.5"))
   })
 
   describe("Borrow", () => {

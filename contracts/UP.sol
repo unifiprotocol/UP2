@@ -40,10 +40,14 @@ contract UP is ERC20, AccessControl {
 
   /// @notice Mints token and have logic for supporting legacy mint logic
   function mint(address to, uint256 amount) public payable onlyMint {
-    _mint(to, amount);
+    /// LEGACY_MINT_ROLE retrocompatible with UPv1
     if (hasRole(LEGACY_MINT_ROLE, msg.sender) && UP_CONTROLLER != address(0)) {
-      (bool success, ) = UP_CONTROLLER.call{value: address(this).balance}("");
+      (bool success, ) = UP_CONTROLLER.call{value: msg.value}(
+        abi.encodeWithSignature(("mintUP(address)"), to)
+      );
       require(success, "LEGACY_MINT_FAILED");
+    } else {
+      _mint(to, amount);
     }
   }
 

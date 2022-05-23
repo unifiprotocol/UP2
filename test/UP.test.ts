@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import { UP } from "../typechain-types"
+import { UP, UPController } from "../typechain-types"
 
 describe("UPv2", function () {
   let upToken: UP
@@ -148,6 +148,45 @@ describe("UPv2", function () {
       const [, , addr3] = await ethers.getSigners()
       const upAddr3 = upToken.connect(addr3)
       await expect(upAddr3.mint(addr3.address, 1)).revertedWith("ONLY_MINT")
+    })
+  })
+
+  describe("Legacy mint logic", () => {
+    let upController: UPController
+
+    beforeEach(async () => {
+      upController = await ethers
+        .getContractFactory("UPController")
+        .then((factory) => factory.deploy(upToken.address))
+        .then((instance) => instance.deployed())
+      await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
+      await upToken.grantRole(await upToken.MINT_ROLE(), upController.address)
+    })
+
+    it("Should mint based in virtualPrice #0", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upController.address, ethers.utils.parseEther("2"))
+
+      await upToken.grantRole(await upToken.LEGACY_MINT_ROLE(), addr1.address)
+      await upToken.setController(upController.address)
+      await upToken.mint(addr1.address, 0, { value: ethers.utils.parseEther("5") })
+      expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("12.5"))
+    })
+
+    it("Should mint based in virtualPrice #1", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upController.address, ethers.utils.parseEther("4"))
+
+      await upToken.grantRole(await upToken.LEGACY_MINT_ROLE(), addr1.address)
+      await upToken.setController(upController.address)
+      await upToken.mint(addr1.address, 0, { value: ethers.utils.parseEther("5") })
+      expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("6.25"))
     })
   })
 })
