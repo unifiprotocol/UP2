@@ -47,6 +47,7 @@ contract UP is ERC20, AccessControl {
     }
   }
 
+  /// @notice Sets a controller address that will receive the funds from LEGACY_MINT_ROLE
   function setController(address newController) public onlyAdmin {
     UP_CONTROLLER = newController;
   }
