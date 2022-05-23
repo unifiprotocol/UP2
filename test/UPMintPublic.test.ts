@@ -65,7 +65,7 @@ describe("UPMintPublic", () => {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upController.address, ethers.utils.parseEther("2"))
-      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("100") })
+      await addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("100") })
       expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("237.5"))
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("100").add(ethers.utils.parseEther("5"))
@@ -78,7 +78,7 @@ describe("UPMintPublic", () => {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upController.address, ethers.utils.parseEther("2"))
-      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("5") })
+      await addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("5") })
       expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("11.875"))
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("5").add(ethers.utils.parseEther("5"))
@@ -91,7 +91,7 @@ describe("UPMintPublic", () => {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
-      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("31") })
+      await addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("31") })
       expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("73.625"))
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("31").add(ethers.utils.parseEther("5"))
@@ -104,7 +104,7 @@ describe("UPMintPublic", () => {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
-      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("1233") })
+      await addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("1233") })
       expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("2928.375"))
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("1233").add(ethers.utils.parseEther("5"))
@@ -117,7 +117,7 @@ describe("UPMintPublic", () => {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
-      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("999.1") })
+      await addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("999.1") })
       expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("2372.8625"))
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("999.1").add(ethers.utils.parseEther("5"))
@@ -134,7 +134,7 @@ describe("UPMintPublic", () => {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
-      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("91132.42") })
+      await addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("91132.42") })
       expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("216439.4975"))
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("91132.42").add(ethers.utils.parseEther("5"))
@@ -147,7 +147,7 @@ describe("UPMintPublic", () => {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upMintPublic.address, ethers.utils.parseEther("4"))
-      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("999") })
+      await addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("999") })
       expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("1186.3125"))
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("999").add(ethers.utils.parseEther("5"))
@@ -155,21 +155,23 @@ describe("UPMintPublic", () => {
     })
 
     it("Should fail minting UP because payable value is zero", async () => {
-      await expect(upMintPublic.mintUP({ value: 0 })).revertedWith("INVALID_PAYABLE_AMOUNT")
+      await expect(upMintPublic.mintUP(addr1.address, { value: 0 })).revertedWith(
+        "INVALID_PAYABLE_AMOUNT"
+      )
     })
 
     it("Should mint zero UP because virtual price is zero and throw UP_PRICE_0", async () => {
-      await expect(upMintPublic.mintUP({ value: ethers.utils.parseEther("100") })).revertedWith(
-        "UP_PRICE_0"
-      )
+      await expect(
+        upMintPublic.mintUP(addr1.address, { value: ethers.utils.parseEther("100") })
+      ).revertedWith("UP_PRICE_0")
       expect(await upToken.balanceOf(addr1.address)).equal(0)
     })
 
     it("Shouldn't mint up because contract is paused", async () => {
       await upMintPublic.pause()
-      await expect(upMintPublic.mintUP({ value: ethers.utils.parseEther("100") })).revertedWith(
-        "Pausable: pause"
-      )
+      await expect(
+        upMintPublic.mintUP(addr1.address, { value: ethers.utils.parseEther("100") })
+      ).revertedWith("Pausable: pause")
     })
 
     it("Should mint UP after pause and unpause", async () => {
@@ -180,10 +182,10 @@ describe("UPMintPublic", () => {
       await upToken.mint(upController.address, ethers.utils.parseEther("2"))
       await upMintPublic.pause()
       await expect(
-        addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("100") })
+        addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("100") })
       ).revertedWith("Pausable: pause")
       await upMintPublic.unpause()
-      await addr2UpMintPublic.mintUP({ value: ethers.utils.parseEther("100") })
+      await addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("100") })
       expect(await upToken.balanceOf(addr2.address)).equal(ethers.utils.parseEther("237.5"))
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("100").add(ethers.utils.parseEther("5"))

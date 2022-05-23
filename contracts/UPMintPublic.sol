@@ -19,7 +19,13 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   address payable public UP_CONTROLLER = payable(address(0));
 
   event NewPublicMintRate(uint256 _newMintRate);
-  event PublicMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
+  event PublicMint(
+    address indexed _from,
+    address _to,
+    uint256 _amount,
+    uint256 _price,
+    uint256 _value
+  );
   event UpdateController(address _upController);
 
   constructor(
@@ -34,16 +40,17 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   }
 
   /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
-  function mintUP() public payable whenNotPaused nonReentrant {
+  /// @param to Destination address for minted tokens
+  function mintUP(address to) public payable whenNotPaused nonReentrant {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     require(currentPrice > 0, "UP_PRICE_0");
     uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
     uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
-    UP(UP_TOKEN).mint(msg.sender, mintAmount);
+    UP(UP_TOKEN).mint(to, mintAmount);
     (bool successTransfer, ) = address(UP_CONTROLLER).call{value: msg.value}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
-    emit PublicMint(msg.sender, mintAmount, currentPrice, msg.value);
+    emit PublicMint(msg.sender, to, mintAmount, currentPrice, msg.value);
   }
 
   /// @notice Permissioned function that sets the public rint of UP.
