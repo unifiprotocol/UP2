@@ -5,8 +5,11 @@ import { UP } from "../typechain-types"
 
 describe("UPv2", function () {
   let upToken: UP
+  let addr1: SignerWithAddress
 
   beforeEach(async () => {
+    const [a1] = await ethers.getSigners()
+    addr1 = a1
     upToken = await ethers
       .getContractFactory("UP")
       .then((factory) => factory.deploy())
@@ -14,8 +17,6 @@ describe("UPv2", function () {
   })
 
   it("Should assert token basic info", async () => {
-    const [addr1] = await ethers.getSigners()
-
     const name = await upToken.name()
     const symbol = await upToken.symbol()
     const decimals = await upToken.decimals()
@@ -30,16 +31,24 @@ describe("UPv2", function () {
     expect(await upToken.hasRole(adminRoleNS, addr1.address)).equal(true)
   })
 
+  it("Should set a new controller address", async () => {
+    expect(await upToken.UP_CONTROLLER()).eq(ethers.constants.AddressZero)
+    await upToken.setController(addr1.address)
+    expect(await upToken.UP_CONTROLLER()).eq(addr1.address)
+  })
+
   describe("Mint/Burn", () => {
     let upTokenAddr2: UP
     let addr1: SignerWithAddress
     let addr2: SignerWithAddress
+    let addr3: SignerWithAddress
 
     beforeEach(async () => {
-      const [a1, a2] = await ethers.getSigners()
+      const [a1, a2, a3] = await ethers.getSigners()
       upTokenAddr2 = upToken.connect(a2)
       addr1 = a1
       addr2 = a2
+      addr3 = a3
     })
 
     it("Should mint 1 UP", async () => {
@@ -81,6 +90,23 @@ describe("UPv2", function () {
       expect(await upTokenAddr2.totalSupply()).equal(0)
       expect(await upTokenAddr2.allowance(addr2.address, addr2.address)).equal(0)
       expect(await upTokenAddr2.balanceOf(addr2.address)).equal(0)
+    })
+
+    it("Should mint UP and send the value to LEGACY_MINT_ROLE", async () => {
+      await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
+      await upToken.grantRole(await upToken.LEGACY_MINT_ROLE(), addr1.address)
+      await upToken.setController(addr3.address)
+      const prevBalance = await upToken.provider.getBalance(addr3.address)
+      await upToken.mint(addr1.address, ethers.constants.WeiPerEther, { value: 5 })
+      expect(await upToken.provider.getBalance(addr3.address)).equal(prevBalance.add(5))
+    })
+
+    it("Should mint UP and send not send native tokens because no controller set", async () => {
+      await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
+      await upToken.grantRole(await upToken.LEGACY_MINT_ROLE(), addr1.address)
+      const prevBalance = await upToken.provider.getBalance(addr3.address)
+      await upToken.mint(addr1.address, ethers.constants.WeiPerEther, { value: 5 })
+      expect(await upToken.provider.getBalance(addr3.address)).equal(prevBalance)
     })
   })
 

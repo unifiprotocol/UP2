@@ -7,9 +7,16 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract UP is ERC20, AccessControl {
   bytes32 public constant MINT_ROLE = keccak256("MINT_ROLE");
+  bytes32 public constant LEGACY_MINT_ROLE = keccak256("LEGACY_MINT_ROLE");
+  address public UP_CONTROLLER = address(0);
 
   modifier onlyMint() {
     require(hasRole(MINT_ROLE, msg.sender), "ONLY_MINT");
+    _;
+  }
+
+  modifier onlyAdmin() {
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
     _;
   }
 
@@ -31,7 +38,16 @@ contract UP is ERC20, AccessControl {
     burn(amount);
   }
 
-  function mint(address account, uint256 amount) public onlyMint {
-    _mint(account, amount);
+  /// @notice Mints token and have logic for supporting legacy mint logic
+  function mint(address to, uint256 amount) public payable onlyMint {
+    _mint(to, amount);
+    if (hasRole(LEGACY_MINT_ROLE, msg.sender) && UP_CONTROLLER != address(0)) {
+      (bool success, ) = UP_CONTROLLER.call{value: address(this).balance}("");
+      require(success, "LEGACY_MINT_FAILED");
+    }
+  }
+
+  function setController(address newController) public onlyAdmin {
+    UP_CONTROLLER = newController;
   }
 }
