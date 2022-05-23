@@ -8,6 +8,10 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Helpers/Safe.sol";
 
+/// @title Vendor
+/// @author dxffffff & A Fistful of Stray Cat Hair
+/// @notice Swaps 1:1 between UP tokens - Needs to be top up first.
+
 contract Vendor is ReentrancyGuard, Pausable, Ownable, Safe {
   using SafeERC20 for IERC20;
 
@@ -21,6 +25,8 @@ contract Vendor is ReentrancyGuard, Pausable, Ownable, Safe {
     UP = newUp;
   }
 
+  /// @notice Giving an amount of tokens, will swap between them
+  /// @param _amount Amount to be swapped
   function swap(uint256 _amount) public nonReentrant whenNotPaused {
     require(_amount > 0, "INVALID_AMOUNT");
     IERC20 oldUp = IERC20(OLD_UP);
