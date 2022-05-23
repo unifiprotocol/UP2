@@ -51,6 +51,10 @@ describe("UPController", function () {
     expect(await upController["getVirtualPrice()"]()).equal(ethers.utils.parseEther("2.5"))
   })
 
+  it("Should fail calling mintUP because is not UP_TOKEN the caller", async () => {
+    await expect(upController.mintUP(addr1.address)).revertedWith("NON_UP_CONTRACT")
+  })
+
   describe("Borrow", () => {
     describe("borrowNative", () => {
       it("Should borrow native funds and update nativeBorrowed", async () => {
