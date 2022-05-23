@@ -4,6 +4,9 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Strategy.sol";
+import "./Interfaces/ILendingPoolSimple.sol";
+import "./Interfaces/IWETHGateway.sol";
+import "./Interfaces/IAaveIncentivesController.sol";
 
 /// @title Staking Contract for UP to interact with AAVE
 /// @author dxffffff & A Fistful of Stray Cat Hair
@@ -12,21 +15,31 @@ import "./Strategy.sol";
 contract AAVE is Strategy {
   address public rebalancer = address(0);
   uint256 public amountDeposited = 0;
+  address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
+  address public aaveIncentivesController = 0x929EC64c34a17401F460460D4B9390518E5B473e; //AAVE Harmony Incentives Controller
 
   event UpdateRebalancer(address _rebalancer);
   event TriggerRebalance(uint256 amountClaimed);
 
-  constructor(address _rebalancer) {
+  constructor(address _rebalancer, address _wrappedTokenAddress, address _aaveIncentivesController) {
     rebalancer = _rebalancer;
+    wrappedTokenAddress = _wrappedTokenAddress;
+    aaveIncentivesController = _aaveIncentivesController;
   }
 
-  // function deposit() - deposit to AAVE - send transaction to AAVE pool, updates amountDeposited variable
+  // function checkRewardsBalance() public returns (uint256 rewardsBalance) {
+  //    asset = [wrappedTokenAddress];
+  //   rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getRewardsBalance(asset, address(this));
+  //   return (rewardsBalance);
+  // }
 
-  // function triggerRebalance() - claim rewards over amount deposited - checks total amount on AAVE, subtracts amountDeposited, sends gas refund to msg.sender, sends amount earned to Rebalancer to begin rebalance. Will emit event on amonut earned.
+  // function deposit() - deposit to AAVE - send transaction to AAVE pool, updates amountDeposited variable //
+
+  /// function triggerRebalance() - claim rewards over amount deposited - checks total amount on AAVE, subtracts amountDeposited, sends gas refund to msg.sender, sends amount earned to Rebalancer to begin rebalance. Will emit event on amonut earned.
   
-  // function withdrawAAVE() -
+  /// function withdrawAAVE() -
 
-  // function claimWrappedRewardsAAVE() -
+  /// function claimWrappedRewardsAAVE() -
   
   ///@notice Permissioned function to update the address of the Rebalancer
   ///@param _rebalancer - the address of the new rebalancer
