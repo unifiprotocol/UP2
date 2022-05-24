@@ -51,8 +51,7 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     if (currentPrice == 0) return;
-    uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
-    uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
+    uint256 mintAmount = (msg.value * currentPrice) / 1e18;
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
     (bool successTransfer, ) = address(UP_CONTROLLER).call{value: msg.value}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");

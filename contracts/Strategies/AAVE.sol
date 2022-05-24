@@ -4,8 +4,8 @@ pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./Strategy.sol";
-import "./Interfaces/ILendingPoolSimple.sol";
-import "./Interfaces/IWETHGateway.sol";
+import "./Interfaces/ILendingPool.sol";
+// import "./Interfaces/IWETHGateway.sol";
 import "./Interfaces/IAaveIncentivesController.sol";
 
 /// @title Staking Contract for UP to interact with AAVE
@@ -22,10 +22,11 @@ contract AAVE is Strategy {
   event UpdateRebalancer(address _rebalancer);
   event TriggerRebalance(uint256 amountClaimed);
 
-  constructor(address _rebalancer, address _wrappedTokenAddress, address _aaveIncentivesController) {
+  constructor(address _rebalancer, address _wrappedTokenAddress, address _aaveIncentivesController, address _aavePool) {
     rebalancer = _rebalancer;
     wrappedTokenAddress = _wrappedTokenAddress;
     aaveIncentivesController = _aaveIncentivesController;
+    aavePool = _aavePool;
   }
 
 //   interface IAaveIncentivesController {
@@ -50,16 +51,11 @@ contract AAVE is Strategy {
     return (rewardsBalance);
   }
 
-  function checkAAVEBalance() public
-
-  function getUserAccountData(address user) external view returns (
-        uint256 totalCollateralETH,
-        uint256 totalDebtETH,
-        uint256 availableBorrowsETH,
-        uint256 currentLiquidationThreshold,
-        uint256 ltv,
-        uint256 healthFactor
-    );
+  function checkAAVEBalance() public returns (uint256 aaveBalance) {
+    (uint256 aaveBalanceData,,,,,) = ILendingPool(aavePool).getUserAccountData(address(this));
+    aaveBalance = aaveBalanceData;
+    return (aaveBalance);
+  }
 
   // function checkUnclaimedRewards() public returns (uint256 unclaimedRewards) {
   //   unclaimedRewards = IAaveIncentivesController(aaveIncentivesController).getUserUnclaimedRewards(address(this));
