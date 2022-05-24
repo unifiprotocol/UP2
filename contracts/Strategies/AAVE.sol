@@ -17,6 +17,7 @@ contract AAVE is Strategy {
   uint256 public amountDeposited = 0;
   address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
   address public aaveIncentivesController = 0x929EC64c34a17401F460460D4B9390518E5B473e; //AAVE Harmony Incentives Controller
+  address public aavePool = 0x794a61358D6845594F94dc1DB02A252b5b4814aD; //AAVE Harmony Lending Pool
 
   event UpdateRebalancer(address _rebalancer);
   event TriggerRebalance(uint256 amountClaimed);
@@ -27,20 +28,52 @@ contract AAVE is Strategy {
     aaveIncentivesController = _aaveIncentivesController;
   }
 
+//   interface IAaveIncentivesController {
+//     function claimRewards(address[] calldata assets, uint256 amount, address to, address reward) external returns (uint256);
+//     function getUserRewards(address[] calldata assets, address user, address reward) external view returns (uint256);
+// }
+
+  ///@notice Checks the total amount of rewards earned by this address.
   function checkRewardsBalance() public returns (uint256 rewardsBalance) {
     address[] memory asset = new address[](1);
     asset[0] = address(wrappedTokenAddress);
-    rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getRewardsBalance(asset, address(this));
+    rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
     return (rewardsBalance);
   }
 
-  // function deposit() - deposit to AAVE - send transaction to AAVE pool, updates amountDeposited variable //
+  ///@notice Claims AAVE Incentive Rewards earned by this address.
+  function claimAAVERewards() internal returns (uint256 rewardsClaimed) {
+    address[] memory asset = new address[](1);
+    asset[0] = address(wrappedTokenAddress);
+    uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
+    rewardsClaimed = IAaveIncentivesController(aaveIncentivesController).claimRewards(asset, rewardsBalance, address(this), wrappedTokenAddress);
+    return (rewardsBalance);
+  }
+
+  function checkAAVEBalance() public
+
+  function getUserAccountData(address user) external view returns (
+        uint256 totalCollateralETH,
+        uint256 totalDebtETH,
+        uint256 availableBorrowsETH,
+        uint256 currentLiquidationThreshold,
+        uint256 ltv,
+        uint256 healthFactor
+    );
+
+  // function checkUnclaimedRewards() public returns (uint256 unclaimedRewards) {
+  //   unclaimedRewards = IAaveIncentivesController(aaveIncentivesController).getUserUnclaimedRewards(address(this));
+  //   return (unclaimedRewards);
+  // }
+
+
+  // function deposit() public onlyRebalancer - deposit to AAVE - send transaction to AAVE pool, updates amountDeposited variable //
 
   /// function triggerRebalance() - claim rewards over amount deposited - checks total amount on AAVE, subtracts amountDeposited, sends gas refund to msg.sender, sends amount earned to Rebalancer to begin rebalance. Will emit event on amonut earned.
   
   /// function withdrawAAVE() -
 
-  /// function claimWrappedRewardsAAVE() -
+
   
   ///@notice Permissioned function to update the address of the Rebalancer
   ///@param _rebalancer - the address of the new rebalancer
