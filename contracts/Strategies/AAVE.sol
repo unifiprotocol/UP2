@@ -29,10 +29,7 @@ contract AAVE is Strategy {
     aavePool = _aavePool;
   }
 
-//   interface IAaveIncentivesController {
-//     function claimRewards(address[] calldata assets, uint256 amount, address to, address reward) external returns (uint256);
-//     function getUserRewards(address[] calldata assets, address user, address reward) external view returns (uint256);
-// }
+  /// Read Functions
 
   ///@notice Checks the total amount of rewards earned by this address.
   function checkRewardsBalance() public returns (uint256 rewardsBalance) {
@@ -42,6 +39,24 @@ contract AAVE is Strategy {
     return (rewardsBalance);
   }
 
+  ///@notice Checks amonut of deposited assets to AAVe by this address.
+  function checkAAVEBalance() public returns (uint256 aaveBalance) {
+    (uint256 aaveBalanceData,,,,,) = ILendingPool(aavePool).getUserAccountData(address(this));
+    aaveBalance = aaveBalanceData;
+    return (aaveBalance);
+  }
+
+  ///@notice Checks Total Amount Earned by AAVE deposit above deposited total.
+  function checkUnclaimedEarnings() public returns (uint256 unclaimedEarnings) {
+    (uint256 aaveBalance) = checkAAVEBalance();
+    uint256 aaveEarnings = aaveBalance - amountDeposited;
+    (uint256 rewardsBalance) = checkRewardsBalance();
+    uint256 unclaimedEarnings = aaveEarnings + rewardsBalance;
+    return (unclaimedEarnings);
+  }
+
+  /// Write Functions
+
   ///@notice Claims AAVE Incentive Rewards earned by this address.
   function claimAAVERewards() internal returns (uint256 rewardsClaimed) {
     address[] memory asset = new address[](1);
@@ -49,12 +64,6 @@ contract AAVE is Strategy {
     uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
     rewardsClaimed = IAaveIncentivesController(aaveIncentivesController).claimRewards(asset, rewardsBalance, address(this), wrappedTokenAddress);
     return (rewardsBalance);
-  }
-
-  function checkAAVEBalance() public returns (uint256 aaveBalance) {
-    (uint256 aaveBalanceData,,,,,) = ILendingPool(aavePool).getUserAccountData(address(this));
-    aaveBalance = aaveBalanceData;
-    return (aaveBalance);
   }
 
   // function checkUnclaimedRewards() public returns (uint256 unclaimedRewards) {
