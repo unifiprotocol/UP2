@@ -50,14 +50,14 @@ contract UPController is AccessControl, Safe, Pausable {
   /// @notice Returns price of UP token based on its reserves
   function getVirtualPrice() public view returns (uint256) {
     if (getNativeBalance() == 0) return 0;
-    return ((getNativeBalance() * 1e18) / (UP(UP_TOKEN).totalSupply() - upBorrowed));
+    return ((getNativeBalance() * 1e18) / actualTotalSupply());
   }
 
   /// @notice Returns price of UP token based on its reserves minus amount sent to the contract
   function getVirtualPrice(uint256 sentValue) public view returns (uint256) {
     if (getNativeBalance() == 0) return 0;
     uint256 nativeBalance = getNativeBalance() - sentValue;
-    return ((nativeBalance * 1e18) / (UP(UP_TOKEN).totalSupply() - upBorrowed));
+    return ((nativeBalance * 1e18) / actualTotalSupply());
   }
 
   /// @notice Computed the actual native balances of the contract
