@@ -27,11 +27,12 @@ contract AAVE is Strategy {
     aaveIncentivesController = _aaveIncentivesController;
   }
 
-  // function checkRewardsBalance() public returns (uint256 rewardsBalance) {
-  //    asset = [wrappedTokenAddress];
-  //   rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getRewardsBalance(asset, address(this));
-  //   return (rewardsBalance);
-  // }
+  function checkRewardsBalance() public returns (uint256 rewardsBalance) {
+    address[] memory asset = new address[](1);
+    asset[0] = address(wrappedTokenAddress);
+    rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getRewardsBalance(asset, address(this));
+    return (rewardsBalance);
+  }
 
   // function deposit() - deposit to AAVE - send transaction to AAVE pool, updates amountDeposited variable //
 
