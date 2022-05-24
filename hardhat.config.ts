@@ -2,6 +2,7 @@ import { task } from "hardhat/config"
 import "@nomiclabs/hardhat-waffle"
 import "@typechain/hardhat"
 import "@nomiclabs/hardhat-ethers"
+import "solidity-docgen"
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -23,6 +24,9 @@ export default {
   // solidity: "0.8.4",
   solidity: {
     compilers: [{ version: "0.8.4" }, { version: "0.6.6" }]
+  },
+  docgen: {
+    pages: "files"
   },
   networks: {
     hardhat: {

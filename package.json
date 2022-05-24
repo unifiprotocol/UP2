@@ -11,11 +11,13 @@
     "@uniswap/v2-periphery": "^1.1.0-beta.0",
     "ethereum-waffle": "^3.4.4",
     "ethers": "^5.6.4",
-    "hardhat": "^2.9.3"
+    "hardhat": "^2.9.3",
+    "solidity-docgen": "^0.6.0-beta.10"
   },
   "scripts": {
-    "test": "yarn hardhat test",
-    "compile": "yarn hardhat compile"
+    "test": "hardhat test",
+    "compile": "hardhat compile",
+    "docgen": "hardhat docgen"
   },
   "devDependencies": {
     "@typechain/ethers-v5": "^10.0.0",
