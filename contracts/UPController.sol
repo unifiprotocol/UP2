@@ -110,8 +110,8 @@ contract UPController is AccessControl, Safe, Pausable {
   /// @notice Swaps UP token by native token
   function redeem(uint256 upAmount) public onlyRedeemer whenNotPaused {
     require(upAmount > 0, "AMOUNT_EQ_0");
-    UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
     uint256 redeemAmount = (getVirtualPrice() * upAmount) / 1e18;
+    UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
     (bool success, ) = msg.sender.call{value: redeemAmount}("");
     require(success, "REDEEM_FAILED");
     emit Redeem(upAmount, redeemAmount);
