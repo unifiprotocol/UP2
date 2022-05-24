@@ -204,7 +204,7 @@ describe("UPController", function () {
         await addr2UpToken.approve(upController.address, ethers.utils.parseEther("2"))
         await expect(addr2UpController.redeem(ethers.utils.parseEther("2")))
           .to.emit(upController, "Redeem")
-          .withArgs(ethers.utils.parseEther("2"), ethers.utils.parseEther("5"))
+          .withArgs(ethers.utils.parseEther("2"), ethers.utils.parseEther("2.5"))
         expect(await upToken.totalSupply()).equal(ethers.utils.parseEther("2"))
       })
 
