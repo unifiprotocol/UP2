@@ -15,10 +15,8 @@ import "../Helpers/Safe.sol";
 /// @notice This controller deposits the native tokens backing UP into the AAVE Supply Pool, and triggers the Rebalancer
 
 contract AAVE is AccessControl, Safe {
-  bytes32 public constant INVOKER_ROLE = keccak256("INVOKER_ROLE");
   bytes32 public constant REBALANCER_ROLE = keccak256("INVOKER_ROLE");
   address public rebalancer = address(0);
-  address public invoker = address(0);
   uint256 public amountDeposited = 0;
   address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
   address public aaveIncentivesController = 0x929EC64c34a17401F460460D4B9390518E5B473e; //AAVE Harmony Incentives Controller
@@ -31,11 +29,6 @@ contract AAVE is AccessControl, Safe {
     _;
   }
 
-  modifier onlyInvoker() {
-    require(hasRole(INVOKER_ROLE, msg.sender), "ONLY_INVOKER");
-    _;
-  }
-
   modifier onlyRebalancer() {
     require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
     _;
@@ -43,18 +36,15 @@ contract AAVE is AccessControl, Safe {
 
   event amountEarned(uint256 earnings);
   event UpdateRebalancer(address _rebalancer);
-  event UpdateInvoker(address _invoker);
 
-  constructor(address _rebalancer, address _invoker, address _wrappedTokenAddress, address _aaveIncentivesController, address _aavePool, address _wethGateway, address _aaveDepositToken) {
+  constructor(address _rebalancer, address _wrappedTokenAddress, address _aaveIncentivesController, address _aavePool, address _wethGateway, address _aaveDepositToken) {
     rebalancer = _rebalancer;
-    invoker = _invoker;
     wrappedTokenAddress = _wrappedTokenAddress;
     aaveIncentivesController = _aaveIncentivesController;
     aavePool = _aavePool;
     wethGateway = _wethGateway;
     aaveDepositToken = _aaveDepositToken;
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    _setupRole(INVOKER_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
   }
 
@@ -93,12 +83,11 @@ contract AAVE is AccessControl, Safe {
   /// Write Functions
 
   ///@notice Claims AAVE Incentive Rewards earned by this address.
-  function _claimAAVERewards() internal returns (uint256 rewardsClaimed) {
+  function _claimAAVERewards() internal {
     address[] memory asset = new address[](1);
     asset[0] = address(wrappedTokenAddress);
     uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
-    rewardsClaimed = IAaveIncentivesController(aaveIncentivesController).claimRewards(asset, rewardsBalance, address(this), wrappedTokenAddress);
-    return (rewardsBalance);
+    IAaveIncentivesController(aaveIncentivesController).claimRewards(asset, rewardsBalance, address(this), wrappedTokenAddress);
   }
 
   ///@notice Withdraws All Native Token Deposits from AAVE. 
@@ -118,30 +107,22 @@ contract AAVE is AccessControl, Safe {
   }
 
   ///@notice Claims Rewards + Withdraws All Tokens on AAVE, and sends to Controller
-  function gather() public onlyInvoker {
+  function gather() public onlyRebalancer {
     uint256 earnings = checkUnclaimedEarnings();
     _claimAAVERewards();
     _withdrawAAVE();
-    (bool successTransfer, ) = address(rebalancer).call{value: address(this).balance}("");
+    (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     emit amountEarned(earnings);
   }
   
   ///Admin Functions
-  
+
   ///@notice Permissioned function to update the address of the Rebalancer
   ///@param _rebalancer - the address of the new rebalancer
   function updateRebalancer(address _rebalancer) public onlyAdmin {
     require(_rebalancer != address(0), "INVALID_ADDRESS");
     rebalancer = _rebalancer;
     emit UpdateRebalancer(_rebalancer);
-  }
-
-  ///@notice Permissioned function to update the address of the Invoker
-  ///@param _invoker - the address of the new rebalancer
-  function updateInvoker(address _invoker) public onlyAdmin {
-    require(_invoker != address(0), "INVALID_ADDRESS");
-    invoker = _invoker;
-    emit UpdateInvoker(_invoker);
   }
 
   ///@notice Permissioned function to update the address of the Aave Incentives Controller
