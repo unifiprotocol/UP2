@@ -54,7 +54,7 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   }
 
   /// @notice Permissioned function that sets the public rint of UP.
-  /// @param _mintRate - mint rate in percent texrms, _mintRate = 5 = 5%.
+  /// @param _mintRate - mint rate in percent terms, _mintRate = 5 = 5%.
   function setMintRate(uint256 _mintRate) public onlyOwner {
     require(_mintRate <= 100, "MINT_RATE_GT_100");
     require(_mintRate > 0, "MINT_RATE_EQ_0");

@@ -10,6 +10,7 @@ import "./Helpers/Safe.sol";
 
 contract Rebalancer is AccessControl, Pausable, Safe {
   bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
+
   address public WETH = address(0);
   address public UPaddress = address(0);
   address public strategy = address(0);

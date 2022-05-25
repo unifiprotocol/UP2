@@ -1,10 +1,8 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity =0.6.6;
+pragma solidity ^0.8.4;
 
-/// @title Contains 512-bit math functions
-/// @notice Facilitates multiplication and division that can have overflow of an intermediate value without any loss of precision
-/// @dev Handles "phantom overflow" i.e., allows multiplication and division where an intermediate value overflows 256 bits
+// The library below is taken from @uniswap/lib/contracts/libraries/FullMath.sol. It has been modified to work with solidity 0.8
 library FullMath {
   /// @notice Calculates floor(a×b÷denominator) with full precision. Throws if result overflows a uint256 or denominator == 0
   /// @param a The multiplicand
@@ -62,7 +60,7 @@ library FullMath {
     // Factor powers of two out of denominator
     // Compute largest power of two divisor of denominator.
     // Always >= 1.
-    uint256 twos = -denominator & denominator;
+    uint256 twos = denominator & (~denominator + 1);
     // Divide denominator by power of two
     assembly {
       denominator := div(denominator, twos)
@@ -106,20 +104,20 @@ library FullMath {
     return result;
   }
 
-  // /// @notice Calculates ceil(a×b÷denominator) with full precision. Throws if result overflows a uint256 or denominator == 0
-  // /// @param a The multiplicand
-  // /// @param b The multiplier
-  // /// @param denominator The divisor
-  // /// @return result The 256-bit result
-  // function mulDivRoundingUp(
-  //   uint256 a,
-  //   uint256 b,
-  //   uint256 denominator
-  // ) internal pure returns (uint256 result) {
-  //   result = mulDiv(a, b, denominator);
-  //   if (mulmod(a, b, denominator) > 0) {
-  //     require(result < type(uint256).max);
-  //     result++;
-  //   }
-  // }
+  /// @notice Calculates ceil(a×b÷denominator) with full precision. Throws if result overflows a uint256 or denominator == 0
+  /// @param a The multiplicand
+  /// @param b The multiplier
+  /// @param denominator The divisor
+  /// @return result The 256-bit result
+  function mulDivRoundingUp(
+    uint256 a,
+    uint256 b,
+    uint256 denominator
+  ) internal pure returns (uint256 result) {
+    result = mulDiv(a, b, denominator);
+    if (mulmod(a, b, denominator) > 0) {
+      require(result < type(uint256).max);
+      result++;
+    }
+  }
 }
