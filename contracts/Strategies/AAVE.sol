@@ -15,7 +15,7 @@ import "../Helpers/Safe.sol";
 /// @notice This controller deposits the native tokens backing UP into the AAVE Supply Pool, and triggers the Rebalancer
 
 contract AAVE is AccessControl, Safe {
-  bytes32 public constant REBALANCER_ROLE = keccak256("INVOKER_ROLE");
+  bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   address public rebalancer = address(0);
   uint256 public amountDeposited = 0;
   address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
