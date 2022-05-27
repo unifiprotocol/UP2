@@ -1,7 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import { UP, Vendor } from "../typechain-types"
+import { UP, Vendor } from "../../typechain-types"
 
 describe("Vendor", function () {
   let upToken1: UP
