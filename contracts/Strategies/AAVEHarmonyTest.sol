@@ -17,11 +17,11 @@ import "../Helpers/Safe.sol";
 contract AAVE is AccessControl, Safe {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   uint256 public amountDeposited = 0;
-  address public wrappedTokenAddress = address(0); 
-  address public aaveIncentivesController = address(0); 
-  address public aavePool = address(0); 
-  address public wethGateway = address(0);
-  address public aaveDepositToken = address(0);
+  address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
+  address public aaveIncentivesController = 0x929EC64c34a17401F460460D4B9390518E5B473e; //AAVE Harmony Incentives Controller
+  address public aavePool = 0x794a61358D6845594F94dc1DB02A252b5b4814aD; //AAVE Harmony Lending Pool
+  address public wethGateway = 0xe86B52cE2e4068AdE71510352807597408998a69; //AAVE Harmony WETH Gateway
+  address public aaveDepositToken = 0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97; /// AAVE WONE AToken
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
@@ -116,4 +116,34 @@ contract AAVE is AccessControl, Safe {
   receive() external payable {
     depositAAVE();
     }
+  
+  ///Admin Functions
+
+  ///@notice Permissioned function to update the address of the Aave Incentives Controller
+  ///@param _aaveIncentivesController - the address of the new Aave Incentives Controller
+  function updateaaveIncentivesController(address _aaveIncentivesController) public onlyAdmin {
+    require(_aaveIncentivesController != address(0), "INVALID_ADDRESS");
+    aaveIncentivesController = _aaveIncentivesController;
+  }
+
+  ///@notice Permissioned function to update the address of the aavePool
+  ///@param _aavePool - the address of the new aavePool
+  function updateaavePool(address _aavePool) public onlyAdmin {
+    require(_aavePool != address(0), "INVALID_ADDRESS");
+    aavePool = _aavePool;
+  }
+
+  ///@notice Permissioned function to update the address of the wethGateway
+  ///@param _wethGateway - the address of the new wethGateway
+  function updatewethGateway(address _wethGateway) public onlyAdmin {
+    require(_wethGateway != address(0), "INVALID_ADDRESS");
+    wethGateway = _wethGateway;
+  }
+
+  ///@notice Permissioned function to update the address of the aaveDepositToken
+  ///@param _aaveDepositToken - the address of the new aaveDepositToken
+  function updateaaveDepositToken(address _aaveDepositToken) public onlyAdmin {
+    require(_aaveDepositToken != address(0), "INVALID_ADDRESS");
+    aaveDepositToken = _aaveDepositToken;
+  }
 }
