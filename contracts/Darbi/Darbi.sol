@@ -112,13 +112,18 @@ contract Darbi is AccessControl, Safe {
 
     // IF ATOB === TRUE WE ARE GETTING $UP, SO WE HAVE TO REDEEM IT
     if (aToB) {
-      UP_CONTROLLER.redeem(IERC20(UP_TOKEN).balanceOf(address(this)));
+      redeemUP();
     }
   }
 
   function mintUP(uint256 amount) internal {
     WETH.withdraw(amount);
     DARBI_MINTER.mintUP{value: amount}();
+  }
+
+  function redeemUP() internal {
+    UP_CONTROLLER.redeem(IERC20(UP_CONTROLLER.UP_TOKEN()).balanceOf(address(this)));
+    WETH.deposit{value: address(this).balance}();
   }
 
   function setFactory(address _factory) public onlyAdmin {
