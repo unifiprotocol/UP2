@@ -12,15 +12,17 @@ import "../Libraries/FullMath.sol";
 import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
+import "./UPMintDarbi.sol";
 
 contract Darbi is AccessControl, Safe {
   using SafeERC20 for IERC20;
   using SafeMath for uint256;
 
-  IUniswapV2Router02 public router;
   address public factory;
+  IUniswapV2Router02 public router;
   IWETH public WETH;
-  address payable public UP_CONTROLLER;
+  UPController public UP_CONTROLLER;
+  UPMintDarbi public DARBI_MINTER;
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
@@ -31,13 +33,15 @@ contract Darbi is AccessControl, Safe {
     address _factory,
     address _router,
     address _WETH,
-    address _UP_CONTROLLER
+    address _UP_CONTROLLER,
+    address _darbiMinter
   ) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     factory = _factory;
     router = IUniswapV2Router02(_router);
     WETH = IWETH(_WETH);
-    UP_CONTROLLER = payable(_UP_CONTROLLER);
+    UP_CONTROLLER = UPController(payable(_UP_CONTROLLER));
+    DARBI_MINTER = UPMintDarbi(payable(_darbiMinter));
   }
 
   receive() external payable {
@@ -45,65 +49,16 @@ contract Darbi is AccessControl, Safe {
   }
 
   function arbitrage() public onlyAdmin {
-    UPController controller = UPController(UP_CONTROLLER);
-    address UP_TOKEN = controller.UP_TOKEN();
-    uint256 balance0 = IERC20(UP_TOKEN).balanceOf(address(this));
     uint256 balance1 = IERC20(address(WETH)).balanceOf(address(this));
-    uint256 price1 = controller.getVirtualPrice();
-    uint256 price0 = uint256(1).div(price1);
+    uint256 price1 = UP_CONTROLLER.getVirtualPrice();
+    uint256 balance0 = price1 * balance1;
+    uint256 price0 = uint256(1).div(price1); /// TODO: rev with Cat
+    address UP_TOKEN = UP_CONTROLLER.UP_TOKEN();
 
-    swapToPrice(
-      [UP_TOKEN, address(WETH)],
-      [price0, price1],
-      [balance0, balance1],
-      address(this),
-      20 minutes
-    );
-  }
+    address[2] memory swappedTokens = [UP_TOKEN, address(WETH)];
+    uint256[2] memory truePriceTokens = [price0, price1];
+    uint256[2] memory maxSpendTokens = [balance0, balance1];
 
-  function setFactory(address _factory) public onlyAdmin {
-    require(_factory != address(0));
-    factory = _factory;
-  }
-
-  function setRouter(address _router) public onlyAdmin {
-    require(_router != address(0));
-    router = IUniswapV2Router02(_router);
-  }
-
-  function withdrawFunds(address target) public onlyAdmin returns (bool) {
-    return _withdrawFunds(target);
-  }
-
-  function withdrawFundsERC20(address target, address tokenAddress)
-    public
-    onlyAdmin
-    returns (bool)
-  {
-    return _withdrawFundsERC20(target, tokenAddress);
-  }
-
-  /**
-   * @notice Swaps an amount of either token such that the trade results in the uniswap pair's price being as close as
-   * possible to the truePrice.
-   * @dev True price is expressed in the ratio of token A to token B.
-   * @dev The caller must approve this contract to spend whichever token is intended to be swapped.
-   * @param swappedTokens array of addresses which are to be swapped. The order does not matter as the function will figure
-   * out which tokens need to be exchanged to move the market to the desired "true" price.
-   * @param truePriceTokens array of unit used to represent the true price. 0th value is the numerator of the true price
-   * and the 1st value is the the denominator of the true price.
-   * @param maxSpendTokens array of unit to represent the max to spend in the two tokens.
-   * @param to recipient of the trade proceeds.
-   * @param deadline to limit when the trade can execute. If the tx is mined after this timestamp then revert.
-   */
-  function swapToPrice(
-    address[2] memory swappedTokens,
-    uint256[2] memory truePriceTokens,
-    uint256[2] memory maxSpendTokens,
-    address to,
-    uint256 deadline
-  ) internal {
-    // true price is expressed as a ratio, so both values must be non-zero
     require(truePriceTokens[0] != 0 && truePriceTokens[1] != 0, "SwapToPrice: ZERO_PRICE");
     // caller can specify 0 for either if they wish to swap in only one direction, but not both
     require(maxSpendTokens[0] != 0 || maxSpendTokens[1] != 0, "SwapToPrice: ZERO_SPEND");
@@ -129,6 +84,11 @@ contract Darbi is AccessControl, Safe {
     // spend up to the allowance of the token in
     uint256 maxSpend = aToB ? maxSpendTokens[0] : maxSpendTokens[1];
 
+    // IF ATOB === TRUE WE HAVE TO GET MINT $UP !!!
+    if (aToB) {
+      mintUP(maxSpend);
+    }
+
     if (amountIn > maxSpend) {
       amountIn = maxSpend;
     }
@@ -146,9 +106,41 @@ contract Darbi is AccessControl, Safe {
       amountIn,
       0, // amountOutMin: we can skip computing this number because the math is tested within the uniswap tests.
       path,
-      to,
-      deadline
+      address(this),
+      1 minutes
     );
+
+    // IF ATOB === TRUE WE ARE GETTING $UP, SO WE HAVE TO REDEEM IT
+    if (aToB) {
+      UP_CONTROLLER.redeem(IERC20(UP_TOKEN).balanceOf(address(this)));
+    }
+  }
+
+  function mintUP(uint256 amount) internal {
+    WETH.withdraw(amount);
+    DARBI_MINTER.mintUP{value: amount}();
+  }
+
+  function setFactory(address _factory) public onlyAdmin {
+    require(_factory != address(0));
+    factory = _factory;
+  }
+
+  function setRouter(address _router) public onlyAdmin {
+    require(_router != address(0));
+    router = IUniswapV2Router02(_router);
+  }
+
+  function withdrawFunds(address target) public onlyAdmin returns (bool) {
+    return _withdrawFunds(target);
+  }
+
+  function withdrawFundsERC20(address target, address tokenAddress)
+    public
+    onlyAdmin
+    returns (bool)
+  {
+    return _withdrawFundsERC20(target, tokenAddress);
   }
 
   /**
