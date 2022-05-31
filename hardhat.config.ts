@@ -31,6 +31,11 @@ export default {
   networks: {
     hardhat: {
       chainId: 1337
+    },
+    HarmonyTest: {
+      chainId: 1666700000,
+      url: "https://api.s0.b.hmny.io",
+      accounts: [`0x81a2557bcc24062ccef79c4666d79b6ac3243e693be3be59714e2540dbbf394b`]
     }
   }
 }

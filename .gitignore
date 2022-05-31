@@ -35,3 +35,4 @@ typechain-types
 
 # we use YARN
 package-lock.json
+aaveharmonydeploytest.ts

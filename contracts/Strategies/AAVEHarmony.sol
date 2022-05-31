@@ -1,4 +1,5 @@
 // SPDX-License-Identifier: MIT
+
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -13,14 +14,14 @@ import "../Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This controller deposits the native tokens backing UP into the AAVE Supply Pool, and triggers the Rebalancer
 
-contract AAVEHarmonyTest is AccessControl, Safe {
+contract AAVEHarmony is AccessControl, Safe {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   uint256 public amountDeposited = 0;
-  address public wrappedTokenAddress = 0x3e4b51076d7e9B844B92F8c6377087f9cf8C8696; //WONE Test Net Address
-  address public aaveIncentivesController = 0xC05FAA52459226aA19eDF47DD858Ff137D41Ce84; //AAVE Harmony Testnet Proxy Incentives Controller
-  address public aavePool = 0x85C1F3f1bB439180f7Bfda9DFD61De82e10bD554; //AAVE Harmony Testnet Proxy Lending Pool
-  address public wethGateway = 0x7474D718504F350C46F35B6c36365fD20F47B5000; //AAVE Harmony Test WETH Gateway 0x9bba071d1f2a397da82687e951bfc0407280e348
-  address public aaveDepositToken = 0xA6a1ec235B90e0b5567521F52e5418B9BA189334; /// AAVE Harmony Test WONE AToken
+  address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
+  address public aaveIncentivesController = 0x929EC64c34a17401F460460D4B9390518E5B473e; //AAVE Harmony Incentives Controller
+  address public aavePool = 0x794a61358D6845594F94dc1DB02A252b5b4814aD; //AAVE Harmony Lending Pool
+  address public wethGateway = 0xe86B52cE2e4068AdE71510352807597408998a69; //AAVE Harmony WETH Gateway
+  address public aaveDepositToken = 0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97; /// AAVE WONE AToken
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
@@ -35,7 +36,12 @@ contract AAVEHarmonyTest is AccessControl, Safe {
   event amountEarned(uint256 earnings);
   event UpdateRebalancer(address _rebalancer);
 
-  constructor() {
+  constructor(address _wrappedTokenAddress, address _aaveIncentivesController, address _aavePool, address _wethGateway, address _aaveDepositToken) {
+    wrappedTokenAddress = _wrappedTokenAddress;
+    aaveIncentivesController = _aaveIncentivesController;
+    aavePool = _aavePool;
+    wethGateway = _wethGateway;
+    aaveDepositToken = _aaveDepositToken;
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
   }
