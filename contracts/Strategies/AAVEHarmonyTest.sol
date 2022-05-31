@@ -19,7 +19,7 @@ contract AAVEHarmonyTest is AccessControl, Safe {
   address public wrappedTokenAddress = 0x3e4b51076d7e9B844B92F8c6377087f9cf8C8696; //WONE Test Net Address
   address public aaveIncentivesController = 0xC05FAA52459226aA19eDF47DD858Ff137D41Ce84; //AAVE Harmony Testnet Proxy Incentives Controller
   address public aavePool = 0x85C1F3f1bB439180f7Bfda9DFD61De82e10bD554; //AAVE Harmony Testnet Proxy Lending Pool
-  address public wethGateway = 0x7474D718504F350C46F35B6c36365fD20F47B5000; //AAVE Harmony Test WETH Gateway 0x9bba071d1f2a397da82687e951bfc0407280e348
+  address public wethGateway = 0xdDc3C9B8614092e6188A86450c8D597509893E20; //AAVE Harmony Test WETH Gateway
   address public aaveDepositToken = 0xA6a1ec235B90e0b5567521F52e5418B9BA189334; /// AAVE Harmony Test WONE AToken
 
   modifier onlyAdmin() {
@@ -75,7 +75,7 @@ contract AAVEHarmonyTest is AccessControl, Safe {
   /// Write Functions
 
   ///@notice Claims AAVE Incentive Rewards earned by this address.
-  function _claimAAVERewards() internal {
+  function claimAAVERewards() public onlyRebalancer {
     address[] memory asset = new address[](1);
     asset[0] = address(wrappedTokenAddress);
     uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
@@ -83,7 +83,7 @@ contract AAVEHarmonyTest is AccessControl, Safe {
   }
 
   ///@notice Withdraws All Native Token Deposits from AAVE. 
-  function _withdrawAAVE() internal {
+  function withdrawAAVE() public onlyRebalancer {
     (uint256 aaveBalance) = checkAAVEBalance();
     uint256 lpBalance = IERC20(aaveDepositToken).balanceOf(address(this));
     IERC20(aaveDepositToken).approve(wethGateway, lpBalance);
@@ -101,8 +101,8 @@ contract AAVEHarmonyTest is AccessControl, Safe {
   ///@notice Claims Rewards + Withdraws All Tokens on AAVE, and sends to Controller
   function gather() public onlyRebalancer {
     uint256 earnings = checkUnclaimedEarnings();
-    _claimAAVERewards();
-    _withdrawAAVE();
+    claimAAVERewards();
+    withdrawAAVE();
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     emit amountEarned(earnings);
   }
