@@ -9,7 +9,9 @@ contract UP is ERC20, AccessControl {
   bytes32 public constant MINT_ROLE = keccak256("MINT_ROLE");
   bytes32 public constant LEGACY_MINT_ROLE = keccak256("LEGACY_MINT_ROLE");
   address public UP_CONTROLLER = address(0);
+
   event SetUPController(address _setter, address _newController);
+
   modifier onlyMint() {
     require(hasRole(MINT_ROLE, msg.sender), "ONLY_MINT");
     _;
@@ -39,7 +41,7 @@ contract UP is ERC20, AccessControl {
   }
 
   /// @notice Mints token and have logic for supporting legacy mint logic
-  function mint(address to, uint256 amount) public payable onlyMint {
+  function mint(address to, uint256 amount) public payable onlyMint returns (bool) {
     /// LEGACY_MINT_ROLE retrocompatible with UPv1
     if (hasRole(LEGACY_MINT_ROLE, msg.sender) && UP_CONTROLLER != address(0)) {
       (bool success, ) = UP_CONTROLLER.call{value: msg.value}(
@@ -49,11 +51,13 @@ contract UP is ERC20, AccessControl {
     } else {
       _mint(to, amount);
     }
+    /// Legacy UPv1 return
+    return true;
   }
 
   /// @notice Sets a controller address that will receive the funds from LEGACY_MINT_ROLE
   function setController(address newController) public onlyAdmin {
     UP_CONTROLLER = newController;
-    emit SetUPController(msg.sender,  newController);
+    emit SetUPController(msg.sender, newController);
   }
 }
