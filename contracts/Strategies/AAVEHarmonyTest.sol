@@ -1,5 +1,4 @@
 // SPDX-License-Identifier: MIT
-
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -14,14 +13,14 @@ import "../Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This controller deposits the native tokens backing UP into the AAVE Supply Pool, and triggers the Rebalancer
 
-contract AAVE is AccessControl, Safe {
+contract AAVEHarmonyTest is AccessControl, Safe {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   uint256 public amountDeposited = 0;
-  address public wrappedTokenAddress = address(0); 
-  address public aaveIncentivesController = address(0); 
-  address public aavePool = address(0); 
-  address public wethGateway = address(0);
-  address public aaveDepositToken = address(0);
+  address public wrappedTokenAddress = 0x3e4b51076d7e9B844B92F8c6377087f9cf8C8696; //WONE Test Net Address
+  address public aaveIncentivesController = 0xC05FAA52459226aA19eDF47DD858Ff137D41Ce84; //AAVE Harmony Testnet Proxy Incentives Controller
+  address public aavePool = 0x85C1F3f1bB439180f7Bfda9DFD61De82e10bD554; //AAVE Harmony Testnet Proxy Lending Pool
+  address public wethGateway = 0xdDc3C9B8614092e6188A86450c8D597509893E20; //AAVE Harmony Test WETH Gateway
+  address public aaveDepositToken = 0xA6a1ec235B90e0b5567521F52e5418B9BA189334; /// AAVE Harmony Test WONE AToken
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
@@ -36,12 +35,7 @@ contract AAVE is AccessControl, Safe {
   event amountEarned(uint256 earnings);
   event UpdateRebalancer(address _rebalancer);
 
-  constructor(address _wrappedTokenAddress, address _aaveIncentivesController, address _aavePool, address _wethGateway, address _aaveDepositToken) {
-    wrappedTokenAddress = _wrappedTokenAddress;
-    aaveIncentivesController = _aaveIncentivesController;
-    aavePool = _aavePool;
-    wethGateway = _wethGateway;
-    aaveDepositToken = _aaveDepositToken;
+  constructor() {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
   }
@@ -81,7 +75,7 @@ contract AAVE is AccessControl, Safe {
   /// Write Functions
 
   ///@notice Claims AAVE Incentive Rewards earned by this address.
-  function _claimAAVERewards() internal {
+  function claimAAVERewards() public onlyRebalancer {
     address[] memory asset = new address[](1);
     asset[0] = address(wrappedTokenAddress);
     uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
@@ -89,7 +83,7 @@ contract AAVE is AccessControl, Safe {
   }
 
   ///@notice Withdraws All Native Token Deposits from AAVE. 
-  function _withdrawAAVE() internal {
+  function withdrawAAVE() public onlyRebalancer {
     (uint256 aaveBalance) = checkAAVEBalance();
     uint256 lpBalance = IERC20(aaveDepositToken).balanceOf(address(this));
     IERC20(aaveDepositToken).approve(wethGateway, lpBalance);
@@ -107,8 +101,8 @@ contract AAVE is AccessControl, Safe {
   ///@notice Claims Rewards + Withdraws All Tokens on AAVE, and sends to Controller
   function gather() public onlyRebalancer {
     uint256 earnings = checkUnclaimedEarnings();
-    _claimAAVERewards();
-    _withdrawAAVE();
+    claimAAVERewards();
+    withdrawAAVE();
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     emit amountEarned(earnings);
   }
@@ -116,4 +110,34 @@ contract AAVE is AccessControl, Safe {
   receive() external payable {
     depositAAVE();
     }
+  
+  ///Admin Functions
+
+  ///@notice Permissioned function to update the address of the Aave Incentives Controller
+  ///@param _aaveIncentivesController - the address of the new Aave Incentives Controller
+  function updateaaveIncentivesController(address _aaveIncentivesController) public onlyAdmin {
+    require(_aaveIncentivesController != address(0), "INVALID_ADDRESS");
+    aaveIncentivesController = _aaveIncentivesController;
+  }
+
+  ///@notice Permissioned function to update the address of the aavePool
+  ///@param _aavePool - the address of the new aavePool
+  function updateaavePool(address _aavePool) public onlyAdmin {
+    require(_aavePool != address(0), "INVALID_ADDRESS");
+    aavePool = _aavePool;
+  }
+
+  ///@notice Permissioned function to update the address of the wethGateway
+  ///@param _wethGateway - the address of the new wethGateway
+  function updatewethGateway(address _wethGateway) public onlyAdmin {
+    require(_wethGateway != address(0), "INVALID_ADDRESS");
+    wethGateway = _wethGateway;
+  }
+
+  ///@notice Permissioned function to update the address of the aaveDepositToken
+  ///@param _aaveDepositToken - the address of the new aaveDepositToken
+  function updateaaveDepositToken(address _aaveDepositToken) public onlyAdmin {
+    require(_aaveDepositToken != address(0), "INVALID_ADDRESS");
+    aaveDepositToken = _aaveDepositToken;
+  }
 }
