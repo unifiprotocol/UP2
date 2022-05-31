@@ -91,7 +91,7 @@ contract AAVEHarmonyTest is AccessControl, Safe {
     amountDeposited = 0;
   }
 
-   ///@notice Deposits native tokens to AAVE.
+   ///@notice Deposits native tokens to AAVE. (CHANGE TO DEPOSIT)
   function depositAAVE() public payable onlyRebalancer {
     uint256 depositValue = msg.value;
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
@@ -108,10 +108,26 @@ contract AAVEHarmonyTest is AccessControl, Safe {
   }
 
   receive() external payable {
-    depositAAVE();
     }
   
   ///Admin Functions
+    function withdrawFunds(address target) public onlyAdmin returns (bool) {
+        return _withdrawFunds(target);
+    }
+    
+    function withdrawFundsERC20(address target, address tokenAddress) public onlyAdmin returns (bool) {
+        return _withdrawFundsERC20(target, tokenAddress);
+    }
+
+  /// @notice Permissioned function to pause UPaddress Controller
+  function pause() public onlyAdmin {
+    _pause();
+  }
+
+  /// @notice Permissioned function to unpause UPaddress Controller
+  function unpause() public onlyAdmin {
+    _unpause();
+  }
 
   ///@notice Permissioned function to update the address of the Aave Incentives Controller
   ///@param _aaveIncentivesController - the address of the new Aave Incentives Controller

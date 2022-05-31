@@ -3,6 +3,7 @@ import "@nomiclabs/hardhat-waffle"
 import "@typechain/hardhat"
 import "@nomiclabs/hardhat-ethers"
 import "solidity-docgen"
+require("dotenv").config()
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -13,6 +14,8 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
     console.log(await account.address)
   }
 })
+
+const harmonytestnetpk = process.env.HARMONY_TESTNET_PRIVATE_KEY
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -35,7 +38,7 @@ export default {
     HarmonyTest: {
       chainId: 1666700000,
       url: "https://api.s0.b.hmny.io",
-      accounts: [`0x81a2557bcc24062ccef79c4666d79b6ac3243e693be3be59714e2540dbbf394b`]
+      accounts: [`0x${harmonytestnetpk}`]
     }
   }
 }
