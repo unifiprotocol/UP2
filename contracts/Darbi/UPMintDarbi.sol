@@ -14,7 +14,7 @@ import "../Helpers/Safe.sol";
 contract UPMintDarbi is AccessControl, Pausable, Safe {
   bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
 
-  address public UP_TOKEN = address(0);
+  address payable public UP_TOKEN = payable(address(0));
   address payable public UP_CONTROLLER = payable(address(0));
 
   modifier onlyDarbi() {
@@ -36,7 +36,7 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
     address _darbi
   ) {
     require(_UP != address(0), "Invalid UP address");
-    UP_TOKEN = _UP;
+    UP_TOKEN = payable(_UP);
     UP_CONTROLLER = payable(_UPController);
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(DARBI_ROLE, _darbi);

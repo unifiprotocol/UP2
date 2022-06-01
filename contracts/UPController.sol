@@ -15,7 +15,7 @@ contract UPController is AccessControl, Safe, Pausable {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   bytes32 public constant REDEEMER_ROLE = keccak256("REDEEMER_ROLE");
 
-  address public UP_TOKEN = address(0);
+  address payable public UP_TOKEN = payable(address(0));
   uint256 public nativeBorrowed = 0;
   uint256 public upBorrowed = 0;
 
@@ -41,7 +41,7 @@ contract UPController is AccessControl, Safe, Pausable {
 
   constructor(address _UP) {
     require(_UP != address(0), "Invalid UP address");
-    UP_TOKEN = _UP;
+    UP_TOKEN = payable(_UP);
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
   }
 

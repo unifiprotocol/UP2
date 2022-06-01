@@ -38,7 +38,7 @@ export default {
     HarmonyTest: {
       chainId: 1666700000,
       url: "https://api.s0.b.hmny.io",
-      accounts: [`0x${harmonytestnetpk}`]
+      accounts: harmonytestnetpk ? [harmonytestnetpk] : []
     }
   }
 }

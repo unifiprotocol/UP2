@@ -15,7 +15,7 @@ import "./Helpers/Safe.sol";
 
 contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   uint256 public mintRate;
-  address public UP_TOKEN = address(0);
+  address payable public UP_TOKEN = payable(address(0));
   address payable public UP_CONTROLLER = payable(address(0));
 
   event NewPublicMintRate(uint256 _newMintRate);
@@ -34,7 +34,7 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
     uint256 _mintRate
   ) {
     require(_UP != address(0), "Invalid UP address");
-    UP_TOKEN = _UP;
+    UP_TOKEN = payable(_UP);
     UP_CONTROLLER = payable(_UPController);
     setMintRate(_mintRate);
   }

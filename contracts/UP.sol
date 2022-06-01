@@ -26,6 +26,11 @@ contract UP is ERC20, AccessControl {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
   }
 
+  /// @notice UPv1 legacy
+  receive() external payable {
+    UP_CONTROLLER.call{value: msg.value}(new bytes(0));
+  }
+
   function burn(uint256 amount) public {
     _burn(_msgSender(), amount);
   }

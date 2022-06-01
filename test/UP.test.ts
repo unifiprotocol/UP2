@@ -188,5 +188,16 @@ describe("UPv2", function () {
       await upToken.mint(addr1.address, 0, { value: ethers.utils.parseEther("5") })
       expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("6.25"))
     })
+
+    it("Should forward native balances to UP_CONTROLLER", async () => {
+      await upToken.setController(upController.address)
+      await addr1.sendTransaction({
+        to: upToken.address,
+        value: ethers.utils.parseEther("5")
+      })
+      expect(await upToken.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5")
+      )
+    })
   })
 })
