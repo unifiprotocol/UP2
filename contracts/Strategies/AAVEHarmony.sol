@@ -3,8 +3,10 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "./Strategy.sol";
 import "./Interfaces/ILendingPool.sol";
+import "./Interfaces/IWETH.sol";
 import "./Interfaces/IWETHGateway.sol";
 import "./Interfaces/IAaveIncentivesController.sol";
 import "../Helpers/Safe.sol";
@@ -14,7 +16,7 @@ import "../Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This controller deposits the native tokens backing UP into the AAVE Supply Pool, and triggers the Rebalancer
 
-contract AAVEHarmony is AccessControl, Safe {
+contract AAVEHarmony is AccessControl, Pausable, Safe {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   uint256 public amountDeposited = 0;
   address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
@@ -36,12 +38,7 @@ contract AAVEHarmony is AccessControl, Safe {
   event amountEarned(uint256 earnings);
   event UpdateRebalancer(address _rebalancer);
 
-  constructor(address _wrappedTokenAddress, address _aaveIncentivesController, address _aavePool, address _wethGateway, address _aaveDepositToken) {
-    wrappedTokenAddress = _wrappedTokenAddress;
-    aaveIncentivesController = _aaveIncentivesController;
-    aavePool = _aavePool;
-    wethGateway = _wethGateway;
-    aaveDepositToken = _aaveDepositToken;
+  constructor() {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
   }
@@ -56,12 +53,6 @@ contract AAVEHarmony is AccessControl, Safe {
     return (rewardsBalance);
   }
 
-  ///@notice Alternative? 
-  // function checkUnclaimedRewards() public returns (uint256 unclaimedRewards) {
-  //   unclaimedRewards = IAaveIncentivesController(aaveIncentivesController).getUserUnclaimedRewards(address(this));
-  //   return (unclaimedRewards);
-  // }
-
   ///@notice Checks amonut of assets to AAVe by this address.
   function checkAAVEBalance() public view returns (uint256 aaveBalance) {
     (uint256 aaveBalanceData,,,,,) = ILendingPool(aavePool).getUserAccountData(address(this));
@@ -69,7 +60,7 @@ contract AAVEHarmony is AccessControl, Safe {
     return (aaveBalance);
   }
 
-  ///@notice Checks Total Amount Earned by AAVE deposit above deposited total.
+    ///@notice Checks Total Amount Earned by AAVE deposit above deposited total.
   function checkUnclaimedEarnings() public view returns (uint256 unclaimedEarnings) {
     (uint256 aaveBalance) = checkAAVEBalance();
     uint256 aaveEarnings = aaveBalance - amountDeposited;
@@ -81,43 +72,59 @@ contract AAVEHarmony is AccessControl, Safe {
   /// Write Functions
 
   ///@notice Claims AAVE Incentive Rewards earned by this address.
-  function _claimAAVERewards() internal {
+  function claimAAVERewards() public {
     address[] memory asset = new address[](1);
     asset[0] = address(wrappedTokenAddress);
     uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
-    IAaveIncentivesController(aaveIncentivesController).claimRewards(asset, rewardsBalance, address(this), wrappedTokenAddress);
+    uint256 rewardsClaimed = IAaveIncentivesController(aaveIncentivesController).claimRewards(asset, rewardsBalance, address(this), wrappedTokenAddress);
+    IWETH(wrappedTokenAddress).withdraw(rewardsClaimed);
   }
 
   ///@notice Withdraws All Native Token Deposits from AAVE. 
-  function _withdrawAAVE() internal {
-    (uint256 aaveBalance) = checkAAVEBalance();
-    uint256 lpBalance = IERC20(aaveDepositToken).balanceOf(address(this));
-    IERC20(aaveDepositToken).approve(wethGateway, lpBalance);
+  function withdrawAAVE() public {
+    uint256 aaveBalance = checkAAVEBalance();
+    IERC20(aaveDepositToken).approve(wethGateway, aaveBalance);
     IWETHGateway(wethGateway).withdrawETH(aavePool, aaveBalance, address(this));
     amountDeposited = 0;
   }
 
-   ///@notice Deposits native tokens to AAVE.
-  function depositAAVE() public payable onlyRebalancer {
+   ///@notice Deposits native tokens to AAVE. (CHANGE TO DEPOSIT)
+  function depositAAVE() public payable {
     uint256 depositValue = msg.value;
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
     amountDeposited += depositValue;
   }
 
   ///@notice Claims Rewards + Withdraws All Tokens on AAVE, and sends to Controller
-  function gather() public onlyRebalancer {
-    uint256 earnings = checkUnclaimedEarnings();
-    _claimAAVERewards();
-    _withdrawAAVE();
+  function gather() public {
+    uint256 earnings = checkRewardsBalance();
+    claimAAVERewards();
+    withdrawAAVE();
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     emit amountEarned(earnings);
   }
 
   receive() external payable {
-    depositAAVE();
     }
   
   ///Admin Functions
+    function withdrawFunds(address target) public onlyAdmin returns (bool) {
+        return _withdrawFunds(target);
+    }
+    
+    function withdrawFundsERC20(address target, address tokenAddress) public onlyAdmin returns (bool) {
+        return _withdrawFundsERC20(target, tokenAddress);
+    }
+
+  /// @notice Permissioned function to pause UPaddress Controller
+  function pause() public onlyAdmin {
+    _pause();
+  }
+
+  /// @notice Permissioned function to unpause UPaddress Controller
+  function unpause() public onlyAdmin {
+    _unpause();
+  }
 
   ///@notice Permissioned function to update the address of the Aave Incentives Controller
   ///@param _aaveIncentivesController - the address of the new Aave Incentives Controller

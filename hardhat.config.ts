@@ -16,6 +16,8 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 })
 
 const harmonytestnetpk = process.env.HARMONY_TESTNET_PRIVATE_KEY
+console.log(harmonytestnetpk)
+const harmonymainnetpk = process.env.HARMONY_MAINNET_PRIVATE_KEY
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -38,7 +40,16 @@ export default {
     HarmonyTest: {
       chainId: 1666700000,
       url: "https://api.s0.b.hmny.io",
+<<<<<<< Updated upstream
       accounts: harmonytestnetpk ? [harmonytestnetpk] : []
+=======
+      accounts: [harmonytestnetpk]
+    },
+    HarmonyMain: {
+      chainId: 1666600000,
+      url: "https://api.harmony.one",
+      accounts: [harmonymainnetpk]
+>>>>>>> Stashed changes
     }
   }
 }
