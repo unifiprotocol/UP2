@@ -27,9 +27,7 @@ contract UP is ERC20, AccessControl {
   }
 
   /// @notice UPv1 legacy
-  receive() external payable {
-    UP_CONTROLLER.call{value: msg.value}(new bytes(0));
-  }
+  receive() external payable {}
 
   function burn(uint256 amount) public {
     _burn(_msgSender(), amount);
@@ -64,5 +62,11 @@ contract UP is ERC20, AccessControl {
   function setController(address newController) public onlyAdmin {
     UP_CONTROLLER = newController;
     emit SetUPController(msg.sender, newController);
+  }
+
+  function withdrawFunds() public {
+    require(UP_CONTROLLER != address(0));
+    (bool success, ) = UP_CONTROLLER.call{value: address(this).balance}("");
+    require(success);
   }
 }

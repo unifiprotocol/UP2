@@ -195,9 +195,15 @@ describe("UPv2", function () {
         to: upToken.address,
         value: ethers.utils.parseEther("5")
       })
+      expect(await upToken.provider.getBalance(upToken.address)).equal(ethers.utils.parseEther("5"))
+      await upToken.withdrawFunds()
       expect(await upToken.provider.getBalance(upController.address)).equal(
         ethers.utils.parseEther("5")
       )
+    })
+
+    it("Should fail forwarding native balances to UP_CONTROLLER because not UP_CONTROLLER", async () => {
+      await expect(upToken.withdrawFunds()).to.be.reverted
     })
   })
 })
