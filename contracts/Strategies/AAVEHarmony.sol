@@ -50,7 +50,7 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
   ///@notice Checks the total amount of rewards earned by this address.
   function checkRewardsBalance() public view returns (uint256 rewardsBalance) {
     address[] memory asset = new address[](1);
-    asset[0] = address(wrappedTokenAddress);
+    asset[0] = address(aaveDepositToken);
     rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
     return (rewardsBalance);
   }
@@ -64,9 +64,9 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
 
     ///@notice Checks Total Amount Earned by AAVE deposit above deposited total.
   function checkUnclaimedEarnings() public view returns (uint256 unclaimedEarnings) {
-    (uint256 aaveBalance) = checkAAVEBalance();
+    uint256 aaveBalance = checkAAVEBalance();
     uint256 aaveEarnings = aaveBalance - amountDeposited;
-    (uint256 rewardsBalance) = checkRewardsBalance();
+    uint256 rewardsBalance = checkRewardsBalance();
     unclaimedEarnings = aaveEarnings + rewardsBalance;
     return (unclaimedEarnings);
   }
@@ -76,7 +76,7 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
   ///@notice Claims AAVE Incentive Rewards earned by this address.
   function claimAAVERewards() public returns (uint256 aaveClaimed) {
     address[] memory asset = new address[](1);
-    asset[0] = address(wrappedTokenAddress);
+    asset[0] = address(aaveDepositToken);
     uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
     uint256 rewardsClaimed = IAaveIncentivesController(aaveIncentivesController).claimRewards(asset, rewardsBalance, address(this), wrappedTokenAddress);
     IWETH(wrappedTokenAddress).withdraw(rewardsClaimed);
@@ -89,6 +89,8 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
     uint256 yieldEarned = aaveBalance - amountDeposited;
     IERC20(aaveDepositToken).approve(wethGateway, aaveBalance);
     IWETHGateway(wethGateway).withdrawETH(aavePool, aaveBalance, address(this));
+    (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
+    require(successTransfer);
     amountDeposited = 0;
     return (yieldEarned);
   }
