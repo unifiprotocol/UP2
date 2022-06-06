@@ -3,6 +3,12 @@
 pragma solidity ^0.8.4;
 
 interface IStrategy {
+  struct Rewards {
+    uint256 rewardsAmount;
+    uint256 depositedAmount;
+    uint256 timestamp;
+  }
+
   /// @notice Deposits an initial or more liquidity in the external contract
   function deposit(uint256 amount) external returns (bool);
 
@@ -10,5 +16,5 @@ interface IStrategy {
   function withdraw(uint256 amount) external returns (bool);
 
   /// @notice This function will get all the rewards from the external service and send them to the invoker
-  function gather() external;
+  function gather() external returns (Rewards memory);
 }
