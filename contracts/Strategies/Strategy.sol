@@ -9,12 +9,18 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 abstract contract Strategy is IStrategy, Safe, Ownable {
   receive() external payable virtual {}
 
-  function deposit(uint256 amount) external override returns (bool) {
+  function deposit(uint256 amount) external payable override returns (bool) {
     return true;
   }
 
   function withdraw(uint256 amount) external override returns (bool) {
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
+    require(successTransfer, "FAIL_SENDING_NATIVE");
+    return true;
+  }
+
+  function withdrawAll() external override returns (bool) {
+    (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     return true;
   }
