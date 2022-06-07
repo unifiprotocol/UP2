@@ -18,5 +18,8 @@ interface IStrategy {
   function withdrawAll() external returns (bool);
 
   /// @notice This function will get all the rewards from the external service and send them to the invoker
-  function gather() external returns (Rewards memory);
+  function gather() external;
+
+  /// @notice Returns the amount staked plus the earnings
+  function checkRewards() external returns (Rewards memory);
 }

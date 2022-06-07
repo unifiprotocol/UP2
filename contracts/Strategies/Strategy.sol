@@ -25,10 +25,14 @@ abstract contract Strategy is IStrategy, Safe, Ownable {
     return true;
   }
 
-  function gather() public override returns (IStrategy.Rewards memory) {
+  function gather() public override {
     uint256 nativeAmount = address(this).balance;
     (bool successTransfer, ) = address(msg.sender).call{value: nativeAmount}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
+  }
+
+  function getRewards() public view returns (IStrategy.Rewards memory) {
+    uint256 nativeAmount = address(this).balance;
     IStrategy.Rewards memory result = IStrategy.Rewards(
       nativeAmount,
       nativeAmount,
