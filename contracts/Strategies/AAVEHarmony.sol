@@ -37,7 +37,6 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
     _;
   }
 
-  event amountEarned(uint256 earnings);
   event UpdateRebalancer(address _rebalancer);
 
   constructor() {
@@ -59,22 +58,27 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
   function checkAAVEBalance() public view returns (uint256 aaveBalance) {
     (uint256 aaveBalanceData,,,,,,,,) = IDataProvider(aaveDataProvider).getUserReserveData(wrappedTokenAddress, address(this));
     aaveBalance = aaveBalanceData;
-    return (aaveBalance);
+    return aaveBalance;
+  }
+
+  function checkAAVEInterest() public view returns (uint256 aaveEarnings) {
+      uint256 aaveBalance = checkAAVEBalance();
+      aaveEarnings = aaveBalance - amountDeposited;
+      return aaveEarnings;
   }
 
     ///@notice Checks Total Amount Earned by AAVE deposit above deposited total.
   function checkUnclaimedEarnings() public view returns (uint256 unclaimedEarnings) {
-    uint256 aaveBalance = checkAAVEBalance();
-    uint256 aaveEarnings = aaveBalance - amountDeposited;
+    uint256 aaveEarnings = checkAAVEInterest();
     uint256 rewardsBalance = checkRewardsBalance();
     unclaimedEarnings = aaveEarnings + rewardsBalance;
-    return (unclaimedEarnings);
+    return unclaimedEarnings;
   }
 
   /// Write Functions
 
   ///@notice Claims AAVE Incentive Rewards earned by this address.
-  function claimAAVERewards() public returns (uint256 aaveClaimed) {
+  function _claimAAVERewards() internal returns (uint256 aaveClaimed) {
     address[] memory asset = new address[](1);
     asset[0] = address(aaveDepositToken);
     uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
@@ -83,8 +87,16 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
     return (rewardsClaimed);
   }
 
+  ///@notice Withdraws Interest from Token Deposits from AAVE. 
+  function _withdrawAAVEInterest() internal returns (uint256 yieldEarned) {
+    yieldEarned = checkAAVEInterest();
+    IERC20(aaveDepositToken).approve(wethGateway, yieldEarned);
+    IWETHGateway(wethGateway).withdrawETH(aavePool, yieldEarned, address(this));
+    return (yieldEarned);
+  }
+
   ///@notice Withdraws All Native Token Deposits from AAVE. 
-  function withdrawAAVE() public returns (uint256 yieldEarned) {
+  function _withdrawAAVE() internal returns (uint256 yieldEarned) {
     uint256 aaveBalance = checkAAVEBalance();
     uint256 yieldEarned = aaveBalance - amountDeposited;
     IERC20(aaveDepositToken).approve(wethGateway, aaveBalance);
@@ -95,28 +107,33 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
     return (yieldEarned);
   }
 
-   ///@notice Deposits native tokens to AAVE. (CHANGE TO DEPOSIT)
-  function deposit() public payable {
+   ///@notice Deposits native tokens to AAVE.
+  function deposit() public onlyRebalancer payable {
     uint256 depositValue = msg.value;
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
     amountDeposited += depositValue;
   }
 
   ///@notice Claims Rewards + Withdraws All Tokens on AAVE, and sends to Controller
-  function gather() public returns (IStrategy.Rewards memory) {
-    uint256 depositedAmount = amountDeposited;
-    uint256 rewardsClaimed = claimAAVERewards();
-    uint256 yieldEarned = withdrawAAVE();
+  function gather() public onlyRebalancer {
+    uint256 rewardsClaimed = _claimAAVERewards();
+    uint256 yieldEarned = _withdrawAAVEInterest();
     uint256 totalEarned = rewardsClaimed + yieldEarned;
-    (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
+    (bool successTransfer, ) = address(msg.sender).call{value: totalEarned}("");
+  }
+
+   ///@notice Returns Amount of Native Tokens Earned since last rebalance
+  function getRewards() public view returns (IStrategy.Rewards memory) {
+    uint256 depositedAmount = amountDeposited;
+    uint256 rewardsAmount = checkUnclaimedEarnings();
     IStrategy.Rewards memory result = IStrategy.Rewards(
-      totalEarned,
+      rewardsAmount,
       depositedAmount,
       block.timestamp
     );
-    emit amountEarned(totalEarned);
     return (result);
   }
+
   //Return struct with earnings, staked, timestamp upon gather function//
   receive() external payable {
     }
