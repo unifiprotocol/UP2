@@ -4,11 +4,11 @@ pragma solidity ^0.8.4;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
+import "@uniswap/v2-periphery/contracts/libraries/UniswapV2Library.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
-import "../Libraries/FullMath.sol";
 import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
@@ -52,7 +52,7 @@ contract Darbi is AccessControl, Safe {
     uint256 balance1 = IERC20(address(WETH)).balanceOf(address(this));
     uint256 price1 = UP_CONTROLLER.getVirtualPrice();
     uint256 balance0 = price1 * balance1;
-    uint256 price0 = uint256(1).div(price1); /// TODO: rev with Cat
+    uint256 price0 = UniswapV2Library.quote(1, balance0, balance1);
     address UP_TOKEN = UP_CONTROLLER.UP_TOKEN();
 
     address[2] memory swappedTokens = [UP_TOKEN, address(WETH)];
@@ -65,19 +65,18 @@ contract Darbi is AccessControl, Safe {
 
     bool aToB;
     uint256 amountIn;
-    {
-      (uint256 reserveA, uint256 reserveB) = UniswapHelper.getReserves(
-        factory,
-        swappedTokens[0],
-        swappedTokens[1]
-      );
-      (aToB, amountIn) = computeTradeToMoveMarket(
-        truePriceTokens[0],
-        truePriceTokens[1],
-        reserveA,
-        reserveB
-      );
-    }
+
+    (uint256 reserveA, uint256 reserveB) = UniswapHelper.getReserves(
+      factory,
+      swappedTokens[0],
+      swappedTokens[1]
+    );
+    (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
+      truePriceTokens[0],
+      truePriceTokens[1],
+      reserveA,
+      reserveB
+    );
 
     require(amountIn > 0, "SwapToPrice: ZERO_AMOUNT_IN");
 
@@ -116,6 +115,26 @@ contract Darbi is AccessControl, Safe {
     }
   }
 
+  function moveMarketBuyAmount() public returns (bool aToB, uint256 amountIn) {
+    address[2] memory swappedTokens = [UP_TOKEN, address(WETH)];
+    (uint256 reserveA, uint256 reserveB) = UniswapHelper.getReserves(
+      factory,
+      swappedTokens[0],
+      swappedTokens[1]
+    );
+    (uint256 price0, uint256 price1) = getVirtualPrice();
+    (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(price0, price1, reserveA, reserveB);
+    return (aToB, amountIn);
+  }
+
+  function getVirtualPrice() public returns (uint256, uint256) {
+    uint256 price1 = UP_CONTROLLER.getVirtualPrice();
+    uint256 balance0 = price1 * balance1;
+    uint256 price0 = UniswapV2Library.quote(1, balance0, balance1);
+    address UP_TOKEN = UP_CONTROLLER.UP_TOKEN();
+    return (price0, price1);
+  }
+
   function mintUP(uint256 amount) internal {
     WETH.withdraw(amount);
     DARBI_MINTER.mintUP{value: amount}();
@@ -146,44 +165,5 @@ contract Darbi is AccessControl, Safe {
     returns (bool)
   {
     return _withdrawFundsERC20(target, tokenAddress);
-  }
-
-  /**
-   * @notice Given the "true" price a token (represented by truePriceTokenA/truePriceTokenB) and the reservers in the
-   * uniswap pair, calculate: a) the direction of trade (aToB) and b) the amount needed to trade (amountIn) to move
-   * the pool price to be equal to the true price.
-   * @dev Note that this method uses the Babylonian square root method which has a small margin of error which will
-   * result in a small over or under estimation on the size of the trade needed.
-   * @param truePriceTokenA the nominator of the true price.
-   * @param truePriceTokenB the denominator of the true price.
-   * @param reserveA number of token A in the pair reserves
-   * @param reserveB number of token B in the pair reserves
-   */
-  //
-  function computeTradeToMoveMarket(
-    uint256 truePriceTokenA,
-    uint256 truePriceTokenB,
-    uint256 reserveA,
-    uint256 reserveB
-  ) public pure returns (bool aToB, uint256 amountIn) {
-    aToB = FullMath.mulDiv(reserveA, truePriceTokenB, reserveB) < truePriceTokenA;
-
-    uint256 invariant = reserveA.mul(reserveB);
-
-    // The trade ∆a of token a required to move the market to some desired price P' from the current price P can be
-    // found with ∆a=(kP')^1/2-Ra.
-    uint256 leftSide = Babylonian.sqrt(
-      FullMath.mulDiv(
-        invariant,
-        aToB ? truePriceTokenA : truePriceTokenB,
-        aToB ? truePriceTokenB : truePriceTokenA
-      )
-    );
-    uint256 rightSide = (aToB ? reserveA : reserveB);
-
-    if (leftSide < rightSide) return (false, 0);
-
-    // compute the amount that must be sent to move the price back to the true price.
-    amountIn = leftSide.sub(rightSide);
   }
 }
