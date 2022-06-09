@@ -11,6 +11,31 @@ import "./FullMath.sol";
 library UniswapHelper {
   using SafeMath for uint256;
 
+  // given an input amount of an asset and pair reserves, returns the maximum output amount of the other asset
+  function getAmountOut(
+    uint256 amountIn,
+    uint256 reserveIn,
+    uint256 reserveOut
+  ) internal pure returns (uint256 amountOut) {
+    require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
+    require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+    uint256 amountInWithFee = amountIn * 997;
+    uint256 numerator = amountInWithFee * reserveOut;
+    uint256 denominator = reserveIn * 1000 + amountInWithFee;
+    amountOut = numerator / denominator;
+  }
+
+  // given some amount of an asset and pair reserves, returns an equivalent amount of the other asset
+  function quote(
+    uint256 amountA,
+    uint256 reserveA,
+    uint256 reserveB
+  ) internal pure returns (uint256 amountB) {
+    require(amountA > 0, "UniswapV2Library: INSUFFICIENT_AMOUNT");
+    require(reserveA > 0 && reserveB > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+    amountB = (amountA * reserveB) / reserveA;
+  }
+
   /**
    * @notice Given the "true" price a token (represented by truePriceTokenA/truePriceTokenB) and the reservers in the
    * uniswap pair, calculate: a) the direction of trade (aToB) and b) the amount needed to trade (amountIn) to move
