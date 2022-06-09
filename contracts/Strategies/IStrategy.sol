@@ -21,5 +21,5 @@ interface IStrategy {
   function gather() external;
 
   /// @notice Returns the amount staked plus the earnings
-  function checkRewards() external returns (Rewards memory);
+  function checkRewards() external view returns (Rewards memory);
 }

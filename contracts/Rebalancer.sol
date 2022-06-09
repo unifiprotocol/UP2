@@ -123,15 +123,23 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         uint256 amountToDeposit = ETHtoTake - address(UP_CONTROLLER).balance;
         IStrategy(strategy).deposit{value: amountToWithdraw}(amountToWithdraw);
       }
+
+      if (upcBalance > ETHtoTake) {
+        // withdraw the amount of LP so that upcBalance = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
+      } else if (upcBalance < ETHtoTake) {
+        // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that upcBalance = ETHtoTake.
+      }
+
+      //That's it my dude
     }
 
-    uint256 distribution1 = ((totalETH * (distribution[0] * 100)) / 10000);
-    uint256 distribution2 = ((totalETH * (distribution[1] * 100)) / 10000);
-    uint256 distribution3 = ((totalETH * (distribution[2] * 100)) / 10000);
-    _distribution1(distribution1);
-    _distribution2(distribution2);
-    _distribution3(distribution3);
-  }
+  //   uint256 distribution1 = ((totalETH * (distribution[0] * 100)) / 10000);
+  //   uint256 distribution2 = ((totalETH * (distribution[1] * 100)) / 10000);
+  //   uint256 distribution3 = ((totalETH * (distribution[2] * 100)) / 10000);
+  //   _distribution1(distribution1);
+  //   _distribution2(distribution2);
+  //   _distribution3(distribution3);
+  // }
 
   function checkLiquidityPoolBalance() public view returns (uint256) {
     IERC20 lp = IERC20(liquidityPool);

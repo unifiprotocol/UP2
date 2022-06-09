@@ -17,7 +17,7 @@ import "../Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This controller deposits the native tokens backing UP into the AAVE Supply Pool, and triggers the Rebalancer
 
-contract AAVEHarmony is AccessControl, Pausable, Safe {
+contract AAVEHarmony is Strategy, AccessControl, Pausable {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   uint256 public amountDeposited = 0;
   address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
@@ -75,6 +75,16 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
     return unclaimedEarnings;
   }
 
+     ///@notice Returns Amount of Native Tokens Earned since last rebalance
+  function checkRewards() public view override returns (IStrategy.Rewards memory) {
+    uint256 unclaimedEarnings = checkUnclaimedEarnings();
+    return IStrategy.Rewards(
+      unclaimedEarnings,
+      amountDeposited,
+      block.timestamp
+    );
+  }
+
   /// Write Functions
 
   ///@notice Claims AAVE Incentive Rewards earned by this address.
@@ -95,57 +105,47 @@ contract AAVEHarmony is AccessControl, Pausable, Safe {
     return (yieldEarned);
   }
 
-  ///@notice Withdraws All Native Token Deposits from AAVE. 
-  function _withdrawAAVE() internal returns (uint256 yieldEarned) {
+  ///@notice Withdraws an amount from Token Deposits from AAVE
+  function withdraw(uint256 amount) public override onlyRebalancer returns (bool) {
+    require(amount <= amountDeposited, "Amount Requested to Withdraw is Greater Than Amount Deposited");
+    IERC20(aaveDepositToken).approve(wethGateway, amount);
+    IWETHGateway(wethGateway).withdrawETH(aavePool, amount, address(this));
+    (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
+    require(successTransfer, "FAIL_SENDING_NATIVE");
+    amountDeposited -= amount;
+    return successTransfer;
+  }
+
+  ///@notice Withdraws all funds from AAVE, as well as claims & unwraps token rewards
+   function withdrawAll() public override onlyRebalancer returns (bool) {
+    _claimAAVERewards();
     uint256 aaveBalance = checkAAVEBalance();
-    uint256 yieldEarned = aaveBalance - amountDeposited;
     IERC20(aaveDepositToken).approve(wethGateway, aaveBalance);
     IWETHGateway(wethGateway).withdrawETH(aavePool, aaveBalance, address(this));
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer);
     amountDeposited = 0;
-    return (yieldEarned);
+    return successTransfer;
   }
 
    ///@notice Deposits native tokens to AAVE.
-  function deposit() public onlyRebalancer payable {
-    uint256 depositValue = msg.value;
+  function deposit(uint256 depositValue) public onlyRebalancer override payable returns (bool) {
+    require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
     amountDeposited += depositValue;
+    return true;
   }
 
   ///@notice Claims Rewards + Withdraws All Tokens on AAVE, and sends to Controller
-  function gather() public onlyRebalancer {
+  function gather() public override onlyRebalancer {
     uint256 rewardsClaimed = _claimAAVERewards();
     uint256 yieldEarned = _withdrawAAVEInterest();
     uint256 totalEarned = rewardsClaimed + yieldEarned;
     (bool successTransfer, ) = address(msg.sender).call{value: totalEarned}("");
+    require(successTransfer);
   }
 
-   ///@notice Returns Amount of Native Tokens Earned since last rebalance
-  function getRewards() public view returns (IStrategy.Rewards memory) {
-    uint256 depositedAmount = amountDeposited;
-    uint256 rewardsAmount = checkUnclaimedEarnings();
-    IStrategy.Rewards memory result = IStrategy.Rewards(
-      rewardsAmount,
-      depositedAmount,
-      block.timestamp
-    );
-    return (result);
-  }
-
-  //Return struct with earnings, staked, timestamp upon gather function//
-  receive() external payable {
-    }
-  
   ///Admin Functions
-    function withdrawFunds(address target) public onlyAdmin returns (bool) {
-        return _withdrawFunds(target);
-    }
-    
-    function withdrawFundsERC20(address target, address tokenAddress) public onlyAdmin returns (bool) {
-        return _withdrawFundsERC20(target, tokenAddress);
-    }
 
   /// @notice Permissioned function to pause UPaddress Controller
   function pause() public onlyAdmin {
