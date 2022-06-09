@@ -80,7 +80,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     UPController upController = UPController(UP_CONTROLLER); // Put in Variable Defination
 
-    address UP_TOKEN = upController.UP_TOKEN(); / 
+    address UP_TOKEN = upController.UP_TOKEN();
 
     // Store a snapshot of the rewards
     IStrategy.Rewards memory strategyRewards = IStrategy(strategy).checkRewards();
