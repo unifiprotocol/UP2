@@ -26,7 +26,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   address payable public darbi = payable(address(0));
   address payable public UPaddress = payable(address(0));
   address payable public UP_CONTROLLER = payable(address(0));
-  
+
   IUniswapV2Router02 public unifiRouter;
   IStrategy.Rewards[] public rewards;
 
@@ -71,8 +71,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     upcBalance = address(UP_CONTROLLER).balance;
   }
 
-  
-
   function rebalance() public onlyAdmin {
     claimAndBurn();
 
@@ -99,58 +97,57 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     forceArbitrage();
 
-      // REFRESH`
-      uint256 amountLpUP;
-      (amountLpUP, amountLpETH) = checkLiquidityPoolBalance();
+    // REFRESH`
+    uint256 amountLpUP;
+    (amountLpUP, amountLpETH) = checkLiquidityPoolBalance();
 
-      totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
-      //Take money from the strategy - 5% of the total of the strategy
-      uint256 ETHtoTake = (totalETH / 20) - getupcBalance();
-      if (address(UP_CONTROLLER).balance > ETHtoTake) {
-        uint256 amountToWithdraw = address(UP_CONTROLLER).balance - ETHtoTake;
-        IStrategy(strategy).deposit{value: amountToWithdraw}(amountToWithdraw);
-      } else if (address(UP_CONTROLLER).balance < ETHtoTake) {
-        uint256 amountToDeposit = ETHtoTake - address(UP_CONTROLLER).balance;
-        IStrategy(strategy).deposit{value: amountToDeposit}(amountToDeposit);
-      }
+    totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
+    //Take money from the strategy - 5% of the total of the strategy
+    uint256 ETHtoTake = (totalETH / 20) - getupcBalance();
+    if (address(UP_CONTROLLER).balance > ETHtoTake) {
+      uint256 amountToWithdraw = address(UP_CONTROLLER).balance - ETHtoTake;
+      IStrategy(strategy).deposit{value: amountToWithdraw}(amountToWithdraw);
+    } else if (address(UP_CONTROLLER).balance < ETHtoTake) {
+      uint256 amountToDeposit = ETHtoTake - address(UP_CONTROLLER).balance;
+      IStrategy(strategy).deposit{value: amountToDeposit}(amountToDeposit);
+    }
 
-      // REBALANCE LP
-      lpBalance = lp.balanceOf(address(this));
+    // REBALANCE LP
+    lpBalance = lp.balanceOf(address(this));
 
-      if (amountLpETH > ETHtoTake) {
-        // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
-        uint256 ETHtoTakeFromLP = amountLpETH - (totalETH / 20);
-        uint256 diff = amountLpETH / (ETHtoTakeFromLP * 100);
+    if (amountLpETH > ETHtoTake) {
+      // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
+      uint256 ETHtoTakeFromLP = amountLpETH - (totalETH / 20);
+      uint256 diff = amountLpETH / (ETHtoTakeFromLP * 100);
 
-        uint256 totalLpToRemove = lpBalance * (diff / 100);
-        IERC20(liquidityPool).approve(address(unifiRouter), totalLpToRemove);
+      uint256 totalLpToRemove = lpBalance * (diff / 100);
+      IERC20(liquidityPool).approve(address(unifiRouter), totalLpToRemove);
 
-        (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
-          liquidityPool,
-          totalLpToRemove,
-          0,
-          0,
-          address(this),
-          block.timestamp + 20 minutes
-        );
+      (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
+        liquidityPool,
+        totalLpToRemove,
+        0,
+        0,
+        address(this),
+        block.timestamp + 20 minutes
+      );
 
-        IStrategy(strategy).deposit{value: amountETH}(amountETH);
-        UPController(UP_CONTROLLER).repay{value: 0}(amountToken);
-      } else if (amountLpETH < ETHtoTake) {
-        // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that getupcBalance() = ETHtoTake.
-        uint256 ETHtoAddtoLP = (totalETH / 20) - amountLpETH;
-        uint256 lpPrice = amountLpUP / amountLpETH;
-        uint256 UPtoAddtoLP = lpPrice * ETHtoAddtoLP;
-        upController.borrowUP(UPtoAddtoLP, address(this));
-        unifiRouter.addLiquidityETH{value: ETHtoAddtoLP}(
-          liquidityPool,
-          UPtoAddtoLP,
-          0,
-          0,
-          address(this),
-          block.timestamp + 20 minutes
-        );
-      }
+      IStrategy(strategy).deposit{value: amountETH}(amountETH);
+      UPController(UP_CONTROLLER).repay{value: 0}(amountToken);
+    } else if (amountLpETH < ETHtoTake) {
+      // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that getupcBalance() = ETHtoTake.
+      uint256 ETHtoAddtoLP = (totalETH / 20) - amountLpETH;
+      uint256 lpPrice = amountLpUP / amountLpETH;
+      uint256 UPtoAddtoLP = lpPrice * ETHtoAddtoLP;
+      upController.borrowUP(UPtoAddtoLP, address(this));
+      unifiRouter.addLiquidityETH{value: ETHtoAddtoLP}(
+        liquidityPool,
+        UPtoAddtoLP,
+        0,
+        0,
+        address(this),
+        block.timestamp + 20 minutes
+      );
     }
   }
 
