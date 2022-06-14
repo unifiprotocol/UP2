@@ -114,15 +114,14 @@ contract Darbi is AccessControl, Safe {
       swappedTokens[0],
       swappedTokens[1]
     );
-    (uint256 price0, uint256 price1) = getVirtualPrice();
-    (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(price0, price1, reserveA, reserveB);
+    uint256 upPrice = UP_CONTROLLER.getVirtualPrice();
+    (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
+      1000000000000000000, // Ratio = 1:UPVirtualPrice
+      upPrice,
+      reserveA,
+      reserveB
+    );
     return (aToB, amountIn);
-  }
-
-  function getVirtualPrice() public view returns (uint256, uint256) {
-    uint256 price0 = UP_CONTROLLER.getVirtualPrice();
-    uint256 price1 = 1e18 / price0;
-    return (price0, price1);
   }
 
   function mintUP(uint256 amount) internal {

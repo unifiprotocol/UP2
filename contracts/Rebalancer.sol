@@ -64,6 +64,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   function claimAndBurn() internal {
     uint256 claimedUP = IUnifiPair(liquidityPool).claimUP(address(this));
+    UP(UPaddress).approve(UPaddress, claimedUP);
     UP(UPaddress).justBurn(claimedUP);
   }
 
@@ -74,11 +75,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   function rebalance() public onlyAdmin {
     claimAndBurn();
 
+    IERC20 lp = IERC20(liquidityPool);
     uint256 lpBalance = lp.balanceOf(address(this)); //Put in Variable Defination
 
     UPController upController = UPController(UP_CONTROLLER); // Put in Variable Defination
-
-    address UP_TOKEN = upController.UP_TOKEN();
 
     // Store a snapshot of the rewards
     IStrategy.Rewards memory strategyRewards = IStrategy(strategy).checkRewards();
@@ -95,7 +95,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     uint256 totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
 
-    forceArbitrage();
+    // Force Arbitrage
+    Darbi(darbi).arbitrage();
 
     // REFRESH`
     uint256 amountLpUP;
