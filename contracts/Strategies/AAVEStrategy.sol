@@ -74,13 +74,14 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
     return (rewardsBalance);
   }
 
-  ///@notice Checks amonut of assets to AAVe by this address.
+  ///@notice Checks amonut of assets to AAVE by this address.
   function checkAAVEBalance() public view returns (uint256 aaveBalance) {
     (uint256 aaveBalanceData,,,,,,,,) = IDataProvider(aaveDataProvider).getUserReserveData(wrappedTokenAddress, address(this));
     aaveBalance = aaveBalanceData;
     return aaveBalance;
   }
 
+  ///@notice Checks the amount of interest earned by the lending pool, excluding incentives.
   function checkAAVEInterest() public view returns (uint256 aaveEarnings) {
       uint256 aaveBalance = checkAAVEBalance();
       aaveEarnings = aaveBalance - amountDeposited;
@@ -196,6 +197,13 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   function updatewethGateway(address _wethGateway) public onlyAdmin {
     require(_wethGateway != address(0), "INVALID_ADDRESS");
     wethGateway = _wethGateway;
+  }
+
+  ///@notice Permissioned function to update the address of the aaveDataProvider
+  ///@param _aaveDataProvider - the address of the new aaveDataProvider
+  function updateaaveDataProvider(address _aaveDataProvider) public onlyAdmin {
+    require(_aaveDataProvider != address(0), "INVALID_ADDRESS");
+    aaveDataProvider = _aaveDataProvider;
   }
 
   ///@notice Permissioned function to update the address of the aaveDepositToken
