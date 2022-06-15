@@ -17,6 +17,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
 
 const harmonytestnetpk = process.env.HARMONY_TESTNET_PRIVATE_KEY
 const harmonymainnetpk = process.env.HARMONY_MAINNET_PRIVATE_KEY
+const bsctestnetpk = process.env.BSC_TESTNET_PRIVATE_KEY
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -45,6 +46,11 @@ export default {
       chainId: 1666600000,
       url: "https://api.harmony.one",
       accounts: harmonymainnetpk ? [harmonymainnetpk] : []
+    },
+    BSCTest: {
+      chainId: 97,
+      url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
+      accounts: bsctestnetpk ? [bsctestnetpk] : []
     }
   }
 }
