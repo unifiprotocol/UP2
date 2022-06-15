@@ -33,13 +33,11 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   constructor(
     address _UP,
     address _UPController,
-    address _darbi
   ) {
     require(_UP != address(0), "Invalid UP address");
     UP_TOKEN = payable(_UP);
     UP_CONTROLLER = payable(_UPController);
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    _setupRole(DARBI_ROLE, _darbi);
   }
 
   /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
