@@ -30,10 +30,7 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   event DarbiMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
   event UpdateController(address _upController);
 
-  constructor(
-    address _UP,
-    address _UPController,
-  ) {
+  constructor(address _UP, address _UPController) {
     require(_UP != address(0), "Invalid UP address");
     UP_TOKEN = payable(_UP);
     UP_CONTROLLER = payable(_UPController);
