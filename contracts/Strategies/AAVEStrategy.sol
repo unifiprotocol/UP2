@@ -17,15 +17,15 @@ import "../Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This controller deposits the native tokens backing UP into the AAVE Supply Pool, and triggers the Rebalancer
 
-contract AAVEHarmony is Strategy, AccessControl, Pausable {
+contract AAVEStrategy is Strategy, AccessControl, Pausable {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   uint256 public amountDeposited = 0;
-  address public wrappedTokenAddress = 0xcF664087a5bB0237a0BAd6742852ec6c8d69A27a; //WONE Address
-  address public aaveIncentivesController = 0x929EC64c34a17401F460460D4B9390518E5B473e; //AAVE Harmony Incentives Controller
-  address public aavePool = 0x794a61358D6845594F94dc1DB02A252b5b4814aD; //AAVE Harmony Lending Pool
-  address public wethGateway = 0xe86B52cE2e4068AdE71510352807597408998a69; //AAVE Harmony WETH Gateway
-  address public aaveDataProvider = 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654; //AAVE Harmony Data Provider
-  address public aaveDepositToken = 0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97; /// AAVE WONE AToken
+  address public wrappedTokenAddress; 
+  address public aaveIncentivesController;
+  address public aavePool;
+  address public wethGateway;
+  address public aaveDataProvider;
+  address public aaveDepositToken;
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
@@ -39,10 +39,30 @@ contract AAVEHarmony is Strategy, AccessControl, Pausable {
 
   event UpdateRebalancer(address _rebalancer);
 
-  constructor() {
+  ///@param _wrappedTokenAddress The Wrapped Native Asset, for example, WONE if deploying on Harmony.
+  ///@param _aaveIncentivesController AAVE's Native Controller - typically 0x929EC64c34a17401F460460D4B9390518E5B473e on all chains.
+  ///@param _aavePool AAVE's Pool - typically 0x794a61358D6845594F94dc1DB02A252b5b4814aD on all chains.
+  ///@param _wethGateway AAVE's Wrapped Native Token Gateway - varies by chain.
+  ///@param _aaveDataProvider AAVE's Pool Data Provider - typically 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654 on all chains.
+  ///@param _aaveDepositToken AAVE's aToken for the deposited wrapped address  - typically 0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97 on all chains.
+
+  constructor(    
+    address _wrappedTokenAddress,
+    address _aaveIncentivesController,
+    address _aavePool,
+    address _wethGateway,
+    address _aaveDataProvider,
+    address _aaveDepositToken) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
+    wrappedTokenAddress = _wrappedTokenAddress;
+    aaveIncentivesController = _aaveIncentivesController;
+    aavePool = _aavePool;
+    wethGateway = _wethGateway;
+    aaveDataProvider = _aaveDataProvider;
+    aaveDepositToken = _aaveDepositToken;
   }
+
 
   /// Read Functions
 
