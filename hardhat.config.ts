@@ -1,9 +1,9 @@
+require("dotenv").config()
 import { task } from "hardhat/config"
 import "@nomiclabs/hardhat-waffle"
 import "@typechain/hardhat"
 import "@nomiclabs/hardhat-ethers"
 import "solidity-docgen"
-require("dotenv").config()
 
 // This is a sample Hardhat task. To learn how to create your own go to
 // https://hardhat.org/guides/create-task.html
@@ -15,9 +15,7 @@ task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
   }
 })
 
-const harmonytestnetpk = process.env.HARMONY_TESTNET_PRIVATE_KEY
-const harmonymainnetpk = process.env.HARMONY_MAINNET_PRIVATE_KEY
-const bsctestnetpk = process.env.BSC_TESTNET_PRIVATE_KEY
+const PRIVATE_KEY = process.env.PRIVATE_KEY
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
@@ -40,17 +38,17 @@ export default {
     HarmonyTest: {
       chainId: 1666700000,
       url: "https://api.s0.b.hmny.io",
-      accounts: harmonytestnetpk ? [harmonytestnetpk] : []
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
     },
     HarmonyMain: {
       chainId: 1666600000,
       url: "https://api.harmony.one",
-      accounts: harmonymainnetpk ? [harmonymainnetpk] : []
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
     },
     BSCTest: {
       chainId: 97,
       url: "https://data-seed-prebsc-1-s1.binance.org:8545/",
-      accounts: bsctestnetpk ? [bsctestnetpk] : []
+      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
     }
   }
 }
