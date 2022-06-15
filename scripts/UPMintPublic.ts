@@ -1,6 +1,7 @@
 import { task } from "hardhat/config"
+import { generateGetterSetter } from "./Util"
 
-task("UPMintPublic", "Deploy UPMintPublic contract")
+task("UPMintPublicDeploy", "Deploy UPMintPublic contract")
   .addParam("up", "UP Address")
   .addParam("controller", "UPController Address")
   .addOptionalParam("mintRate", "mintRate = 5 = 5%", "5")
@@ -13,3 +14,5 @@ task("UPMintPublic", "Deploy UPMintPublic contract")
 
     console.log("UPMintPublic -", upMintPublic.address)
   })
+
+generateGetterSetter("UPMintPublic")

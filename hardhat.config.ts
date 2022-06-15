@@ -8,7 +8,7 @@ import "solidity-docgen"
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 
 // TASKS
-import "./scripts/UPMintPublic"
+import "./scripts/"
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
