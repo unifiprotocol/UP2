@@ -5,7 +5,9 @@ import "@typechain/hardhat"
 import "@nomiclabs/hardhat-ethers"
 import "solidity-docgen"
 
-const PRIVATE_KEY = process.env.PRIVATE_KEY
+const harmonytestnetpk = process.env.HARMONY_TESTNET_PRIVATE_KEY
+const harmonymainnetpk = process.env.HARMONY_MAINNET_PRIVATE_KEY
+const bsctestnetpk = process.env.BSC_TESTNET_PRIVATE_KEY
 
 // TASKS
 import "./scripts/"
@@ -30,17 +32,17 @@ export default {
     HarmonyTest: {
       chainId: 1666700000,
       url: "https://api.s0.b.hmny.io",
-      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
+      accounts: harmonytestnetpk ? [harmonytestnetpk] : []
     },
     HarmonyMain: {
       chainId: 1666600000,
       url: "https://api.harmony.one",
-      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
+      accounts: harmonymainnetpk ? [harmonymainnetpk] : []
     },
     BSCTest: {
       chainId: 97,
       url: "https://data-seed-prebsc-2-s1.binance.org:8545/",
-      accounts: PRIVATE_KEY ? [PRIVATE_KEY] : []
+      accounts: bsctestnetpk ? [bsctestnetpk] : []
     }
   }
 }

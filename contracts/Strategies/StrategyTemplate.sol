@@ -59,7 +59,7 @@ function checkRewards() public virtual override view returns (IStrategy.Rewards 
    ///@notice The deposit function should receive native tokens and then deposit them into your strategy.
    ///For example, if your strategy is depositing native tokens into a lending protocol, the deposit function should contain all the logic to transfer tokens into the lending protocol.
    ///In addition, the depositValue should be updated to reflect the tokens deposited into your strategy.
-   ///@param depositValue If using native tokens, the parameter should equal the payable amount of the function. This is kept as a parameter in the case a strategy is utilized that does not use native tokens.
+   ///@param depositValue If using native tokens, the parameter should equal the payable amount of the function. This is kept as a parameter in the case a strategy is utilized that does not use native tokens. You will receive an unused parameter warning.
 
 function deposit(uint256 depositValue) public onlyRebalancer override payable returns (bool) {
     require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");

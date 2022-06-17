@@ -66,7 +66,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
 
   /// Read Functions
 
-  ///@notice Checks the total amount of rewards earned by this address.
+  ///@notice Checks the total amount of incentives earned by this address, excluding interest.
   function checkRewardsBalance() public view returns (uint256 rewardsBalance) {
     address[] memory asset = new address[](1);
     asset[0] = address(aaveDepositToken);
@@ -74,7 +74,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
     return (rewardsBalance);
   }
 
-  ///@notice Checks amonut of assets to AAVE by this address.
+  ///@notice Checks amonut of assets sent to AAVE by this address.
   function checkAAVEBalance() public view returns (uint256 aaveBalance) {
     (uint256 aaveBalanceData,,,,,,,,) = IDataProvider(aaveDataProvider).getUserReserveData(wrappedTokenAddress, address(this));
     aaveBalance = aaveBalanceData;
