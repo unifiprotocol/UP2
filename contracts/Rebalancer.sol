@@ -72,7 +72,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     upcBalance = address(UP_CONTROLLER).balance;
   }
 
-  function rebalance() public onlyAdmin {
+  function rebalance() public whenNotPaused onlyAdmin {
     claimAndBurn();
 
     IERC20 lp = IERC20(liquidityPool);

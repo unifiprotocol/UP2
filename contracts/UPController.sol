@@ -86,7 +86,7 @@ contract UPController is AccessControl, Safe, Pausable {
     emit SyntheticMint(msg.sender, _borrowAmount, upBorrowed);
   }
 
-  function mintSyntheticUP(uint256 _mintAmount, address _to) public onlyRebalancer {
+  function mintSyntheticUP(uint256 _mintAmount, address _to) public onlyRebalancer whenNotPaused {
     borrowUP(_mintAmount, _to);
   }
 

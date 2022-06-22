@@ -61,7 +61,7 @@ function checkRewards() public virtual override view returns (IStrategy.Rewards 
    ///In addition, the depositValue should be updated to reflect the tokens deposited into your strategy.
    ///@param depositValue If using native tokens, the parameter should equal the payable amount of the function. This is kept as a parameter in the case a strategy is utilized that does not use native tokens. You will receive an unused parameter warning.
 
-function deposit(uint256 depositValue) public onlyRebalancer override payable returns (bool) {
+function deposit(uint256 depositValue) public onlyRebalancer whenNotPaused override payable returns (bool) {
     require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
     //Work your magic here - Code the logic to earn yield!
     amountDeposited += depositValue;
@@ -73,7 +73,7 @@ function deposit(uint256 depositValue) public onlyRebalancer override payable re
    ///In addition, the depositValue should be updated to reflect the tokens withdrawn into your strategy. UP requires all tokens returned to the balancer be in native token format.
    ///@param amount This is the amount of native tokens that is to be withdrawn from the strategy.
 
-function withdraw(uint256 amount) public override onlyRebalancer returns (bool) {
+function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused returns (bool) {
     require(amount <= amountDeposited, "Amount Requested to Withdraw is Greater Than Amount Deposited");
     //Work your magic here - Code the logic to withdraw and send the requested amount of native tokens here!
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
@@ -84,7 +84,7 @@ function withdraw(uint256 amount) public override onlyRebalancer returns (bool) 
 
   ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the rebalancer.
   
-  function withdrawAll() external virtual override returns (bool) {
+  function withdrawAll() external virtual override onlyRebalancer whenNotPaused returns(bool) {
     //Get all those tokens here - code the logic to withdraw all here!
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
@@ -95,7 +95,7 @@ function withdraw(uint256 amount) public override onlyRebalancer returns (bool) 
   ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
   ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
 
-  function gather() public virtual override {
+  function gather() public virtual override onlyRebalancer whenNotPaused {
     //Claim all those rewards here
     uint256 nativeAmount = address(this).balance;
     (bool successTransfer, ) = address(msg.sender).call{value: nativeAmount}("");
