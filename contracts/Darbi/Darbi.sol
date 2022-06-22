@@ -7,14 +7,15 @@ import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
 import "./UPMintDarbi.sol";
 
-contract Darbi is AccessControl, Safe {
+contract Darbi is AccessControl, Safe, Pausable {
   using SafeERC20 for IERC20;
-
+  bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
   address public factory;
   address public WETH;
   IUniswapV2Router02 public router;
@@ -24,7 +25,14 @@ contract Darbi is AccessControl, Safe {
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
     _;
+  }  
+  
+  modifier onlyMonitor() {
+    require(hasRole(MONITOR_ROLE, msg.sender), "ONLY_MONITOR_ROLE");
+    _;
   }
+
+  
 
   constructor(
     address _factory,
@@ -34,6 +42,7 @@ contract Darbi is AccessControl, Safe {
     address _darbiMinter
   ) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    _setupRole(MONITOR_ROLE, msg.sender);
     factory = _factory;
     WETH = _WETH;
     router = IUniswapV2Router02(_router);
@@ -43,7 +52,7 @@ contract Darbi is AccessControl, Safe {
 
   receive() external payable {}
 
-  function arbitrage() public onlyAdmin {
+  function arbitrage() public whenNotPaused onlyMonitor {
     address UP_TOKEN = UP_CONTROLLER.UP_TOKEN();
     (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(factory, UP_TOKEN, WETH);
     // uint256 marketValue = reserves0 / reserves1;

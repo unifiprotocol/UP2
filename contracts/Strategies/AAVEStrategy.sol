@@ -127,7 +127,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   }
 
   ///@notice Withdraws an amount from Token Deposits from AAVE
-  function withdraw(uint256 amount) public override onlyRebalancer returns (bool) {
+  function withdraw(uint256 amount) public override whenNotPaused onlyRebalancer returns (bool) {
     require(amount <= amountDeposited, "Amount Requested to Withdraw is Greater Than Amount Deposited");
     IERC20(aaveDepositToken).approve(wethGateway, amount);
     IWETHGateway(wethGateway).withdrawETH(aavePool, amount, address(this));
@@ -138,7 +138,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   }
 
   ///@notice Withdraws all funds from AAVE, as well as claims & unwraps token rewards
-   function withdrawAll() public override onlyRebalancer returns (bool) {
+   function withdrawAll() public override whenNotPaused onlyRebalancer returns (bool) {
     _claimAAVERewards();
     uint256 aaveBalance = checkAAVEBalance();
     IERC20(aaveDepositToken).approve(wethGateway, aaveBalance);
@@ -150,7 +150,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   }
 
    ///@notice Deposits native tokens to AAVE.
-  function deposit(uint256 depositValue) public onlyRebalancer override payable returns (bool) {
+  function deposit(uint256 depositValue) public whenNotPaused onlyRebalancer override payable returns (bool) {
     require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
     amountDeposited += depositValue;
@@ -158,7 +158,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   }
 
   ///@notice Claims Rewards + Withdraws All Tokens on AAVE, and sends to Controller
-  function gather() public override onlyRebalancer {
+  function gather() public override whenNotPaused onlyRebalancer {
     uint256 rewardsClaimed = _claimAAVERewards();
     uint256 yieldEarned = _withdrawAAVEInterest();
     uint256 totalEarned = rewardsClaimed + yieldEarned;
@@ -180,35 +180,35 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
 
   ///@notice Permissioned function to update the address of the Aave Incentives Controller
   ///@param _aaveIncentivesController - the address of the new Aave Incentives Controller
-  function updateaaveIncentivesController(address _aaveIncentivesController) public onlyAdmin {
+  function updateaaveIncentivesController(address _aaveIncentivesController) public onlyAdmin whenNotPaused {
     require(_aaveIncentivesController != address(0), "INVALID_ADDRESS");
     aaveIncentivesController = _aaveIncentivesController;
   }
 
   ///@notice Permissioned function to update the address of the aavePool
   ///@param _aavePool - the address of the new aavePool
-  function updateaavePool(address _aavePool) public onlyAdmin {
+  function updateaavePool(address _aavePool) public onlyAdmin whenNotPaused {
     require(_aavePool != address(0), "INVALID_ADDRESS");
     aavePool = _aavePool;
   }
 
   ///@notice Permissioned function to update the address of the wethGateway
   ///@param _wethGateway - the address of the new wethGateway
-  function updatewethGateway(address _wethGateway) public onlyAdmin {
+  function updatewethGateway(address _wethGateway) public onlyAdmin whenNotPaused {
     require(_wethGateway != address(0), "INVALID_ADDRESS");
     wethGateway = _wethGateway;
   }
 
   ///@notice Permissioned function to update the address of the aaveDataProvider
   ///@param _aaveDataProvider - the address of the new aaveDataProvider
-  function updateaaveDataProvider(address _aaveDataProvider) public onlyAdmin {
+  function updateaaveDataProvider(address _aaveDataProvider) public onlyAdmin whenNotPaused {
     require(_aaveDataProvider != address(0), "INVALID_ADDRESS");
     aaveDataProvider = _aaveDataProvider;
   }
 
   ///@notice Permissioned function to update the address of the aaveDepositToken
   ///@param _aaveDepositToken - the address of the new aaveDepositToken
-  function updateaaveDepositToken(address _aaveDepositToken) public onlyAdmin {
+  function updateaaveDepositToken(address _aaveDepositToken) public onlyAdmin whenNotPaused {
     require(_aaveDepositToken != address(0), "INVALID_ADDRESS");
     aaveDepositToken = _aaveDepositToken;
   }

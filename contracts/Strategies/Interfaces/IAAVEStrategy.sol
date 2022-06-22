@@ -9,8 +9,8 @@ interface IAAVEHarmonyTest is IStrategy {
     function checkAAVEInterest() external view returns (uint256);
     function checkUnclaimedEarnings() external view returns (uint256);
     function checkRewards() external view override returns (IStrategy.Rewards memory);
-    function withdraw(uint256 amount) external returns (bool);
-    function withdrawAll() external returns (bool);
+    function withdraw(uint256 amount) external override returns (bool);
+    function withdrawAll() external override returns (bool);
     function deposit(uint256 amount) external payable override returns (bool);
     function gather() override external;
     function withdrawFunds(address) external returns (bool);
