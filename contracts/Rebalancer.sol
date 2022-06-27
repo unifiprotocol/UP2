@@ -26,8 +26,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   address payable public darbi = payable(address(0));
   address payable public UPaddress = payable(address(0));
   address payable public UP_CONTROLLER = payable(address(0));
-  uint256 public allocationLP = 5;
-  uint256 public allocationRedeem = 5;
+  uint256 public allocationLP = 5; //Whole Number for Percent, i.e. 5 = 5%
+  uint256 public allocationRedeem = 5; //Whole Number for Percent, i.e. 5 = 5%
+  uint256 public slippageTolerance = 10; //Percent with 2 Percision, i.e. 10 = 0.1%
 
   IUniswapV2Router02 public unifiRouter;
   IStrategy.Rewards[] public rewards;
@@ -117,7 +118,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     // REBALANCE LP
     lpBalance = lp.balanceOf(address(this));
-
+    uint256 backedValue = UPController(UP_CONTROLLER).getVirtualPrice() / 1e18;
+    (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(unifiFactory, UPaddress, WETH);
+    uint256 marketValue = reserves0 / reserves1;
+    if (backedValue > (marketValue * (1 + (slippageTolerance / 10000))) || backedValue < (marketValue * (1 - (slippageTolerance / 10000)))) {
+      return;
+    }
     if (amountLpETH > ETHtoTake) {
       // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
       uint256 ETHtoTakeFromLP = amountLpETH - ((totalETH * allocationLP) / 100);
@@ -207,6 +213,13 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     bool lessthan100 = allocationLP + _allocationRedeem <= 100;
     require(lessthan100, "Allocation for Redeem and LP is over 100%");
     allocationRedeem = _allocationRedeem;
+    return true;
+  }
+
+  function setSlippageTolerance(uint256 _slippageTolerance) public onlyAdmin returns (bool) {
+    bool lessthan10000 = _slippageTolerance <= 10000;
+    require(lessthan10000, "Cannot Set Slippage Tolerance over 100%");
+    slippageTolerance = _slippageTolerance;
     return true;
   }
 
