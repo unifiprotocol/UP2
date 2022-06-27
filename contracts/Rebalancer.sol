@@ -26,6 +26,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   address payable public darbi = payable(address(0));
   address payable public UPaddress = payable(address(0));
   address payable public UP_CONTROLLER = payable(address(0));
+  uint256 public allocationLP = 5;
+  uint256 public allocationRedeem = 5;
 
   IUniswapV2Router02 public unifiRouter;
   IStrategy.Rewards[] public rewards;
@@ -104,7 +106,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
     //Take money from the strategy - 5% of the total of the strategy
-    uint256 ETHtoTake = (totalETH / 20) - getupcBalance();
+    uint256 ETHtoTake = ((totalETH * allocationRedeem) / 100) - getupcBalance();
     if (address(UP_CONTROLLER).balance > ETHtoTake) {
       uint256 amountToWithdraw = address(UP_CONTROLLER).balance - ETHtoTake;
       IStrategy(strategy).deposit{value: amountToWithdraw}(amountToWithdraw);
@@ -118,7 +120,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     if (amountLpETH > ETHtoTake) {
       // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
-      uint256 ETHtoTakeFromLP = amountLpETH - (totalETH / 20);
+      uint256 ETHtoTakeFromLP = amountLpETH - ((totalETH * allocationLP) / 100);
       uint256 diff = amountLpETH / (ETHtoTakeFromLP * 100);
 
       uint256 totalLpToRemove = lpBalance * (diff / 100);
@@ -137,7 +139,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       UPController(UP_CONTROLLER).repay{value: 0}(amountToken);
     } else if (amountLpETH < ETHtoTake) {
       // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that getupcBalance() = ETHtoTake.
-      uint256 ETHtoAddtoLP = (totalETH / 20) - amountLpETH;
+      uint256 ETHtoAddtoLP = ((totalETH * allocationLP)/ 100) - amountLpETH;
       uint256 lpPrice = amountLpUP / amountLpETH;
       uint256 UPtoAddtoLP = lpPrice * ETHtoAddtoLP;
       upController.borrowUP(UPtoAddtoLP, address(this));
@@ -193,6 +195,21 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     }
     rewards.push(reward);
   }
+
+  function setAllocationLP(uint256 _allocationLP) public onlyAdmin returns (bool) {
+    bool lessthan100 = allocationRedeem + _allocationLP <= 100;
+    require(lessthan100, "Allocation for Redeem and LP is over 100%");
+    allocationLP = _allocationLP;
+    return true;
+  }
+
+  function setAllocationRedeem(uint256 _allocationRedeem) public onlyAdmin returns (bool) {
+    bool lessthan100 = allocationLP + _allocationRedeem <= 100;
+    require(lessthan100, "Allocation for Redeem and LP is over 100%");
+    allocationRedeem = _allocationRedeem;
+    return true;
+  }
+
 
   function withdrawFunds(address target) public onlyAdmin returns (bool) {
     return _withdrawFunds(target);
