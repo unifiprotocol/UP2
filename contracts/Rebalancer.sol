@@ -174,7 +174,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         block.timestamp + 20 minutes
       )
     );
-    require(success, "FAIL_ESTIMATING_LP_SUPPLY");
+    if (!success) {
+      // No LP Balance
+      return (0, 0);
+    }
     (uint256 amountLpUP, uint256 amountLpETH) = abi.decode(result, (uint256, uint256));
     return (amountLpUP, amountLpETH);
   }
