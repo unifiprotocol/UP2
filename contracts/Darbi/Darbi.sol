@@ -18,6 +18,7 @@ contract Darbi is AccessControl, Safe, Pausable {
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
   address public factory;
   address public WETH;
+  uint256 public arbitrageThreshold = 100000;
   IUniswapV2Router02 public router;
   UPController public UP_CONTROLLER;
   UPMintDarbi public DARBI_MINTER;
@@ -59,7 +60,7 @@ contract Darbi is AccessControl, Safe, Pausable {
 
     (bool aToB, uint256 amountIn) = moveMarketBuyAmount();
     // Will Return 0 if MV = BV exactly, we are using <100 to add some slippage
-    if (amountIn < 100) return;
+    if (amountIn < arbitrageThreshold) return;
 
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
@@ -131,10 +132,6 @@ contract Darbi is AccessControl, Safe, Pausable {
     return (aToB, amountIn);
   }
 
-  function mintUP(uint256 amount) internal {
-    DARBI_MINTER.mintUP{value: amount}();
-  }
-
   function redeemUP() internal {
     UP_CONTROLLER.redeem(IERC20(UP_CONTROLLER.UP_TOKEN()).balanceOf(address(this)));
   }
@@ -142,6 +139,11 @@ contract Darbi is AccessControl, Safe, Pausable {
   function setFactory(address _factory) public onlyAdmin {
     require(_factory != address(0));
     factory = _factory;
+  }
+
+  function setArbitrageThreshold(uint256 _threshold) public onlyAdmin {
+    require(_threshold > 0);
+    arbitrageThreshold = _threshold;
   }
 
   function setRouter(address _router) public onlyAdmin {

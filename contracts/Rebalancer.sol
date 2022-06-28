@@ -93,19 +93,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     require(successUpcTransfer, "FAIL_SENDING_REWARDS_TO_UPC");
     // UPController balances after get rewards
 
-    // Estimates the amount of ETH in the LP
-    (, uint256 amountLpETH) = checkLiquidityPoolBalance();
-
-    uint256 totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
-
     // Force Arbitrage
     Darbi(darbi).arbitrage();
 
-    // REFRESH`
-    uint256 amountLpUP;
-    (amountLpUP, amountLpETH) = checkLiquidityPoolBalance();
+    (uint256 amountLpUP, uint256 amountLpETH) = checkLiquidityPoolBalance();
+    uint256 totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
 
-    totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
     //Take money from the strategy - 5% of the total of the strategy
     uint256 ETHtoTake = ((totalETH * allocationRedeem) / 100) - getupcBalance();
     if (address(UP_CONTROLLER).balance > ETHtoTake) {
@@ -119,11 +112,19 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // REBALANCE LP
     lpBalance = lp.balanceOf(address(this));
     uint256 backedValue = UPController(UP_CONTROLLER).getVirtualPrice() / 1e18;
-    (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(unifiFactory, UPaddress, WETH);
+    (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
+      unifiFactory,
+      UPaddress,
+      WETH
+    );
     uint256 marketValue = reserves0 / reserves1;
-    if (backedValue > (marketValue * (1 + (slippageTolerance / 10000))) || backedValue < (marketValue * (1 - (slippageTolerance / 10000)))) {
+    if (
+      backedValue > (marketValue * (1 + (slippageTolerance / 10000))) ||
+      backedValue < (marketValue * (1 - (slippageTolerance / 10000)))
+    ) {
       return;
     }
+
     if (amountLpETH > ETHtoTake) {
       // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
       uint256 ETHtoTakeFromLP = amountLpETH - ((totalETH * allocationLP) / 100);
@@ -145,7 +146,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       UPController(UP_CONTROLLER).repay{value: 0}(amountToken);
     } else if (amountLpETH < ETHtoTake) {
       // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that getupcBalance() = ETHtoTake.
-      uint256 ETHtoAddtoLP = ((totalETH * allocationLP)/ 100) - amountLpETH;
+      uint256 ETHtoAddtoLP = ((totalETH * allocationLP) / 100) - amountLpETH;
       uint256 lpPrice = amountLpUP / amountLpETH;
       uint256 UPtoAddtoLP = lpPrice * ETHtoAddtoLP;
       upController.borrowUP(UPtoAddtoLP, address(this));
@@ -225,7 +226,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     slippageTolerance = _slippageTolerance;
     return true;
   }
-
 
   function withdrawFunds(address target) public onlyAdmin returns (bool) {
     return _withdrawFunds(target);
