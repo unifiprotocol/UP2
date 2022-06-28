@@ -25,14 +25,12 @@ contract Darbi is AccessControl, Safe, Pausable {
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
     _;
-  }  
-  
+  }
+
   modifier onlyMonitor() {
     require(hasRole(MONITOR_ROLE, msg.sender), "ONLY_MONITOR_ROLE");
     _;
   }
-
-  
 
   constructor(
     address _factory,
@@ -60,12 +58,11 @@ contract Darbi is AccessControl, Safe, Pausable {
     address[] memory path;
 
     (bool aToB, uint256 amountIn) = moveMarketBuyAmount();
-    // Will Return 0 if MV = BV exactly
-    if (amountIn == 0) return;
+    // Will Return 0 if MV = BV exactly, we are using <100 to add some slippage
+    if (amountIn < 100) return;
 
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
-
     uint256 balances = address(this).balance;
     uint256 actualAmountIn;
     // If Buying UP
@@ -87,12 +84,13 @@ contract Darbi is AccessControl, Safe, Pausable {
         block.timestamp + 20 minutes
       );
       UP_CONTROLLER.redeem(amounts[1]);
-      // Gas Refund HERE
+      /// TODO: Gas Refund HERE
       uint256 diffBalances = address(this).balance - balances;
       (bool success, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
       require(success, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
     } else {
-      uint256 darbiBalanceMaximumUpToMint = balances / backedValue;
+      // If selling UP
+      uint256 darbiBalanceMaximumUpToMint = balances / backedValue; // Amount of UP that we can mint with current balances
       actualAmountIn = amountIn <= darbiBalanceMaximumUpToMint
         ? amountIn
         : darbiBalanceMaximumUpToMint; // Value in UP
@@ -118,7 +116,7 @@ contract Darbi is AccessControl, Safe, Pausable {
   function moveMarketBuyAmount() public view returns (bool aToB, uint256 amountIn) {
     address UP_TOKEN = UP_CONTROLLER.UP_TOKEN();
     address[2] memory swappedTokens = [UP_TOKEN, address(WETH)];
-    (uint256 reserveA, uint256 reserveB) = UniswapHelper.getReserves(
+    (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
       factory,
       swappedTokens[0],
       swappedTokens[1]
@@ -127,8 +125,8 @@ contract Darbi is AccessControl, Safe, Pausable {
     (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
       1000000000000000000, // Ratio = 1:UPVirtualPrice
       upPrice,
-      reserveA,
-      reserveB
+      reserves0,
+      reserves1
     );
     return (aToB, amountIn);
   }
