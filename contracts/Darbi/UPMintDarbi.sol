@@ -44,7 +44,7 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
     if (currentPrice == 0) return;
     uint256 mintAmount = (msg.value * currentPrice) / 1e18;
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
-    (bool successTransfer, ) = address(UP_CONTROLLER).call{value: msg.value}("");
+    (bool successTransfer, ) = UP_CONTROLLER.call{value: msg.value}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     emit DarbiMint(msg.sender, mintAmount, currentPrice, msg.value);
   }

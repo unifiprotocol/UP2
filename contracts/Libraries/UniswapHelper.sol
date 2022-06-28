@@ -7,6 +7,7 @@ import "@uniswap/v2-core/contracts/interfaces/IUniswapV2Pair.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
 import "@uniswap/lib/contracts/libraries/TransferHelper.sol";
 import "./FullMath.sol";
+import "../Interfaces/IFactory.sol";
 
 library UniswapHelper {
   using SafeMath for uint256;
@@ -104,8 +105,9 @@ library UniswapHelper {
     address factory,
     address tokenA,
     address tokenB
-  ) internal pure returns (address pair) {
+  ) public pure returns (address pair) {
     (address token0, address token1) = sortTokens(tokenA, tokenB);
+    bytes32 initCodeHash = IFactory(factory).INIT_CODE_PAIR_HASH();
     pair = address(
       uint160(
         uint256(
@@ -114,7 +116,7 @@ library UniswapHelper {
               hex"ff",
               factory,
               keccak256(abi.encodePacked(token0, token1)),
-              hex"96e8ac4277198ff8b6f785478aa9a39f403cb768dd02cbee326c3e7da348845f" // init code hash
+              initCodeHash
             )
           )
         )

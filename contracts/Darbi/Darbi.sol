@@ -69,10 +69,10 @@ contract Darbi is AccessControl, Safe, Pausable {
     if (aToB) {
       actualAmountIn = amountIn <= balances ? amountIn : balances; //Value is going to native
       uint256 expectedReturn = UniswapHelper.getAmountOut(actualAmountIn, reserves0, reserves1); // Amount of UP expected from Buy
-      uint256 expectedNativeReturn = expectedReturn * backedValue; //Amount of Native Tokens Expected to Receive from Redeem
+      uint256 expectedNativeReturn = expectedReturn * backedValue / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
       uint256 upControllerBalance = address(UP_CONTROLLER).balance;
       if (upControllerBalance < expectedNativeReturn) {
-        uint256 upOutput = upControllerBalance / backedValue; //Value in UP Token
+        uint256 upOutput = upControllerBalance * 1e18 / backedValue; //Value in UP Token
         actualAmountIn = UniswapHelper.getAmountOut(upOutput, reserves1, reserves0); // Amount of UP expected from Buy
       }
       path[0] = WETH;
@@ -90,11 +90,11 @@ contract Darbi is AccessControl, Safe, Pausable {
       require(success, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
     } else {
       // If selling UP
-      uint256 darbiBalanceMaximumUpToMint = balances / backedValue; // Amount of UP that we can mint with current balances
+      uint256 darbiBalanceMaximumUpToMint = balances * 1e18 / backedValue; // Amount of UP that we can mint with current balances
       actualAmountIn = amountIn <= darbiBalanceMaximumUpToMint
         ? amountIn
         : darbiBalanceMaximumUpToMint; // Value in UP
-      uint256 nativeToMint = actualAmountIn / backedValue;
+      uint256 nativeToMint = actualAmountIn * backedValue / 1e18;
       DARBI_MINTER.mintUP{value: nativeToMint}();
 
       path[0] = UP_TOKEN;
@@ -129,10 +129,6 @@ contract Darbi is AccessControl, Safe, Pausable {
       reserves1
     );
     return (aToB, amountIn);
-  }
-
-  function mintUP(uint256 amount) internal {
-    DARBI_MINTER.mintUP{value: amount}();
   }
 
   function redeemUP() internal {
