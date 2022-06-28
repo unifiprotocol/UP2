@@ -76,7 +76,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function rebalance() public whenNotPaused onlyAdmin {
-    claimAndBurn();
+    // Step 1
+    claimAndBurn(); 
 
     IERC20 lp = IERC20(liquidityPool);
     uint256 lpBalance = lp.balanceOf(address(this)); //Put in Variable Defination
@@ -88,28 +89,38 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     saveReward(strategyRewards);
 
     // Gather the generated rewards by the strategy and send them to the UPController
+    // Step 2
     IStrategy(strategy).gather();
-    (bool successUpcTransfer, ) = UP_CONTROLLER.call{value: strategyRewards.rewardsAmount}("");
+    (bool successUpcTransfer, ) = UP_CONTROLLER.call{value: strategyRewards.rewardsAmount}(""); 
     require(successUpcTransfer, "FAIL_SENDING_REWARDS_TO_UPC");
     // UPController balances after get rewards
 
     // Force Arbitrage
-    Darbi(darbi).arbitrage();
+    // Step 3
+    Darbi(darbi).arbitrage(); 
 
     (uint256 amountLpUP, uint256 amountLpETH) = checkLiquidityPoolBalance();
     uint256 totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
 
     //Take money from the strategy - 5% of the total of the strategy
-    uint256 ETHtoTake = ((totalETH * allocationRedeem) / 100) - getupcBalance();
-    if (address(UP_CONTROLLER).balance > ETHtoTake) {
+    // Step 4
+    uint256 ETHtoTake = ((totalETH * allocationRedeem) / 100) - getupcBalance(); 
+    //Step 4.1
+    if (address(UP_CONTROLLER).balance > ETHtoTake)  {
+      // If UP Controller balance is greater than 5%, the rebalancer withdraws from the UP Controller to deposit into the strategy
       uint256 amountToWithdraw = address(UP_CONTROLLER).balance - ETHtoTake;
+      // Needs a transfer from UP Controller to Strategy Here
       IStrategy(strategy).deposit{value: amountToWithdraw}(amountToWithdraw);
+    //Step 4.2 
     } else if (address(UP_CONTROLLER).balance < ETHtoTake) {
+      // If UP Controller balance is less than 5%, the rebalancer withdraws from the strategy to deposit into the UP Controller
       uint256 amountToDeposit = ETHtoTake - address(UP_CONTROLLER).balance;
-      IStrategy(strategy).deposit{value: amountToDeposit}(amountToDeposit);
+      IStrategy(strategy).withdraw{value: amountToDeposit}(amountToDeposit);
+      // Needs a transfer from Strategy to UP Controller Here
     }
 
     // REBALANCE LP
+    // Step 5
     lpBalance = lp.balanceOf(address(this));
     uint256 backedValue = UPController(UP_CONTROLLER).getVirtualPrice() / 1e18;
     (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
@@ -117,7 +128,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       UPaddress,
       WETH
     );
-    uint256 marketValue = reserves0 / reserves1;
+    uint256 marketValue = reserves0 / reserves1; 
+    // Step 5.1
     if (
       backedValue > (marketValue * (1 + (slippageTolerance / 10000))) ||
       backedValue < (marketValue * (1 - (slippageTolerance / 10000)))
@@ -125,6 +137,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       return;
     }
 
+    // Step 6
+    // Step 6.1
     if (amountLpETH > ETHtoTake) {
       // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
       uint256 ETHtoTakeFromLP = amountLpETH - ((totalETH * allocationLP) / 100);
@@ -145,6 +159,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       IStrategy(strategy).deposit{value: amountETH}(amountETH);
       UPController(UP_CONTROLLER).repay{value: 0}(amountToken);
     } else if (amountLpETH < ETHtoTake) {
+      // Step 6.2
       // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that getupcBalance() = ETHtoTake.
       uint256 ETHtoAddtoLP = ((totalETH * allocationLP) / 100) - amountLpETH;
       uint256 lpPrice = amountLpUP / amountLpETH;

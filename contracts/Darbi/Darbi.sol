@@ -60,6 +60,7 @@ contract Darbi is AccessControl, Safe, Pausable {
 
     (bool aToB, uint256 amountIn) = moveMarketBuyAmount();
     // Will Return 0 if MV = BV exactly, we are using <100 to add some slippage
+    // TODO: Should the ArbitrageThreshold be reflective of the gas cost? In other words, the profit must be greater than the gas refund.
     if (amountIn < arbitrageThreshold) return;
 
     // aToB == true == Buys UP
