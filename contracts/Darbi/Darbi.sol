@@ -71,10 +71,10 @@ contract Darbi is AccessControl, Safe, Pausable {
     if (aToB) {
       actualAmountIn = amountIn <= balances ? amountIn : balances; //Value is going to native
       uint256 expectedReturn = UniswapHelper.getAmountOut(actualAmountIn, reserves0, reserves1); // Amount of UP expected from Buy
-      uint256 expectedNativeReturn = expectedReturn * backedValue / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
+      uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
       uint256 upControllerBalance = address(UP_CONTROLLER).balance;
       if (upControllerBalance < expectedNativeReturn) {
-        uint256 upOutput = upControllerBalance * 1e18 / backedValue; //Value in UP Token
+        uint256 upOutput = (upControllerBalance * 1e18) / backedValue; //Value in UP Token
         actualAmountIn = UniswapHelper.getAmountOut(upOutput, reserves1, reserves0); // Amount of UP expected from Buy
       }
       path[0] = WETH;
@@ -92,17 +92,22 @@ contract Darbi is AccessControl, Safe, Pausable {
       require(success, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
     } else {
       // If selling UP
-      uint256 darbiBalanceMaximumUpToMint = balances * 1e18 / backedValue; // Amount of UP that we can mint with current balances
+      uint256 darbiBalanceMaximumUpToMint = (balances * 1e18) / backedValue; // Amount of UP that we can mint with current balances
       actualAmountIn = amountIn <= darbiBalanceMaximumUpToMint
         ? amountIn
         : darbiBalanceMaximumUpToMint; // Value in UP
-      uint256 nativeToMint = actualAmountIn * backedValue / 1e18;
+      uint256 nativeToMint = (actualAmountIn * backedValue) / 1e18;
       DARBI_MINTER.mintUP{value: nativeToMint}();
 
       path[0] = UP_TOKEN;
       path[1] = WETH;
+
+      IERC20 up2 = IERC20(UP_TOKEN);
+      uint256 up2Balance = up2.balanceOf(address(this));
+      up2.approve(address(router), up2Balance);
+
       router.swapExactTokensForETH(
-        IERC20(UP_TOKEN).balanceOf(address(this)),
+        up2Balance,
         0,
         path,
         address(this),
