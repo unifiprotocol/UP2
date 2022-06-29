@@ -2,7 +2,6 @@
 pragma solidity ^0.8.4;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/security/Pausable.sol";
 import "../UP.sol";
 import "../UPController.sol";
 import "../Helpers/Safe.sol";
@@ -11,7 +10,7 @@ import "../Helpers/Safe.sol";
 /// @author Daniel Blanco & A Fistful of Stray Cat Hair
 /// @notice This contract allows to DARBi to mint UP at virtual price.
 
-contract UPMintDarbi is AccessControl, Pausable, Safe {
+contract UPMintDarbi is AccessControl, Safe {
   bytes32 public constant DARBI_ROLE = keccak256("DARBI_ROLE");
 
   address payable public UP_TOKEN = payable(address(0));
@@ -38,7 +37,7 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   }
 
   /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
-  function mintUP() public payable onlyDarbi whenNotPaused {
+  function mintUP() public payable onlyDarbi {
     require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     if (currentPrice == 0) return;
@@ -69,16 +68,6 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   function revokeDarbiRole(address _darbiAddr) public onlyAdmin {
     require(_darbiAddr != address(0), "INVALID_ADDRESS");
     revokeRole(DARBI_ROLE, _darbiAddr);
-  }
-
-  ///@notice Permissioned function to pause Darbi minting
-  function pause() public onlyAdmin {
-    _pause();
-  }
-
-  ///@notice Permissioned function to unpause Darbi minting
-  function unpause() public onlyAdmin {
-    _unpause();
   }
 
   ///@notice Permissioned function to withdraw any native coins accidentally deposited to the Darbi Mint contract.
