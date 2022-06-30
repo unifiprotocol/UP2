@@ -146,7 +146,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
       uint256 totalLpToRemove = lpBalance * (diff / 100);
       IERC20(liquidityPool).approve(address(unifiRouter), totalLpToRemove);
-
       (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
         liquidityPool,
         totalLpToRemove,
@@ -162,6 +161,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       // Step 6.2
       // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that getupcBalance() = ETHtoTake.
       uint256 ETHtoAddtoLP = ((totalETH * allocationLP) / 100) - amountLpETH;
+      IStrategy(strategy).withdraw(ETHtoAddtoLP);
       uint256 lpPrice = amountLpUP / amountLpETH;
       uint256 UPtoAddtoLP = lpPrice * ETHtoAddtoLP;
       upController.borrowUP(UPtoAddtoLP, address(this));
