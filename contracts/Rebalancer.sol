@@ -109,14 +109,14 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     if (address(UP_CONTROLLER).balance > ETHtoTake)  {
       // If UP Controller balance is greater than 5%, the rebalancer withdraws from the UP Controller to deposit into the strategy
       uint256 amountToWithdraw = address(UP_CONTROLLER).balance - ETHtoTake;
-      // Needs a transfer from UP Controller to Strategy Here
+      UPController(UP_CONTROLLER).borrowNative(amountToWithdraw, address.this);
       IStrategy(strategy).deposit{value: amountToWithdraw}(amountToWithdraw);
     //Step 4.2 
     } else if (address(UP_CONTROLLER).balance < ETHtoTake) {
       // If UP Controller balance is less than 5%, the rebalancer withdraws from the strategy to deposit into the UP Controller
       uint256 amountToDeposit = ETHtoTake - address(UP_CONTROLLER).balance;
       IStrategy(strategy).withdraw(amountToDeposit);
-      // Needs a transfer from Strategy to UP Controller Here
+      UPController(UP_CONTROLLER).repay{value: amountToDeposit}(0);
     }
 
     // REBALANCE LP
