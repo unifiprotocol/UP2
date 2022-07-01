@@ -88,8 +88,8 @@ contract Darbi is Safe {
     path[0] = WETH;
     path[1] = address(UP_TOKEN);
 
-    uint256[] memory amounts = router.swapExactETHForTokens(
-      actualAmountIn,
+    uint256[] memory amounts = router.swapExactETHForTokens{value: actualAmountIn}(
+      0,
       path,
       address(this),
       block.timestamp + 150
