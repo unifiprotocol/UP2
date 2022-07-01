@@ -7,12 +7,13 @@ import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
 import "./UPMintDarbi.sol";
 
-contract Darbi is AccessControl, Safe {
+contract Darbi is AccessControl, Pausable, Safe {
   using SafeERC20 for IERC20;
 
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
@@ -54,7 +55,7 @@ contract Darbi is AccessControl, Safe {
 
   receive() external payable {}
 
-  function arbitrage() public onlyMonitor {
+  function arbitrage() public whenNotPaused onlyMonitor {
     (
       bool aToB,
       uint256 amountIn,
@@ -203,5 +204,15 @@ contract Darbi is AccessControl, Safe {
     returns (bool)
   {
     return _withdrawFundsERC20(target, tokenAddress);
+  }
+
+    /// @notice Permissioned function to pause UPaddress Controller
+  function pause() public onlyAdmin {
+    _pause();
+  }
+
+  /// @notice Permissioned function to unpause UPaddress Controller
+  function unpause() public onlyAdmin {
+    _unpause();
   }
 }
