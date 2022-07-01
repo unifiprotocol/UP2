@@ -108,8 +108,10 @@ contract Darbi is AccessControl, Safe {
 
     UP_TOKEN.approve(address(UP_CONTROLLER), amounts[1]);
     UP_CONTROLLER.redeem(amounts[1]);
-    /// TODO: Gas Refund HERE
-    uint256 diffBalances = address(this).balance - balances;
+
+    uint256 newBalances = address(this).balance;
+    if(newBalances < balances) return;
+    uint256 diffBalances = newBalances - balances;
     (bool success, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
     require(success, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
   }
@@ -135,7 +137,9 @@ contract Darbi is AccessControl, Safe {
     UP_TOKEN.approve(address(router), up2Balance);
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
 
-    uint256 diffBalances = balances - address(this).balance;
+    uint256 newBalances = address(this).balance;
+    if(newBalances < balances) return;
+    uint256 diffBalances = newBalances - balances;
     (bool success, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
     require(success, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
     // This Sells UP
