@@ -64,14 +64,17 @@ contract Darbi is AccessControl, Safe {
     ) = moveMarketBuyAmount();
     // Will Return 0 if MV = BV exactly, we are using <100 to add some slippage
     // TODO: Should the ArbitrageThreshold be reflective of the gas cost? In other words, the profit must be greater than the gas refund.
-    if (amountIn < arbitrageThreshold) return;
+
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
     uint256 balances = address(this).balance;
     // If Buying UP
     if (aToB) {
+      if (amountIn < arbitrageThreshold) return;
       _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
     } else {
+      uint256 amountInETHTerms = amountIn * backedValue / 1e18;
+      if (amountInETHTerms < arbitrageThreshold) return;
       _arbitrageSell(balances, amountIn, backedValue);
     }
   }
