@@ -4,27 +4,34 @@ pragma solidity ^0.8.4;
 
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
 import "./UPMintDarbi.sol";
 
-contract Darbi is Safe {
+contract Darbi is AccessControl, Safe {
   using SafeERC20 for IERC20;
+
+  bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
 
   address public factory;
   address public WETH;
   uint256 public arbitrageThreshold = 100000;
-  mapping(address => bool) public admins;
   IERC20 public UP_TOKEN;
   IUniswapV2Router02 public router;
   UPController public UP_CONTROLLER;
   UPMintDarbi public DARBI_MINTER;
 
   modifier onlyAdmin() {
-    require(admins[msg.sender], "ONLY_ADMINS");
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    _;
+  }
+
+  modifier onlyMonitor() {
+    require(hasRole(MONITOR_ROLE, msg.sender), "ONLY_MONITOR");
     _;
   }
 
@@ -41,12 +48,13 @@ contract Darbi is Safe {
     UP_CONTROLLER = UPController(payable(_UP_CONTROLLER));
     DARBI_MINTER = UPMintDarbi(payable(_darbiMinter));
     UP_TOKEN = IERC20(payable(UP_CONTROLLER.UP_TOKEN()));
-    admins[msg.sender] = true;
+    _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    _setupRole(MONITOR_ROLE, msg.sender);
   }
 
   receive() external payable {}
 
-  function arbitrage() public onlyAdmin {
+  function arbitrage() public onlyMonitor {
     (
       bool aToB,
       uint256 amountIn,
@@ -122,8 +130,8 @@ contract Darbi is Safe {
 
     uint256 up2Balance = UP_TOKEN.balanceOf(address(this));
     UP_TOKEN.approve(address(router), up2Balance);
-
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
+
     uint256 diffBalances = balances - address(this).balance;
     (bool success, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
     require(success, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
@@ -176,14 +184,6 @@ contract Darbi is Safe {
   function setDarbiMinter(address _newMinter) public onlyAdmin {
     require(_newMinter != address(0));
     DARBI_MINTER = UPMintDarbi(payable(_newMinter));
-  }
-
-  function addAdmin(address _newAdmin) public onlyAdmin {
-    admins[_newAdmin] = true;
-  }
-
-  function removeAdmin(address _admin) public onlyAdmin {
-    admins[_admin] = false;
   }
 
   function withdrawFunds(address target) public onlyAdmin returns (bool) {
