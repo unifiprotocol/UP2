@@ -7,19 +7,22 @@ import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "@uniswap/lib/contracts/libraries/Babylonian.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+import "@openzeppelin/contracts/security/Pausable.sol";
 import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
 import "./UPMintDarbi.sol";
 
-contract Darbi is AccessControl, Safe {
+contract Darbi is AccessControl, Pausable, Safe {
   using SafeERC20 for IERC20;
 
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
 
   address public factory;
   address public WETH;
+  address public gasRefundAddress;
   uint256 public arbitrageThreshold = 100000;
+  uint256 public gasRefund = 3500000000000000;
   IERC20 public UP_TOKEN;
   IUniswapV2Router02 public router;
   UPController public UP_CONTROLLER;
@@ -39,22 +42,28 @@ contract Darbi is AccessControl, Safe {
     address _factory,
     address _router,
     address _WETH,
+    address _gasRefundAddress,
     address _UP_CONTROLLER,
-    address _darbiMinter
+    address _darbiMinter,
+    uint256 _arbitrageThreshold,
+    uint256 _gasRefund
   ) {
     factory = _factory;
-    WETH = _WETH;
     router = IUniswapV2Router02(_router);
+    WETH = _WETH;
+    gasRefundAddress = _gasRefundAddress;
     UP_CONTROLLER = UPController(payable(_UP_CONTROLLER));
     DARBI_MINTER = UPMintDarbi(payable(_darbiMinter));
     UP_TOKEN = IERC20(payable(UP_CONTROLLER.UP_TOKEN()));
+    arbitrageThreshold = _arbitrageThreshold;
+    gasRefund = _gasRefund;
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(MONITOR_ROLE, msg.sender);
   }
 
   receive() external payable {}
 
-  function arbitrage() public onlyMonitor {
+  function arbitrage() public whenNotPaused onlyMonitor returns (uint256 diffBalances) {
     (
       bool aToB,
       uint256 amountIn,
@@ -110,10 +119,12 @@ contract Darbi is AccessControl, Safe {
     UP_CONTROLLER.redeem(amounts[1]);
 
     uint256 newBalances = address(this).balance;
-    if(newBalances < balances) return;
-    uint256 diffBalances = newBalances - balances;
-    (bool success, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
-    require(success, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
+    if((newBalances + gasRefund) < balances) return;
+    (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
+    require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
+    uint256 diffBalances = newBalances - balances - gasRefund;
+    (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
+    require(success2, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
   }
 
   function _arbitrageSell(
@@ -138,10 +149,12 @@ contract Darbi is AccessControl, Safe {
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
 
     uint256 newBalances = address(this).balance;
-    if(newBalances < balances) return;
-    uint256 diffBalances = newBalances - balances;
-    (bool success, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
-    require(success, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
+    if((newBalances + gasRefund) < balances) return;
+    (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
+    require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
+    uint256 diffBalances = newBalances - balances - gasRefund;
+    (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
+    require(success2, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
     // This Sells UP
   }
 
@@ -183,6 +196,16 @@ contract Darbi is AccessControl, Safe {
     arbitrageThreshold = _threshold;
   }
 
+  function setGasRefund(uint256 _gasRefund) public onlyAdmin {
+    require(_gasRefund > 0);
+    gasRefund = _gasRefund;
+  }
+
+  function setGasRefundAddress(address _gasRefundAddress) public onlyAdmin {
+    require(_gasRefundAddress != address(0));
+    gasRefundAddress = _gasRefundAddress;
+  }
+
   function setRouter(address _router) public onlyAdmin {
     require(_router != address(0));
     router = IUniswapV2Router02(_router);
@@ -203,5 +226,15 @@ contract Darbi is AccessControl, Safe {
     returns (bool)
   {
     return _withdrawFundsERC20(target, tokenAddress);
+  }
+
+    /// @notice Permissioned function to pause UPaddress Controller
+  function pause() public onlyAdmin {
+    _pause();
+  }
+
+  /// @notice Permissioned function to unpause UPaddress Controller
+  function unpause() public onlyAdmin {
+    _unpause();
   }
 }

@@ -180,35 +180,35 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
 
   ///@notice Permissioned function to update the address of the Aave Incentives Controller
   ///@param _aaveIncentivesController - the address of the new Aave Incentives Controller
-  function updateaaveIncentivesController(address _aaveIncentivesController) public onlyAdmin whenNotPaused {
+  function updateaaveIncentivesController(address _aaveIncentivesController) public onlyAdmin {
     require(_aaveIncentivesController != address(0), "INVALID_ADDRESS");
     aaveIncentivesController = _aaveIncentivesController;
   }
 
   ///@notice Permissioned function to update the address of the aavePool
   ///@param _aavePool - the address of the new aavePool
-  function updateaavePool(address _aavePool) public onlyAdmin whenNotPaused {
+  function updateaavePool(address _aavePool) public onlyAdmin {
     require(_aavePool != address(0), "INVALID_ADDRESS");
     aavePool = _aavePool;
   }
 
   ///@notice Permissioned function to update the address of the wethGateway
   ///@param _wethGateway - the address of the new wethGateway
-  function updatewethGateway(address _wethGateway) public onlyAdmin whenNotPaused {
+  function updatewethGateway(address _wethGateway) public onlyAdmin {
     require(_wethGateway != address(0), "INVALID_ADDRESS");
     wethGateway = _wethGateway;
   }
 
   ///@notice Permissioned function to update the address of the aaveDataProvider
   ///@param _aaveDataProvider - the address of the new aaveDataProvider
-  function updateaaveDataProvider(address _aaveDataProvider) public onlyAdmin whenNotPaused {
+  function updateaaveDataProvider(address _aaveDataProvider) public onlyAdmin{
     require(_aaveDataProvider != address(0), "INVALID_ADDRESS");
     aaveDataProvider = _aaveDataProvider;
   }
 
   ///@notice Permissioned function to update the address of the aaveDepositToken
   ///@param _aaveDepositToken - the address of the new aaveDepositToken
-  function updateaaveDepositToken(address _aaveDepositToken) public onlyAdmin whenNotPaused {
+  function updateaaveDepositToken(address _aaveDepositToken) public onlyAdmin {
     require(_aaveDepositToken != address(0), "INVALID_ADDRESS");
     aaveDepositToken = _aaveDepositToken;
   }
