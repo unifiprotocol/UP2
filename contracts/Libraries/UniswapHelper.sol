@@ -59,20 +59,17 @@ library UniswapHelper {
 
     uint256 invariant = reserveA.mul(reserveB);
 
-    // The trade ∆a of token a required to move the market to some desired price P' from the current price P can be
-    // found with ∆a=(kP')^1/2-Ra.
     uint256 leftSide = Babylonian.sqrt(
-      FullMath.mulDiv(
-        invariant,
-        aToB ? truePriceTokenA : truePriceTokenB,
-        aToB ? truePriceTokenB : truePriceTokenA
-      )
+        FullMath.mulDiv(
+            invariant.mul(1000),
+            aToB ? truePriceTokenA : truePriceTokenB,
+            (aToB ? truePriceTokenB : truePriceTokenA).mul(997)
+        )
     );
-    uint256 rightSide = (aToB ? reserveA : reserveB);
+    uint256 rightSide = (aToB ? reserveA.mul(1000) : reserveB.mul(1000)) / 997;
 
     if (leftSide < rightSide) return (false, 0);
 
-    // compute the amount that must be sent to move the price back to the true price.
     amountIn = leftSide.sub(rightSide);
   }
 
