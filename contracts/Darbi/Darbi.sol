@@ -63,7 +63,7 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   receive() external payable {}
 
-  function arbitrage() public whenNotPaused onlyMonitor returns (uint256 diffBalances) {
+  function arbitrage() public whenNotPaused onlyMonitor {
     (
       bool aToB,
       uint256 amountIn,
@@ -71,14 +71,12 @@ contract Darbi is AccessControl, Pausable, Safe {
       uint256 reserves1,
       uint256 backedValue
     ) = moveMarketBuyAmount();
-    // Will Return 0 if MV = BV exactly, we are using <100 to add some slippage
-    // TODO: Should the ArbitrageThreshold be reflective of the gas cost? In other words, the profit must be greater than the gas refund.
 
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
     uint256 balances = address(this).balance;
     // If Buying UP
-    if (aToB) {
+    if (!aToB) {
       if (amountIn < arbitrageThreshold) return;
       _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
     } else {
