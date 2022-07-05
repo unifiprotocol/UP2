@@ -35,6 +35,7 @@ typechain
 cache
 artifacts
 typechain-types
+dist
 
 # we use YARN
 package-lock.json
