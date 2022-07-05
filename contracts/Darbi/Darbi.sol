@@ -23,7 +23,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   address public gasRefundAddress;
   uint256 public arbitrageThreshold = 100000;
   uint256 public gasRefund = 3500000000000000;
-  uint256 public darbiDepositBalance = 0; 
+  uint256 public darbiDepositBalance = 0;
   IERC20 public UP_TOKEN;
   IUniswapV2Router02 public router;
   UPController public UP_CONTROLLER;
@@ -79,7 +79,7 @@ contract Darbi is AccessControl, Pausable, Safe {
       if (amountIn < arbitrageThreshold) return;
       _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
     } else {
-      uint256 amountInETHTerms = amountIn * backedValue / 1e18;
+      uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
       if (amountInETHTerms < arbitrageThreshold) return;
       _arbitrageSell(balances, amountIn, backedValue);
     }
@@ -116,7 +116,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_CONTROLLER.redeem(amounts[1]);
 
     uint256 newBalances = address(this).balance;
-    if((newBalances + gasRefund) < darbiDepositBalance) return;
+    if ((newBalances + gasRefund) < darbiDepositBalance) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
     uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
@@ -146,7 +146,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
 
     uint256 newBalances = address(this).balance;
-    if((newBalances + gasRefund) < darbiDepositBalance) return;
+    if ((newBalances + gasRefund) < darbiDepositBalance) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
     uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
@@ -158,7 +158,6 @@ contract Darbi is AccessControl, Pausable, Safe {
   function moveMarketBuyAmount()
     public
     view
-    onlyAdmin
     returns (
       bool aToB,
       uint256 amountIn,
@@ -181,7 +180,7 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   function addDarbiFunds() public payable {
     uint256 depositAmount = msg.value;
-    darbiDepositBalance += depositAmount; 
+    darbiDepositBalance += depositAmount;
   }
 
   function redeemUP() internal {
@@ -235,7 +234,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     return _withdrawFundsERC20(target, tokenAddress);
   }
 
-    /// @notice Permissioned function to pause UPaddress Controller
+  /// @notice Permissioned function to pause UPaddress Controller
   function pause() public onlyAdmin {
     _pause();
   }
