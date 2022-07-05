@@ -36,7 +36,6 @@ describe("Darbi", () => {
       ethers.constants.AddressZero,
       UP_CONTROLLER.address,
       ethers.constants.AddressZero,
-      MEANINGLESS_AMOUNT,
       MEANINGLESS_AMOUNT
     )
 
