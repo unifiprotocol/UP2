@@ -23,6 +23,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   address public gasRefundAddress;
   uint256 public arbitrageThreshold = 100000;
   uint256 public gasRefund = 3500000000000000;
+  uint256 public darbiDepositBalance = 0; 
   IERC20 public UP_TOKEN;
   IUniswapV2Router02 public router;
   UPController public UP_CONTROLLER;
@@ -117,10 +118,10 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_CONTROLLER.redeem(amounts[1]);
 
     uint256 newBalances = address(this).balance;
-    if((newBalances + gasRefund) < balances) return;
+    if((newBalances + gasRefund) < darbiDepositBalance) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
-    uint256 diffBalances = newBalances - balances - gasRefund;
+    uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
     (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
     require(success2, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
   }
@@ -147,10 +148,10 @@ contract Darbi is AccessControl, Pausable, Safe {
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
 
     uint256 newBalances = address(this).balance;
-    if((newBalances + gasRefund) < balances) return;
+    if((newBalances + gasRefund) < darbiDepositBalance) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
-    uint256 diffBalances = newBalances - balances - gasRefund;
+    uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
     (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
     require(success2, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
     // This Sells UP
@@ -180,6 +181,11 @@ contract Darbi is AccessControl, Pausable, Safe {
     return (aToB, amountIn, reserves0, reserves1, upPrice);
   }
 
+  function addDarbiFunds() public payable {
+    uint256 depositAmount = msg.value;
+    darbiDepositBalance += depositAmount; 
+  }
+
   function redeemUP() internal {
     UP_CONTROLLER.redeem(IERC20(UP_CONTROLLER.UP_TOKEN()).balanceOf(address(this)));
   }
@@ -187,6 +193,10 @@ contract Darbi is AccessControl, Pausable, Safe {
   function setFactory(address _factory) public onlyAdmin {
     require(_factory != address(0));
     factory = _factory;
+  }
+
+  function setDarbiFunds(uint256 setAmount) public onlyAdmin {
+    darbiDepositBalance == setAmount;
   }
 
   function setArbitrageThreshold(uint256 _threshold) public onlyAdmin {
@@ -215,6 +225,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   }
 
   function withdrawFunds(address target) public onlyAdmin returns (bool) {
+    darbiDepositBalance == 0;
     return _withdrawFunds(target);
   }
 
