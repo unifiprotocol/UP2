@@ -117,7 +117,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_CONTROLLER.redeem(amounts[1]);
 
     uint256 newBalances = address(this).balance;
-    if((newBalances + gasRefund) < balances) return;
+    if(gasRefund > newBalances || (newBalances + gasRefund) < balances) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
     uint256 diffBalances = newBalances - balances - gasRefund;
@@ -147,7 +147,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
 
     uint256 newBalances = address(this).balance;
-    if((newBalances + gasRefund) < balances) return;
+    if(gasRefund > newBalances || (newBalances + gasRefund) < balances) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
     uint256 diffBalances = newBalances - balances - gasRefund;

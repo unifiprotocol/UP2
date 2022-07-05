@@ -128,7 +128,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       UPaddress,
       WETH
     );
-    uint256 marketValue = reserves0 / reserves1; 
+    uint256 marketValue = (reserves0 * 1e18) / reserves1; 
     // Step 5.1
     if (
       backedValue > (marketValue * (1 + (slippageTolerance / 10000))) ||
