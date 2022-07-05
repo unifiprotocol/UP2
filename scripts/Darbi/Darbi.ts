@@ -18,10 +18,10 @@ task("DarbiDeploy", "Deploy Darbi contract")
         UniswapHelper: UniswapHelper[network]
       }
     })
-    const darbi = await DarbiContract.deploy(factory, router, weth, controller, darbiminter)
-    await darbi.deployed()
+    // const darbi = await DarbiContract.deploy(factory, router, weth, controller, darbiminter)
+    // await darbi.deployed()
 
-    console.log("Darbi -", darbi.address)
+    // console.log("Darbi -", darbi.address)
   })
 
 generateGetterSetter("Darbi", {

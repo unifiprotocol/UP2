@@ -14,7 +14,8 @@
     "ethers": "^5.6.4",
     "hardhat": "^2.9.3",
     "remixd": "^0.2.4",
-    "solidity-docgen": "^0.6.0-beta.10"
+    "solidity-docgen": "^0.6.0-beta.10",
+    "utrade-contracts": "git+https://github.com/unifiprotocol/utrade-contracts.git"
   },
   "scripts": {
     "test": "hardhat test",

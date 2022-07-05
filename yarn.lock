@@ -7876,6 +7876,10 @@ utils-merge@1.0.1:
   resolved "https://registry.npmjs.org/utils-merge/-/utils-merge-1.0.1.tgz"
   integrity sha1-n5VxD1CiZ5R7LMwSR0HBAoQn5xM=
 
+"utrade-contracts@git+https://github.com/unifiprotocol/utrade-contracts.git":
+  version "0.0.0"
+  resolved "git+https://github.com/unifiprotocol/utrade-contracts.git#3856470e8a08a14e26a86ba1cca64ce0c5c73044"
+
 uuid@3.3.2:
   version "3.3.2"
   resolved "https://registry.npmjs.org/uuid/-/uuid-3.3.2.tgz"
