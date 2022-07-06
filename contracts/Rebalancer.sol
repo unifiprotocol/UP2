@@ -182,6 +182,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   function checkLiquidityPoolBalance() public view returns (uint256, uint256) {
     IERC20 lp = IERC20(address(liquidityPool));
     uint256 lpBalance = lp.balanceOf(address(this));
+    if (lpBalance == 0) {
+      return (0, 0);
+    }
     (bool success, bytes memory result) = address(unifiRouter).staticcall(
       abi.encodeWithSignature(
         "removeLiquidityETH(address,uint,uint,uint,address,uint)",
@@ -190,13 +193,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         0,
         0,
         address(this),
-        block.timestamp + 20 minutes
+        block.timestamp + 150
       )
     );
-    if (!success) {
-      // No LP Balance
-      return (0, 0);
-    }
+    require(success);
     (uint256 amountLpUP, uint256 amountLpETH) = abi.decode(result, (uint256, uint256));
     return (amountLpUP, amountLpETH);
   }
