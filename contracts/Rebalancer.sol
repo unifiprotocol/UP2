@@ -17,7 +17,7 @@ import "./Darbi/Darbi.sol";
 contract Rebalancer is AccessControl, Pausable, Safe {
   using SafeERC20 for IERC20;
 
-  bytes32 public constant STAKING_ROLE = keccak256("STAKING_ROLE");
+  bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
 
   address public WETH = address(0);
   IStrategy public strategy;
@@ -33,8 +33,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   IUniswapV2Router02 public unifiRouter;
   IStrategy.Rewards[] public rewards;
 
-  modifier onlyStaking() {
-    require(hasRole(STAKING_ROLE, msg.sender), "ONLY_STAKING");
+  modifier onlyRebalance() {
+    require(hasRole(REBALANCE_ROLE, msg.sender), "ONLY_REBALANCE");
     _;
   }
 
@@ -76,7 +76,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     upcBalance = address(UP_CONTROLLER).balance;
   }
 
-  function rebalance() public whenNotPaused onlyAdmin {
+  function rebalance() public whenNotPaused onlyRebalance {
     // Step 1
     claimAndBurn();
 
