@@ -104,18 +104,17 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     //Take money from the strategy - 5% of the total of the strategy
     // Step 4
-    uint256 targetRedeeemAmount = (totalETH * allocationRedeem) / 100;
-    uint256 ETHtoTake = targetRedeeemAmount - getupcBalance();
+    uint256 targetRedeemAmount = (totalETH * allocationRedeem) / 100;
     //Step 4.1
-    if (address(UP_CONTROLLER).balance > targetRedeeemAmount) {
+    if (address(UP_CONTROLLER).balance > targetRedeemAmount) {
       // If UP Controller balance is greater than 5%, the rebalancer withdraws from the UP Controller to deposit into the strategy
-      uint256 amountToWithdraw = address(UP_CONTROLLER).balance - ETHtoTake;
+      uint256 amountToWithdraw = address(UP_CONTROLLER).balance - targetRedeemAmount;
       UP_CONTROLLER.borrowNative(amountToWithdraw, address(this));
       strategy.deposit{value: amountToWithdraw}(amountToWithdraw);
       //Step 4.2
-    } else if (address(UP_CONTROLLER).balance < targetRedeeemAmount) {
+    } else if (address(UP_CONTROLLER).balance < targetRedeemAmount) {
       // If UP Controller balance is less than 5%, the rebalancer withdraws from the strategy to deposit into the UP Controller
-      uint256 amountToDeposit = ETHtoTake - address(UP_CONTROLLER).balance;
+      uint256 amountToDeposit = targetRedeemAmount - address(UP_CONTROLLER).balance;
       strategy.withdraw(amountToDeposit);
       UP_CONTROLLER.repay{value: amountToDeposit}(0);
     }
