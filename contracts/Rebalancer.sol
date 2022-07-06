@@ -138,7 +138,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       return;
     }
 
-    uint256 ETHtoTakeLp = ((totalETH * allocationLP) / 100) - getupcBalance();
+    uint256 ETHtoTakeLp = (totalETH * allocationLP) / 100;
     // Step 6
     // Step 6.1
     if (amountLpETH > ETHtoTakeLp) {
