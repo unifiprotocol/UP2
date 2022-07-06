@@ -143,9 +143,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     if (amountLpETH > ETHtoTakeLp) {
       // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
       uint256 ETHtoTakeFromLP = amountLpETH - ((totalETH * allocationLP) / 100);
-      uint256 diff = amountLpETH / (ETHtoTakeFromLP * 100);
 
-      uint256 totalLpToRemove = lpBalance * (diff / 100);
+      uint256 totalLpToRemove = lpBalance * (amountLpETH / (ETHtoTakeFromLP * 100) / 100);
       address liquidityPoolAddress = address(liquidityPool);
       IERC20(liquidityPoolAddress).approve(address(unifiRouter), totalLpToRemove);
       (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
