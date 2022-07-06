@@ -209,10 +209,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     strategy = IStrategy(newAddress);
   }
 
-  function setUnifiRouter(address newAddress) public onlyAdmin {
-    unifiRouter = IUniswapV2Router02(newAddress);
-  }
-
   function setDarbi(address newAddress) public onlyAdmin {
     darbi = Darbi(payable(newAddress));
   }
