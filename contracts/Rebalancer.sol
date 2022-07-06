@@ -158,7 +158,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
       strategy.deposit{value: amountETH}(amountETH);
       UP_CONTROLLER.repay{value: 0}(amountToken);
-    } else if (amountLpETH < ETHtoTake) {
+    } else if (amountLpETH < LPtargetAmount) {
       // Step 6.2
       // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that getupcBalance() = ETHtoTake.
       uint256 ETHtoAddtoLP = ((totalETH * allocationLP) / 100) - amountLpETH;
