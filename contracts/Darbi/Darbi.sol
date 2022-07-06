@@ -199,7 +199,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   }
 
   function setDarbiFunds(uint256 setAmount) public onlyAdmin {
-    darbiDepositBalance == setAmount;
+    darbiDepositBalance = setAmount;
   }
 
   function setArbitrageThreshold(uint256 _threshold) public onlyAdmin {
