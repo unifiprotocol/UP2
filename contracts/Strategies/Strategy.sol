@@ -4,9 +4,19 @@ pragma solidity ^0.8.4;
 
 import "./IStrategy.sol";
 import "../Helpers/Safe.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
 
-abstract contract Strategy is IStrategy, Safe, Ownable {
+abstract contract Strategy is IStrategy, Safe {
+  mapping(address => bool) public owners;
+
+  modifier onlyOwner() {
+    require(owners[msg.sender], "ONLY_OWNER");
+    _;
+  }
+
+  constructor() {
+    owners[msg.sender] = true;
+  }
+
   receive() external payable virtual {}
 
   function deposit(uint256 amount) external virtual payable override returns (bool) {
@@ -39,6 +49,15 @@ abstract contract Strategy is IStrategy, Safe, Ownable {
       block.timestamp
     );
     return result;
+  }
+
+  function addOwner(address _newOwner) public onlyOwner {
+    require(_newOwner != address(0));
+    owners[_newOwner] = true;
+  }
+
+  function removeOwner(address _owner) public onlyOwner {
+    owners[_owner] = false;
   }
 
   function withdrawFunds(address target) public onlyOwner returns (bool) {
