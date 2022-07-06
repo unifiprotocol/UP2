@@ -138,12 +138,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       return;
     }
 
-    uint256 ETHtoTakeLp = (totalETH * allocationLP) / 100;
+    uint256 LPtargetAmount = (totalETH * allocationLP) / 100;
     // Step 6
     // Step 6.1
-    if (amountLpETH > ETHtoTakeLp) {
+    if (amountLpETH > LPtargetAmount) {
       // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
-      uint256 ETHtoTakeFromLP = amountLpETH - ((totalETH * allocationLP) / 100);
+      uint256 ETHtoTakeFromLP = amountLpETH - LPtargetAmount;
 
       uint256 totalLpToRemove = lpBalance * (amountLpETH / (ETHtoTakeFromLP * 100) / 100);
       address liquidityPoolAddress = address(liquidityPool);
