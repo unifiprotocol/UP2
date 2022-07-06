@@ -29,6 +29,8 @@ contract Darbi is AccessControl, Pausable, Safe {
   UPController public UP_CONTROLLER;
   UPMintDarbi public DARBI_MINTER;
 
+  event Arbitrage(bool isSellingUp, uint256 actualAmountIn);
+
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
     _;
@@ -112,6 +114,8 @@ contract Darbi is AccessControl, Pausable, Safe {
       block.timestamp + 150
     );
 
+    emit Arbitrage(false, actualAmountIn);
+
     UP_TOKEN.approve(address(UP_CONTROLLER), amounts[1]);
     UP_CONTROLLER.redeem(amounts[1]);
 
@@ -144,6 +148,8 @@ contract Darbi is AccessControl, Pausable, Safe {
     uint256 up2Balance = UP_TOKEN.balanceOf(address(this));
     UP_TOKEN.approve(address(router), up2Balance);
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
+
+    emit Arbitrage(true, up2Balance);
 
     uint256 newBalances = address(this).balance;
     if ((newBalances + gasRefund) < darbiDepositBalance) return;
