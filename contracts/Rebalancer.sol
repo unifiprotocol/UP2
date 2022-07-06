@@ -78,10 +78,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   function rebalance() public whenNotPaused onlyAdmin {
     // Step 1
-    claimAndBurn(); 
+    claimAndBurn();
 
     IERC20 lp = IERC20(address(liquidityPool));
-    uint256 lpBalance = lp.balanceOf(address(this)); //Put in Variable Defination
 
     // Store a snapshot of the rewards
     IStrategy.Rewards memory strategyRewards = strategy.checkRewards();
@@ -90,28 +89,30 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Gather the generated rewards by the strategy and send them to the UPController
     // Step 2
     strategy.gather();
-    (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: strategyRewards.rewardsAmount}(""); 
+    (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: strategyRewards.rewardsAmount}(
+      ""
+    );
     require(successUpcTransfer, "FAIL_SENDING_REWARDS_TO_UPC");
     // UPController balances after get rewards
 
     // Force Arbitrage
     // Step 3
-    darbi.arbitrage(); 
+    darbi.arbitrage();
 
     (uint256 amountLpUP, uint256 amountLpETH) = checkLiquidityPoolBalance();
     uint256 totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
 
     //Take money from the strategy - 5% of the total of the strategy
     // Step 4
-    uint256 targetRedeeemAmount = (totalETH * allocationRedeem) / 100; 
-    uint256 ETHtoTake = targetRedeeemAmount - getupcBalance(); 
+    uint256 targetRedeeemAmount = (totalETH * allocationRedeem) / 100;
+    uint256 ETHtoTake = targetRedeeemAmount - getupcBalance();
     //Step 4.1
-    if (address(UP_CONTROLLER).balance > targetRedeeemAmount)  {
+    if (address(UP_CONTROLLER).balance > targetRedeeemAmount) {
       // If UP Controller balance is greater than 5%, the rebalancer withdraws from the UP Controller to deposit into the strategy
       uint256 amountToWithdraw = address(UP_CONTROLLER).balance - ETHtoTake;
       UP_CONTROLLER.borrowNative(amountToWithdraw, address(this));
       strategy.deposit{value: amountToWithdraw}(amountToWithdraw);
-    //Step 4.2 
+      //Step 4.2
     } else if (address(UP_CONTROLLER).balance < targetRedeeemAmount) {
       // If UP Controller balance is less than 5%, the rebalancer withdraws from the strategy to deposit into the UP Controller
       uint256 amountToDeposit = ETHtoTake - address(UP_CONTROLLER).balance;
@@ -121,14 +122,14 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     // REBALANCE LP
     // Step 5
-    lpBalance = lp.balanceOf(address(this));
+    uint256 lpBalance = lp.balanceOf(address(this));
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
     (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
       unifiFactory,
       address(UPToken),
       WETH
     );
-    uint256 marketValue = (reserves0 * 1e18) / reserves1; 
+    uint256 marketValue = (reserves0 * 1e18) / reserves1;
     // Step 5.1
     if (
       backedValue > (marketValue * (1 + (slippageTolerance / 10000))) ||
