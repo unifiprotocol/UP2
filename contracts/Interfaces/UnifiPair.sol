@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.4;
 
-interface IUnifiPair {
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+interface IUnifiPair is IERC20 {
   function claimUP(address to) external returns (uint256 upReceived);
 }

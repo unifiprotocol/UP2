@@ -5,7 +5,6 @@ pragma solidity ^0.8.4;
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "./Libraries/UniswapHelper.sol";
 import "./Interfaces/UnifiPair.sol";
 import "./UPController.sol";
@@ -15,8 +14,6 @@ import "./Helpers/Safe.sol";
 import "./Darbi/Darbi.sol";
 
 contract Rebalancer is AccessControl, Pausable, Safe {
-  using SafeERC20 for IERC20;
-
   bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
 
   address public WETH = address(0);
@@ -67,9 +64,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   receive() external payable {}
 
   function claimAndBurn() internal {
-    uint256 claimedUP = liquidityPool.claimUP(address(this));
-    UPToken.approve(address(UPToken), claimedUP);
-    UPToken.justBurn(claimedUP);
+    liquidityPool.claimUP(address(this));
+    UPToken.justBurn(UPToken.balanceOf(address(this)));
   }
 
   function getupcBalance() internal view returns (uint256 upcBalance) {
@@ -79,8 +75,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   function rebalance() public whenNotPaused onlyRebalance {
     // Step 1
     claimAndBurn();
-
-    IERC20 lp = IERC20(address(liquidityPool));
 
     // Store a snapshot of the rewards
     IStrategy.Rewards memory strategyRewards = strategy.checkRewards();
@@ -121,7 +115,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     // REBALANCE LP
     // Step 5
-    uint256 lpBalance = lp.balanceOf(address(this));
+    uint256 lpBalance = liquidityPool.balanceOf(address(this));
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
     (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
       unifiFactory,
@@ -145,10 +139,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       uint256 ETHtoTakeFromLP = amountLpETH - LPtargetAmount;
 
       uint256 totalLpToRemove = lpBalance * (amountLpETH / (ETHtoTakeFromLP * 100) / 100);
-      address liquidityPoolAddress = address(liquidityPool);
-      IERC20(liquidityPoolAddress).approve(address(unifiRouter), totalLpToRemove);
+      liquidityPool.approve(address(unifiRouter), totalLpToRemove);
       (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
-        liquidityPoolAddress,
+        address(liquidityPool),
         totalLpToRemove,
         0,
         0,
@@ -179,8 +172,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function checkLiquidityPoolBalance() public view returns (uint256, uint256) {
-    IERC20 lp = IERC20(address(liquidityPool));
-    uint256 lpBalance = lp.balanceOf(address(this));
+    uint256 lpBalance = liquidityPool.balanceOf(address(this));
     if (lpBalance == 0) {
       return (0, 0);
     }
