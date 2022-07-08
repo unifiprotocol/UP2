@@ -53,7 +53,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     WETH = _WETH;
     setUPController(_UPController);
-    setStrategy(_Strategy);
+    strategy=IStrategy(_Strategy);
     UPToken = UP(payable(_UPAddress));
     unifiRouter = IUniswapV2Router02(_unifiRouter);
     unifiFactory = _unifiFactory;
@@ -73,6 +73,14 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function rebalance() public whenNotPaused onlyRebalance {
+    if (address(strategy) != address(0)) {
+      _rebalanceWithStrategy();
+    } else {
+      _rebalanceWithoutStrategy();
+    }
+  }
+
+  function _rebalanceWithStrategy() public whenNotPaused onlyRebalance {
     // Step 1
     claimAndBurn();
 
@@ -138,7 +146,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
       uint256 ETHtoTakeFromLP = amountLpETH - LPtargetAmount;
 
-      uint256 totalLpToRemove = lpBalance * (amountLpETH / (ETHtoTakeFromLP * 100) / 100);
+      uint256 totalLpToRemove = lpBalance * (ETHtoTakeFromLP / (amountLpETH * 100) / 100);
       liquidityPool.approve(address(unifiRouter), totalLpToRemove);
       (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
         address(liquidityPool),
@@ -171,6 +179,69 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     }
   }
 
+  function _rebalanceWithoutStrategy() internal {
+    // Run arbitrage
+    darbi.arbitrage();
+
+    (uint256 upLpBalance, uint256 ethLpBalance) = checkLiquidityPoolBalance();
+    uint256 totalETH = ethLpBalance + getupcBalance();
+    (uint256 reservesUP, uint256 reservesETH) = UniswapHelper.getReserves(
+      unifiFactory,
+      address(UPToken),
+      WETH
+    );
+    
+    uint256 redeemTargetAmount = (totalETH * allocationRedeem) / 100;
+    uint256 actualRedeemAmount = address(UP_CONTROLLER).balance;
+
+    if (redeemTargetAmount > actualRedeemAmount) {
+      // We get the needed amount of LP token that we need to sell in order to get enough
+      // ETH in this contract to rebalance to the redeem target amount. 
+      uint256 amountToBeWithdrawnFromLp = redeemTargetAmount - actualRedeemAmount;
+      uint256 totalLpToRemove = (liquidityPool.totalSupply() * amountToBeWithdrawnFromLp) / ethLpBalance;
+
+      liquidityPool.approve(address(unifiRouter), totalLpToRemove);
+      (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
+        address(liquidityPool),
+        totalLpToRemove,
+        0,
+        0,
+        address(this),
+        block.timestamp + 20 minutes
+      );
+      
+      UP_CONTROLLER.repay{value: amountETH}(amountToken);
+      
+    } else if (redeemTargetAmount < actualRedeemAmount) {
+      uint256 amountToWithdrawFromRedeem = actualRedeemAmount - redeemTargetAmount;
+      UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
+    }
+
+    uint256 amountToDepositIntoLP = address(this).balance;
+
+    if (amountToDepositIntoLP == 0) return;
+
+    uint256 lpPrice = (reservesUP * 1e18) / reservesETH;
+    uint256 UPtoAddtoLP = (lpPrice * amountToDepositIntoLP) / 1e18;
+
+    UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
+
+    UPToken.approve(address(unifiRouter), UPtoAddtoLP);
+    unifiRouter.addLiquidityETH{value: amountToDepositIntoLP}(
+      address(liquidityPool),
+      UPtoAddtoLP,
+      0,
+      0,
+      address(this),
+      block.timestamp + 20 minutes
+    );
+   
+  }
+
+  function setStrategy(address newAddress) public onlyAdmin {
+    strategy = IStrategy(newAddress);
+  }
+
   function checkLiquidityPoolBalance() public view returns (uint256, uint256) {
     uint256 lpBalance = liquidityPool.balanceOf(address(this));
     if (lpBalance == 0) {
@@ -194,10 +265,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   function setUPController(address newAddress) public onlyAdmin {
     UP_CONTROLLER = UPController(payable(newAddress));
-  }
-
-  function setStrategy(address newAddress) public onlyAdmin {
-    strategy = IStrategy(newAddress);
   }
 
   function setDarbi(address newAddress) public onlyAdmin {
