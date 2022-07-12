@@ -244,14 +244,18 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     strategy = IStrategy(newAddress);
   }
 
-  function getLiquidityPoolBalance(uint256 reserves0, uint256 reserves1) public view returns (uint256, uint256) {
+  function getLiquidityPoolBalance(uint256 reserves0, uint256 reserves1)
+    public
+    view
+    returns (uint256, uint256)
+  {
     uint256 lpBalance = liquidityPool.balanceOf(address(this));
     if (lpBalance == 0) {
       return (0, 0);
     }
     uint256 totalSupply = liquidityPool.totalSupply();
-    uint256 amount0 = lpBalance * reserves0 / totalSupply;
-    uint256 amount1 = lpBalance * reserves1 / totalSupply;
+    uint256 amount0 = (lpBalance * reserves0) / totalSupply;
+    uint256 amount1 = (lpBalance * reserves1) / totalSupply;
     return (amount0, amount1);
   }
 
