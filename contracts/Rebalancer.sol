@@ -53,7 +53,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     WETH = _WETH;
     setUPController(_UPController);
-    strategy=IStrategy(_Strategy);
+    strategy = IStrategy(_Strategy);
     UPToken = UP(payable(_UPAddress));
     unifiRouter = IUniswapV2Router02(_unifiRouter);
     unifiFactory = _unifiFactory;
@@ -101,7 +101,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Step 3
     darbi.arbitrage();
 
-    (uint256 amountLpUP, uint256 amountLpETH) = checkLiquidityPoolBalance();
+    (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
+      unifiFactory,
+      address(UPToken),
+      WETH
+    );
+    (uint256 amountLpUP, uint256 amountLpETH) = getLiquidityPoolBalance(reserves0, reserves1);
     uint256 totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
 
     //Take money from the strategy - 5% of the total of the strategy
@@ -125,11 +130,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Step 5
     uint256 lpBalance = liquidityPool.balanceOf(address(this));
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
-    (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
-      unifiFactory,
-      address(UPToken),
-      WETH
-    );
     uint256 marketValue = (reserves0 * 1e18) / reserves1;
     // Step 5.1
     if (
@@ -149,15 +149,16 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       uint256 totalLpToRemove = lpBalance * (ETHtoTakeFromLP / (amountLpETH * 100) / 100);
       liquidityPool.approve(address(unifiRouter), totalLpToRemove);
       (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
-        address(liquidityPool),
+        address(UPToken),
         totalLpToRemove,
         0,
         0,
         address(this),
-        block.timestamp + 20 minutes
+        block.timestamp + 150
       );
 
       strategy.deposit{value: amountETH}(amountETH);
+      UPToken.approve(address(UP_CONTROLLER), amountToken);
       UP_CONTROLLER.repay{value: 0}(amountToken);
     } else if (amountLpETH < LPtargetAmount) {
       // Step 6.2
@@ -169,98 +170,89 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
       UPToken.approve(address(unifiRouter), UPtoAddtoLP);
       unifiRouter.addLiquidityETH{value: ETHtoAddtoLP}(
-        address(liquidityPool),
+        address(UPToken),
         UPtoAddtoLP,
         0,
         0,
         address(this),
-        block.timestamp + 20 minutes
+        block.timestamp + 150
       );
     }
   }
 
   function _rebalanceWithoutStrategy() internal {
+    claimAndBurn();
+
     // Run arbitrage
     darbi.arbitrage();
 
-    (uint256 upLpBalance, uint256 ethLpBalance) = checkLiquidityPoolBalance();
-    uint256 totalETH = ethLpBalance + getupcBalance();
     (uint256 reservesUP, uint256 reservesETH) = UniswapHelper.getReserves(
       unifiFactory,
       address(UPToken),
       WETH
     );
-    
+    (, uint256 ethLpBalance) = getLiquidityPoolBalance(reservesUP, reservesETH);
+    uint256 totalETH = ethLpBalance + getupcBalance();
+
     uint256 redeemTargetAmount = (totalETH * allocationRedeem) / 100;
     uint256 actualRedeemAmount = address(UP_CONTROLLER).balance;
 
     if (redeemTargetAmount > actualRedeemAmount) {
       // We get the needed amount of LP token that we need to sell in order to get enough
-      // ETH in this contract to rebalance to the redeem target amount. 
+      // ETH in this contract to rebalance to the redeem target amount.
       uint256 amountToBeWithdrawnFromLp = redeemTargetAmount - actualRedeemAmount;
-      uint256 totalLpToRemove = (liquidityPool.totalSupply() * amountToBeWithdrawnFromLp) / ethLpBalance;
+      uint256 totalLpToRemove = (liquidityPool.totalSupply() * amountToBeWithdrawnFromLp) /
+        ethLpBalance;
 
       liquidityPool.approve(address(unifiRouter), totalLpToRemove);
       (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
-        address(liquidityPool),
+        address(UPToken),
         totalLpToRemove,
         0,
         0,
         address(this),
-        block.timestamp + 20 minutes
+        block.timestamp + 150
       );
-      
+      UPToken.approve(address(UP_CONTROLLER), amountToken);
       UP_CONTROLLER.repay{value: amountETH}(amountToken);
-      
     } else if (redeemTargetAmount < actualRedeemAmount) {
       uint256 amountToWithdrawFromRedeem = actualRedeemAmount - redeemTargetAmount;
       UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
     }
 
-    uint256 amountToDepositIntoLP = address(this).balance;
+    uint256 ETHAmountToDeposit = address(this).balance;
 
-    if (amountToDepositIntoLP == 0) return;
+    if (ETHAmountToDeposit == 0) return;
 
     uint256 lpPrice = (reservesUP * 1e18) / reservesETH;
-    uint256 UPtoAddtoLP = (lpPrice * amountToDepositIntoLP) / 1e18;
+    uint256 UPtoAddtoLP = (lpPrice * ETHAmountToDeposit) / 1e18;
 
     UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
 
     UPToken.approve(address(unifiRouter), UPtoAddtoLP);
-    unifiRouter.addLiquidityETH{value: amountToDepositIntoLP}(
-      address(liquidityPool),
+    unifiRouter.addLiquidityETH{value: ETHAmountToDeposit}(
+      address(UPToken),
       UPtoAddtoLP,
       0,
       0,
       address(this),
-      block.timestamp + 20 minutes
+      block.timestamp + 150
     );
-   
   }
 
   function setStrategy(address newAddress) public onlyAdmin {
     strategy = IStrategy(newAddress);
   }
 
-  function checkLiquidityPoolBalance() public view returns (uint256, uint256) {
+  function getLiquidityPoolBalance(uint256 reserves0, uint256 reserves1) public view returns (uint256, uint256) {
     uint256 lpBalance = liquidityPool.balanceOf(address(this));
     if (lpBalance == 0) {
       return (0, 0);
     }
-    (bool success, bytes memory result) = address(unifiRouter).staticcall(
-      abi.encodeWithSignature(
-        "removeLiquidityETH(address,uint,uint,uint,address,uint)",
-        address(liquidityPool),
-        lpBalance,
-        0,
-        0,
-        address(this),
-        block.timestamp + 150
-      )
-    );
-    require(success);
-    (uint256 amountLpUP, uint256 amountLpETH) = abi.decode(result, (uint256, uint256));
-    return (amountLpUP, amountLpETH);
+    uint256 totalSupply = liquidityPool.totalSupply();
+    uint256 amount0 = lpBalance * reserves0 / totalSupply;
+    uint256 amount1 = lpBalance * reserves1 / totalSupply;
+    return (amount0, amount1);
   }
 
   function setUPController(address newAddress) public onlyAdmin {
