@@ -20,7 +20,7 @@ import "./scripts/"
 export default {
   // solidity: "0.8.4",
   solidity: {
-    compilers: [{ version: "0.8.4" }, { version: "0.6.6" }]
+    compilers: [{ version: "0.8.4" }]
   },
   docgen: {
     pages: "files"
@@ -43,6 +43,17 @@ export default {
       chainId: 97,
       url: "https://data-seed-prebsc-2-s1.binance.org:8545/",
       accounts: bsctestnetpk ? [bsctestnetpk] : []
+    }
+  },
+  etherscan: {
+    apiKey: {
+      mainnet: "RX5F9AXT5BSG696ZUYC4IVENDAGGPSQ9I1",
+      ropsten: "6329MS2FHP9NCKF6DKPDMR5RIE3HYCYGW1",
+      bscTestnet: "BC9318STPGVMNCWWBSKTUTZ5CTVK8DDD1B",
+      bsc: "2N8MMDJJRIE9661UDSJXICDHEN5N4I4ZD1",
+      polygon: "C8YFTAEB68WSSEQVKZQENPY98DH7VKCGYV",
+      avalanche: "Q7HS4I9BHTUU761CVGUFK79SY5NBYVNCTN",
+      opera: "71ZCRD5TYV9SPK8XTSPYAMI7XTUQWIC1V2"
     }
   }
 }
