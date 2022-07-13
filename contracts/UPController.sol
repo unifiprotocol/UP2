@@ -101,7 +101,7 @@ contract UPController is AccessControl, Safe, Pausable {
   function repay(uint256 upAmount) public payable onlyRebalancer whenNotPaused {
     require(upAmount <= upBorrowed, "UP_AMOUNT_GT_BORROWED");
     require(msg.value <= nativeBorrowed, "NATIVE_AMOUNT_GT_BORROWED");
-    UP(UP_TOKEN).transferFrom(msg.sender, address(this), upAmount);
+    UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
     upBorrowed -= upAmount;
     nativeBorrowed -= msg.value;
     emit Repay(msg.value, upAmount);
