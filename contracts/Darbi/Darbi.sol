@@ -193,9 +193,9 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_CONTROLLER.redeem(IERC20(UP_CONTROLLER.UP_TOKEN()).balanceOf(address(this)));
   }
 
-  function setFactory(address _factory) public onlyAdmin {
-    require(_factory != address(0));
-    factory = _factory;
+  function setController(address _controller) public onlyAdmin {
+    require(_controller != address(0));
+    UP_CONTROLLER = UPController(payable(_controller));
   }
 
   function setDarbiFunds(uint256 setAmount) public onlyAdmin {
@@ -215,11 +215,6 @@ contract Darbi is AccessControl, Pausable, Safe {
   function setGasRefundAddress(address _gasRefundAddress) public onlyAdmin {
     require(_gasRefundAddress != address(0));
     gasRefundAddress = _gasRefundAddress;
-  }
-
-  function setRouter(address _router) public onlyAdmin {
-    require(_router != address(0));
-    router = IUniswapV2Router02(_router);
   }
 
   function setDarbiMinter(address _newMinter) public onlyAdmin {
