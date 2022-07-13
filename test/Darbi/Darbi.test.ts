@@ -49,6 +49,12 @@ describe("Darbi", () => {
     it("setDarbiMinter should fail due to invalid address (zero)", async () => {
       await expect(darbiContract.setDarbiMinter(ethers.constants.AddressZero)).to.be.reverted
     })
+    it("setController should fail due to unpermissioned account", async () => {
+      await expect(unpermissionedDarbiContract.setController(MEANINGLESS_ADDRESS)).to.be.reverted
+    })
+    it("setController should fail due to invalid address (zero)", async () => {
+      await expect(darbiContract.setController(ethers.constants.AddressZero)).to.be.reverted
+    })
     it("setDarbiMinter should change darbi minter contract address", async () => {
       await darbiContract.setDarbiMinter(MEANINGLESS_ADDRESS)
       expect(await darbiContract.DARBI_MINTER()).equal(
