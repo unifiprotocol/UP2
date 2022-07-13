@@ -99,7 +99,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     // Force Arbitrage
     // Step 3
-    darbi.arbitrage();
+    darbi.forceArbitrage();
 
     (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
       unifiFactory,
@@ -184,7 +184,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     claimAndBurn();
 
     // Run arbitrage
-    darbi.arbitrage();
+    darbi.forceArbitrage();
 
     (uint256 reservesUP, uint256 reservesETH) = UniswapHelper.getReserves(
       unifiFactory,

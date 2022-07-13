@@ -17,6 +17,8 @@ contract Darbi is AccessControl, Pausable, Safe {
   using SafeERC20 for IERC20;
 
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
+  bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
+
 
   address public factory;
   address public WETH;
@@ -41,6 +43,11 @@ contract Darbi is AccessControl, Pausable, Safe {
     _;
   }
 
+  modifier onlyRebalancer() {
+    require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
+    _;
+  }
+
   constructor(
     address _factory,
     address _router,
@@ -60,6 +67,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     arbitrageThreshold = _arbitrageThreshold;
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(MONITOR_ROLE, msg.sender);
+    _setupRole(REBALANCER_ROLE, msg.sender);
   }
 
   receive() external payable {}
@@ -83,6 +91,26 @@ contract Darbi is AccessControl, Pausable, Safe {
     } else {
       uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
       require(amountInETHTerms > arbitrageThreshold, "ARBITRAGE_THRESHOLD");
+      _arbitrageSell(balances, amountIn, backedValue);
+    }
+  }
+
+  function forceArbitrage() public whenNotPaused onlyRebalancer {
+    (
+      bool aToB,
+      uint256 amountIn,
+      uint256 reserves0,
+      uint256 reserves1,
+      uint256 backedValue
+    ) = moveMarketBuyAmount();
+
+    // aToB == true == Buys UP
+    // aToB == fals == Sells UP
+    uint256 balances = address(this).balance;
+    // If Buying UP
+    if (!aToB) {
+      _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
+    } else {
       _arbitrageSell(balances, amountIn, backedValue);
     }
   }
