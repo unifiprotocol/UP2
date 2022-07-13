@@ -78,11 +78,11 @@ contract Darbi is AccessControl, Pausable, Safe {
     uint256 balances = address(this).balance;
     // If Buying UP
     if (!aToB) {
-      if (amountIn < arbitrageThreshold) return;
+      require(amountIn > arbitrageThreshold, "ARBITRAGE_THRESHOLD");
       _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
     } else {
       uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
-      if (amountInETHTerms < arbitrageThreshold) return;
+      require(amountInETHTerms > arbitrageThreshold, "ARBITRAGE_THRESHOLD");
       _arbitrageSell(balances, amountIn, backedValue);
     }
   }
