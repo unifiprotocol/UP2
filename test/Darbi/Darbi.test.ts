@@ -43,32 +43,6 @@ describe("Darbi", () => {
   })
 
   describe("getters and setters", async () => {
-    it("setFactory should fail due to unpermissioned account", async () => {
-      await expect(unpermissionedDarbiContract.setFactory(MEANINGLESS_ADDRESS)).to.be.reverted
-    })
-    it("setFactory should fail due to invalid address (zero)", async () => {
-      await expect(darbiContract.setFactory(ethers.constants.AddressZero)).to.be.reverted
-    })
-    it("setFactory should change factory contract address", async () => {
-      await darbiContract.setFactory(MEANINGLESS_ADDRESS)
-      expect(await darbiContract.factory()).equal(
-        MEANINGLESS_ADDRESS,
-        "Factory address should have been changed"
-      )
-    })
-    it("setRouter should fail due to unpermissioned account", async () => {
-      await expect(unpermissionedDarbiContract.setRouter(MEANINGLESS_ADDRESS)).to.be.reverted
-    })
-    it("setRouter should fail due to invalid address (zero)", async () => {
-      await expect(darbiContract.setRouter(ethers.constants.AddressZero)).to.be.reverted
-    })
-    it("setRouter should change router contract address", async () => {
-      await darbiContract.setRouter(MEANINGLESS_ADDRESS)
-      expect(await darbiContract.router()).equal(
-        MEANINGLESS_ADDRESS,
-        "Router address should have been changed"
-      )
-    })
     it("setDarbiMinter should fail due to unpermissioned account", async () => {
       await expect(unpermissionedDarbiContract.setDarbiMinter(MEANINGLESS_ADDRESS)).to.be.reverted
     })

@@ -52,24 +52,6 @@ describe("Rebalancer", function () {
         "ONLY_ADMIN"
       )
     })
-    it("setUnifiRouter should change unifi router", async () => {
-      await rebalancer.setUnifiRouter(rebalancer.address)
-      expect(await rebalancer.unifiRouter()).equals(rebalancer.address)
-    })
-    it("setUnifiRouter should fail from an unpermissioned account", async () => {
-      await expect(unpermissionedRebalancer.setUnifiRouter(rebalancer.address)).to.revertedWith(
-        "ONLY_ADMIN"
-      )
-    })
-    it("setUnifiRouter should change unifi router", async () => {
-      await rebalancer.setUnifiRouter(rebalancer.address)
-      expect(await rebalancer.unifiRouter()).equals(rebalancer.address)
-    })
-    it("setUnifiRouter should fail from an unpermissioned account", async () => {
-      await expect(unpermissionedRebalancer.setUnifiRouter(rebalancer.address)).to.revertedWith(
-        "ONLY_ADMIN"
-      )
-    })
     it("setAllocationLP should change allocationLp", async () => {
       await rebalancer.setAllocationLP(5)
       expect(await rebalancer.allocationLP()).equals(5)

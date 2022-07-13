@@ -2,6 +2,7 @@ import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import { UP, UPController, UPMintDarbi } from "../../typechain-types"
 import { expect } from "chai"
 import { ethers } from "hardhat"
+import { BigNumber } from "ethers"
 
 describe("UPMintDarbi", () => {
   let upToken: UP
@@ -67,6 +68,8 @@ describe("UPMintDarbi", () => {
   })
 
   describe("MintUP", () => {
+    let virtualPrice: BigNumber
+
     beforeEach(async () => {
       await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
       await addr1.sendTransaction({
@@ -74,42 +77,34 @@ describe("UPMintDarbi", () => {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upController.address, ethers.utils.parseEther("2"))
+      virtualPrice = await upController["getVirtualPrice()"]()
     })
 
     it("Should mint UP #0", async () => {
-      await expect(upMintDarbi.mintUP({ value: ethers.utils.parseEther("1") }))
+      const sendValue = ethers.utils.parseEther("1")
+      const expectedMint = sendValue.mul(ethers.utils.parseEther("1")).div(virtualPrice)
+      await expect(upMintDarbi.mintUP({ value: sendValue }))
         .emit(upMintDarbi, "DarbiMint")
-        .withArgs(
-          addr1.address,
-          ethers.utils.parseEther("2.5"),
-          ethers.utils.parseEther("2.5"),
-          ethers.utils.parseEther("1")
-        )
-      expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("2.5"))
+        .withArgs(addr1.address, expectedMint, virtualPrice, sendValue)
+      expect(await upToken.balanceOf(addr1.address)).equal(expectedMint)
     })
 
     it("Should mint UP #1", async () => {
-      await expect(upMintDarbi.mintUP({ value: ethers.utils.parseEther("2") }))
+      const sendValue = ethers.utils.parseEther("2")
+      const expectedMint = sendValue.mul(ethers.utils.parseEther("1")).div(virtualPrice)
+      await expect(upMintDarbi.mintUP({ value: sendValue }))
         .emit(upMintDarbi, "DarbiMint")
-        .withArgs(
-          addr1.address,
-          ethers.utils.parseEther("5"),
-          ethers.utils.parseEther("2.5"),
-          ethers.utils.parseEther("2")
-        )
-      expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("5"))
+        .withArgs(addr1.address, expectedMint, virtualPrice, sendValue)
+      expect(await upToken.balanceOf(addr1.address)).equal(expectedMint)
     })
 
     it("Should mint UP #2", async () => {
-      await expect(upMintDarbi.mintUP({ value: ethers.utils.parseEther("3") }))
+      const sendValue = ethers.utils.parseEther("3")
+      const expectedMint = sendValue.mul(ethers.utils.parseEther("1")).div(virtualPrice)
+      await expect(upMintDarbi.mintUP({ value: sendValue }))
         .emit(upMintDarbi, "DarbiMint")
-        .withArgs(
-          addr1.address,
-          ethers.utils.parseEther("7.5"),
-          ethers.utils.parseEther("2.5"),
-          ethers.utils.parseEther("3")
-        )
-      expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("7.5"))
+        .withArgs(addr1.address, expectedMint, virtualPrice, sendValue)
+      expect(await upToken.balanceOf(addr1.address)).equal(expectedMint)
     })
 
     it("Shouldn't be able to mint UP because no DARBI_ROLE", async () => {
