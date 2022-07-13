@@ -46,7 +46,7 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     require(currentPrice > 0, "UP_PRICE_0");
     uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
-    uint256 mintAmount = (discountedAmount * currentPrice) / 1e18;
+    uint256 mintAmount = (discountedAmount * 1e18) / currentPrice;
     UP(UP_TOKEN).mint(to, mintAmount);
     (bool successTransfer, ) = address(UP_CONTROLLER).call{value: msg.value}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");

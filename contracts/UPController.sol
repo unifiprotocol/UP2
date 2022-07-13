@@ -93,7 +93,7 @@ contract UPController is AccessControl, Safe, Pausable {
   /// @notice Mints UP based on virtual price - UPv1 logic
   function mintUP(address to) external payable whenNotPaused {
     require(msg.sender == UP_TOKEN, "NON_UP_CONTRACT");
-    uint256 mintAmount = (msg.value * getVirtualPrice(msg.value)) / 1e18;
+    uint256 mintAmount = (msg.value * 1e18) / getVirtualPrice(msg.value);
     UP(UP_TOKEN).mint(to, mintAmount);
   }
 
