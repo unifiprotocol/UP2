@@ -169,11 +169,13 @@ describe("UPv2", function () {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upController.address, ethers.utils.parseEther("2"))
-
+      const sendValue = ethers.utils.parseEther("5")
+      const virtualPrice = ethers.utils.parseEther("2.5")
+      const expectedMint = sendValue.mul(ethers.utils.parseEther("1")).div(virtualPrice)
       await upToken.grantRole(await upToken.LEGACY_MINT_ROLE(), addr1.address)
       await upToken.setController(upController.address)
-      await upToken.mint(addr1.address, 0, { value: ethers.utils.parseEther("5") })
-      expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("12.5"))
+      await upToken.mint(addr1.address, 0, { value: sendValue })
+      expect(await upToken.balanceOf(addr1.address)).equal(expectedMint)
     })
 
     it("Should mint based in virtualPrice #1", async () => {
@@ -182,11 +184,13 @@ describe("UPv2", function () {
         value: ethers.utils.parseEther("5")
       })
       await upToken.mint(upController.address, ethers.utils.parseEther("4"))
-
+      const sendValue = ethers.utils.parseEther("5")
+      const virtualPrice = ethers.utils.parseEther("1.25")
+      const expectedMint = sendValue.mul(ethers.utils.parseEther("1")).div(virtualPrice)
       await upToken.grantRole(await upToken.LEGACY_MINT_ROLE(), addr1.address)
       await upToken.setController(upController.address)
-      await upToken.mint(addr1.address, 0, { value: ethers.utils.parseEther("5") })
-      expect(await upToken.balanceOf(addr1.address)).equal(ethers.utils.parseEther("6.25"))
+      await upToken.mint(addr1.address, 0, { value: sendValue })
+      expect(await upToken.balanceOf(addr1.address)).equal(expectedMint)
     })
 
     it("Should forward native balances to UP_CONTROLLER", async () => {
