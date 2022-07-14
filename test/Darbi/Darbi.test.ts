@@ -154,13 +154,13 @@ describe("Darbi", async () => {
       )
     })
 
-    it("Should return amountIn zero because is the pool is aligned", async () => {
+    it("Should return amountIn zero because the pool is aligned", async () => {
       const { aToB, amountIn } = await darbiContract.moveMarketBuyAmount()
       expect(aToB).equals(false)
       expect(amountIn).equals(0)
     })
 
-    it("Should return an amountIn enough for align the price of the LP <1% increasing the UP circulation supply", async () => {
+    it("Should return an amountIn enough for aligning the price of the LP <1% increasing the UP circulation supply", async () => {
       await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("1"))
       const virtualPrice = await UP_CONTROLLER["getVirtualPrice()"]().then((res) =>
         BN(res.toHexString())
@@ -187,7 +187,7 @@ describe("Darbi", async () => {
       expect(diffPercentage).lessThan(1) // 1% of difference
     })
 
-    it("Should return an amountIn enough for align the price of the LP <1% increasing the NativeToken backing UP", async () => {
+    it("Should return an amountIn enough for aligning the price of the LP <1% increasing the NativeToken backing UP", async () => {
       await admin.sendTransaction({
         to: UP_CONTROLLER.address,
         value: ethers.utils.parseEther("6") // New balance = 11 ETH / 2 UP
