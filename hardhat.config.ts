@@ -26,9 +26,6 @@ export default {
     pages: "files"
   },
   networks: {
-    hardhat: {
-      chainId: 1337
-    },
     HarmonyTest: {
       chainId: 1666700000,
       url: "https://api.s0.b.hmny.io",
@@ -43,6 +40,11 @@ export default {
       chainId: 97,
       url: "https://data-seed-prebsc-2-s1.binance.org:8545/",
       accounts: bsctestnetpk ? [bsctestnetpk] : []
+    },
+    hardhat: {
+      forking: {
+        url: "https://data-seed-prebsc-2-s1.binance.org:8545/"
+      }
     }
   },
   etherscan: {

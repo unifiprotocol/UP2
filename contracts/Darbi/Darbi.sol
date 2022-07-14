@@ -19,7 +19,6 @@ contract Darbi is AccessControl, Pausable, Safe {
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
 
-
   address public factory;
   address public WETH;
   address public gasRefundAddress;
