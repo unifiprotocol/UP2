@@ -47,6 +47,14 @@ contract Darbi is AccessControl, Pausable, Safe {
     _;
   }
 
+  modifier onlyRebalancerOrMonitor() {
+    require(
+      hasRole(REBALANCER_ROLE, msg.sender) || hasRole(MONITOR_ROLE, msg.sender),
+      "ONLY_REBALANCER_OR_MONITOR"
+    );
+    _;
+  }
+
   constructor(
     address _factory,
     address _router,
@@ -141,18 +149,12 @@ contract Darbi is AccessControl, Pausable, Safe {
       block.timestamp + 150
     );
 
-    emit Arbitrage(false, actualAmountIn);
-
     UP_TOKEN.approve(address(UP_CONTROLLER), amounts[1]);
     UP_CONTROLLER.redeem(amounts[1]);
 
-    uint256 newBalances = address(this).balance;
-    if ((newBalances + gasRefund) < darbiDepositBalance) return;
-    (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
-    require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
-    uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
-    (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
-    require(success2, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
+    refund();
+
+    emit Arbitrage(false, actualAmountIn);
   }
 
   function _arbitrageSell(
@@ -176,8 +178,12 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_TOKEN.approve(address(router), up2Balance);
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
 
-    emit Arbitrage(true, up2Balance);
+    refund();
 
+    emit Arbitrage(true, up2Balance);
+  }
+
+  function refund() public whenNotPaused onlyRebalancerOrMonitor {
     uint256 newBalances = address(this).balance;
     if ((newBalances + gasRefund) < darbiDepositBalance) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
@@ -185,7 +191,6 @@ contract Darbi is AccessControl, Pausable, Safe {
     uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
     (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
     require(success2, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
-    // This Sells UP
   }
 
   function moveMarketBuyAmount()
