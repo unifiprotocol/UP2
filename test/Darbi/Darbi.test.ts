@@ -220,7 +220,7 @@ describe("Darbi", async () => {
     })
   })
 
-  describe.only("arbitrage", async () => {
+  describe("arbitrage", async () => {
     beforeEach(async () => {
       // Create pool
       const router = await getUniswapRouter(contracts["Router"])
