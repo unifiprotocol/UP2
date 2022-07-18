@@ -53,6 +53,7 @@ describe("Darbi", async () => {
       .then((instance) => instance.deployed())
 
     await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_MINT_DARBI.address)
+    await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_CONTROLLER.address)
 
     const DarbiFactory = await ethers.getContractFactory("Darbi", {
       libraries: {
@@ -220,7 +221,7 @@ describe("Darbi", async () => {
     })
   })
 
-  describe("arbitrage", async () => {
+  describe.only("arbitrage", async () => {
     beforeEach(async () => {
       // Create pool
       const router = await getUniswapRouter(contracts["Router"])
@@ -261,14 +262,14 @@ describe("Darbi", async () => {
       unpermissionedDarbiContract = darbiContract.connect(unpermissionedAccount)
     })
 
-    it("should be able to call arbitrage function monitor and notPaused", async () => {
+    it.skip("should be able to call arbitrage function monitor and notPaused", async () => {
       await darbiContract.grantRole(await darbiContract.MONITOR_ROLE(), admin.address)
       let promise = darbiContract.arbitrage()
       await expect(promise).not.to.revertedWith("ONLY_MONITOR")
       await expect(promise).not.to.revertedWith("Pausable: paused")
     })
 
-    it("should not be able to call arbitrage function unpermissioned account until its assigned monitor role", async () => {
+    it.skip("should not be able to call arbitrage function unpermissioned account until its assigned monitor role", async () => {
       await expect(unpermissionedDarbiContract.arbitrage()).to.revertedWith("ONLY_MONITOR")
       const MONITOR_ROLE = await darbiContract.MONITOR_ROLE()
       await darbiContract.grantRole(MONITOR_ROLE, unpermissionedAccount.address)
@@ -277,14 +278,14 @@ describe("Darbi", async () => {
       await expect(promise).not.to.revertedWith("Pausable: paused")
     })
 
-    it("should not be able to call arbitrage function while its paused", async () => {
+    it.skip("should not be able to call arbitrage function while its paused", async () => {
       await darbiContract.pause()
       await expect(darbiContract.arbitrage()).to.revertedWith("Pausable: paused")
       await darbiContract.unpause()
       await expect(darbiContract.arbitrage()).not.to.revertedWith("Pausable: paused")
     })
 
-    it("Should return an amountIn enough for aligning the price of the LP <1% increasing the UP circulation supply", async () => {
+    it.skip("should return an amountIn enough for aligning the price of the LP <1% increasing the UP circulation supply", async () => {
       await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("1"))
       const virtualPrice = await UP_CONTROLLER["getVirtualPrice()"]().then((res) =>
         BN(res.toHexString())
@@ -303,7 +304,21 @@ describe("Darbi", async () => {
       expect(diffPercentage).lessThan(1) // 1% of difference
     })
 
-    it("Should return an amountIn enough for aligning the price of the LP <1% increasing the NativeToken backing UP", async () => {
+    it("should try to match LP price to UPC virtual price", async () => {
+      await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("1"))
+      const ethAmount = ethers.utils.parseEther("0.001")
+
+      await darbiContract.withdrawFunds(admin.address)
+      await admin.sendTransaction({
+        to: darbiContract.address,
+        value: ethAmount
+      })
+
+      await darbiContract.arbitrage()
+      expect(await ethers.provider.getBalance(darbiContract.address)).to.be.equal(0)
+    })
+
+    it.skip("should return an amountIn enough for aligning the price of the LP <1% increasing the NativeToken backing UP", async () => {
       await admin.sendTransaction({
         to: UP_CONTROLLER.address,
         value: ethers.utils.parseEther("2") // New balance = 7 ETH / 2 UP
