@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import {
   Darbi,
+  IUniswapV2Pair__factory,
   IUniswapV2Router02,
   UniswapHelper,
   UP,
@@ -65,7 +66,7 @@ describe("Darbi", async () => {
       contracts["Factory"],
       contracts["Router"],
       contracts["WETH"],
-      MEANINGLESS_ADDRESS,
+      admin.address,
       UP_CONTROLLER.address,
       UP_MINT_DARBI.address,
       MEANINGLESS_AMOUNT
@@ -150,7 +151,7 @@ describe("Darbi", async () => {
         contracts["Factory"],
         contracts["Router"],
         contracts["WETH"],
-        MEANINGLESS_ADDRESS,
+        admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
         MEANINGLESS_AMOUNT
@@ -246,7 +247,7 @@ describe("Darbi", async () => {
         contracts["Factory"],
         contracts["Router"],
         contracts["WETH"],
-        MEANINGLESS_ADDRESS,
+        admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
         MEANINGLESS_AMOUNT
@@ -304,10 +305,11 @@ describe("Darbi", async () => {
       expect(diffPercentage).lessThan(1) // 1% of difference
     })
 
-    it("should try to match LP price to UPC virtual price", async () => {
-      await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("1"))
-      const ethAmount = ethers.utils.parseEther("0.001")
+    it("should try to match LP price to UPC virtual price. refund to be processed", async () => {
+      await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("10"))
+      const ethAmount = ethers.utils.parseEther("1")
 
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("1"))
       await darbiContract.withdrawFunds(admin.address)
       await admin.sendTransaction({
         to: darbiContract.address,
@@ -315,7 +317,42 @@ describe("Darbi", async () => {
       })
 
       await darbiContract.arbitrage()
-      expect(await ethers.provider.getBalance(darbiContract.address)).to.be.equal(0)
+
+      expect(await ethers.provider.getBalance(darbiContract.address)).to.be.equal(
+        ethers.utils.parseEther("1")
+      )
+    })
+
+    it("should try to match LP price to UPC virtual price. refund to not be processed", async () => {
+      await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("10"))
+      const ethAmount = ethers.utils.parseEther("1")
+
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("6"))
+      await darbiContract.withdrawFunds(admin.address)
+      await admin.sendTransaction({
+        to: darbiContract.address,
+        value: ethAmount
+      })
+
+      const arbitrageTrx = await darbiContract.arbitrage().then((trx) => trx.wait())
+
+      const pairInterface = IUniswapV2Pair__factory.createInterface()
+
+      const log = arbitrageTrx.logs.find((log) =>
+        log.topics.includes(pairInterface.getEventTopic("Swap"))
+      )
+
+      const eventData = pairInterface.decodeEventLog("Swap", log!.data)
+      const amount1Out = BN(eventData.amount1Out.toHexString())
+      const finalBalance = await ethers.provider
+        .getBalance(darbiContract.address)
+        .then((balance) => BN(balance.toHexString()))
+
+      const PRECISION_THRESHOLD = 1
+
+      expect(amount1Out.plus(finalBalance.negated()).abs().toNumber()).lessThanOrEqual(
+        PRECISION_THRESHOLD
+      )
     })
 
     it.skip("should return an amountIn enough for aligning the price of the LP <1% increasing the NativeToken backing UP", async () => {
