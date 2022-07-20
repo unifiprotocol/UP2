@@ -248,6 +248,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       address(this),
       block.timestamp + 150
     );
+    darbi.refund();
   }
 
   function setStrategy(address newAddress) public onlyAdmin {
