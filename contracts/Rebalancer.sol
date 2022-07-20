@@ -17,6 +17,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
 
   address public WETH = address(0);
+  address public emergencyWithdrawAddress = address(0);
   IStrategy public strategy;
   address public unifiFactory = address(0);
   IUnifiPair public liquidityPool;
@@ -42,6 +43,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   constructor(
     address _WETH,
+    address _emergencyWithdrawAddress,
     address _UPAddress,
     address _UPController,
     address _Strategy,
@@ -52,6 +54,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   ) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     WETH = _WETH;
+    emergencyWithdrawAddress = _emergencyWithdrawAddress;
     setUPController(_UPController);
     strategy = IStrategy(_Strategy);
     UPToken = UP(payable(_UPAddress));
@@ -306,8 +309,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return true;
   }
 
-  function withdrawFunds(address target) public onlyAdmin returns (bool) {
-    return _withdrawFunds(target);
+  function withdrawFunds() public onlyAdmin returns (bool) {
+    uint256 newBalances = address(this).balance;
+    (bool successTransfer, ) = address(emergencyWithdrawAddress).call{value: newBalances}("");
+    require(successTransfer);
+    return true;
   }
 
   function withdrawFundsERC20(address target, address tokenAddress)
