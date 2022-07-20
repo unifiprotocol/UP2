@@ -222,7 +222,7 @@ describe("Darbi", async () => {
     })
   })
 
-  describe.only("arbitrage", async () => {
+  describe("arbitrage", async () => {
     beforeEach(async () => {
       // Create pool
       const router = await getUniswapRouter(contracts["Router"])
@@ -263,14 +263,14 @@ describe("Darbi", async () => {
       unpermissionedDarbiContract = darbiContract.connect(unpermissionedAccount)
     })
 
-    it.skip("should be able to call arbitrage function monitor and notPaused", async () => {
+    it("should be able to call arbitrage function monitor and notPaused", async () => {
       await darbiContract.grantRole(await darbiContract.MONITOR_ROLE(), admin.address)
       let promise = darbiContract.arbitrage()
       await expect(promise).not.to.revertedWith("ONLY_MONITOR")
       await expect(promise).not.to.revertedWith("Pausable: paused")
     })
 
-    it.skip("should not be able to call arbitrage function unpermissioned account until its assigned monitor role", async () => {
+    it("should not be able to call arbitrage function unpermissioned account until its assigned monitor role", async () => {
       await expect(unpermissionedDarbiContract.arbitrage()).to.revertedWith("ONLY_MONITOR")
       const MONITOR_ROLE = await darbiContract.MONITOR_ROLE()
       await darbiContract.grantRole(MONITOR_ROLE, unpermissionedAccount.address)
@@ -279,14 +279,14 @@ describe("Darbi", async () => {
       await expect(promise).not.to.revertedWith("Pausable: paused")
     })
 
-    it.skip("should not be able to call arbitrage function while its paused", async () => {
+    it("should not be able to call arbitrage function while its paused", async () => {
       await darbiContract.pause()
       await expect(darbiContract.arbitrage()).to.revertedWith("Pausable: paused")
       await darbiContract.unpause()
       await expect(darbiContract.arbitrage()).not.to.revertedWith("Pausable: paused")
     })
 
-    it.skip("should return an amountIn enough for aligning the price of the LP <1% increasing the UP circulation supply", async () => {
+    it("should return an amountIn enough for aligning the price of the LP <1% increasing the UP circulation supply", async () => {
       await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("1"))
       const virtualPrice = await UP_CONTROLLER["getVirtualPrice()"]().then((res) =>
         BN(res.toHexString())
@@ -355,7 +355,7 @@ describe("Darbi", async () => {
       )
     })
 
-    it.skip("should return an amountIn enough for aligning the price of the LP <1% increasing the NativeToken backing UP", async () => {
+    it("should return an amountIn enough for aligning the price of the LP <1% increasing the NativeToken backing UP", async () => {
       await admin.sendTransaction({
         to: UP_CONTROLLER.address,
         value: ethers.utils.parseEther("2") // New balance = 7 ETH / 2 UP
