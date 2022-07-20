@@ -454,7 +454,7 @@ describe.only("Darbi", async () => {
     })
   })
 
-  describe("refund", () => {
+  describe.only("refund", () => {
     it("Shouldn't refund because balances aren't enough for covering the base balances", async () => {
       const initialBalance = await darbiContract.provider.getBalance(darbiContract.address)
       await darbiContract.setDarbiFunds(ethers.utils.parseEther("6"))
@@ -463,8 +463,9 @@ describe.only("Darbi", async () => {
       expect(afterBalance).equal(initialBalance)
     })
 
-    it("Should refund gasRefundAddress and upController", async () => {
+    it("Should refund gasRefundAddress and upController when msg.sender is not rebalancer", async () => {
       await darbiContract.setDarbiFunds(ethers.utils.parseEther("4"))
+      await darbiContract.revokeRole(await darbiContract.REBALANCER_ROLE(), admin.address)
       const gasRefund = await darbiContract.gasRefund()
       const initialBalance = await darbiContract.provider.getBalance(darbiContract.address)
       expect(initialBalance).equal(ethers.utils.parseEther("5"), "wrong initial balance")
@@ -487,6 +488,31 @@ describe.only("Darbi", async () => {
           initialBalance.sub(gasRefund).sub(ethers.utils.parseEther("4"))
         )
       ).equal(afterUpControllerBalances, "wrong up controller balance")
+    })
+
+    it("Should refund gasRefundAddress and upController when msg.sender is rebalancer", async () => {
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("4"))
+      const gasRefund = await darbiContract.gasRefund()
+      const initialBalance = await darbiContract.provider.getBalance(darbiContract.address)
+      expect(initialBalance).equal(ethers.utils.parseEther("5"), "wrong initial balance")
+      // const initialGasRefundAddressBalances = await darbiContract.provider.getBalance(admin.address)
+      const initialUpControllerBalances = await darbiContract.provider.getBalance(
+        UP_CONTROLLER.address
+      )
+      await darbiContract.refund()
+      // const gasUsage = refund.gasLimit.mul(refund.gasPrice ?? "1")
+      // const afterGasRefundAddressBalances = await darbiContract.provider.getBalance(admin.address)
+      const afterBalance = await darbiContract.provider.getBalance(darbiContract.address)
+      const afterUpControllerBalances = await darbiContract.provider.getBalance(
+        UP_CONTROLLER.address
+      )
+      expect(afterBalance).equal(initialBalance.sub(gasRefund), "wrong darbi after balance")
+      // const totalGasRefunds = initialGasRefundAddressBalances.sub(gasUsage).add(gasRefund)
+      // expect(totalGasRefunds).equal(afterGasRefundAddressBalances, "wrong gas refund balance")
+      expect(initialUpControllerBalances).equal(
+        afterUpControllerBalances,
+        "up controller balance shouldn't change"
+      )
     })
   })
 })
