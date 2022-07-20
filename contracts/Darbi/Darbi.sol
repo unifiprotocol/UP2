@@ -108,8 +108,8 @@ contract Darbi is AccessControl, Pausable, Safe {
     (
       bool aToB,
       uint256 amountIn,
-      uint256 reserves0,
-      uint256 reserves1,
+      uint256 reservesUP,
+      uint256 reservesETH,
       uint256 backedValue
     ) = moveMarketBuyAmount();
 
@@ -119,7 +119,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     // If Buying UP
     if (!aToB) {
       if (amountIn < arbitrageThreshold) return;
-      _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
+      _arbitrageBuy(balances, amountIn, backedValue, reservesUP, reservesETH);
     } else {
       uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
       if (amountInETHTerms < arbitrageThreshold) return;
@@ -131,22 +131,22 @@ contract Darbi is AccessControl, Pausable, Safe {
     uint256 balances,
     uint256 amountIn,
     uint256 backedValue,
-    uint256 reserves0,
-    uint256 reserves1
+    uint256 reservesUP,
+    uint256 reservesETH
   ) internal {
     uint256 actualAmountIn = amountIn <= balances ? amountIn : balances; //Value is going to native
-    uint256 expectedReturn = UniswapHelper.getAmountOut(actualAmountIn, reserves0, reserves1); // Amount of UP expected from Buy
+    uint256 expectedReturn = UniswapHelper.getAmountOut(actualAmountIn, reservesETH, reservesUP); // Amount of UP expected from Buy
     uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
     uint256 upControllerBalance = address(UP_CONTROLLER).balance;
     if (upControllerBalance < expectedNativeReturn) {
       uint256 upOutput = (upControllerBalance * 1e18) / backedValue; //Value in UP Token
-      actualAmountIn = UniswapHelper.getAmountOut(upOutput, reserves1, reserves0); // Amount of UP expected from Buy
+      actualAmountIn = UniswapHelper.getAmountIn(upOutput, reservesETH, reservesUP); // Amount of UP expected from Buy
     }
 
     address[] memory path = new address[](2);
     path[0] = WETH;
     path[1] = address(UP_TOKEN);
-
+    
     uint256[] memory amounts = router.swapExactETHForTokens{value: actualAmountIn}(
       0,
       path,
@@ -204,21 +204,20 @@ contract Darbi is AccessControl, Pausable, Safe {
     returns (
       bool aToB,
       uint256 amountIn,
-      uint256 reserves0,
-      uint256 reserves1,
+      uint256 reservesUP,
+      uint256 reservesETH,
       uint256 upPrice
     )
   {
-    address[2] memory swappedTokens = [address(UP_TOKEN), address(WETH)];
-    (reserves0, reserves1) = UniswapHelper.getReserves(factory, swappedTokens[0], swappedTokens[1]);
+    (reservesUP, reservesETH) = UniswapHelper.getReserves(factory, address(UP_TOKEN), address(WETH));
     upPrice = UP_CONTROLLER.getVirtualPrice();
     (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
       1000000000000000000, // Ratio = 1:UPVirtualPrice
       upPrice,
-      reserves0,
-      reserves1
+      reservesUP,
+      reservesETH
     );
-    return (aToB, amountIn, reserves0, reserves1, upPrice);
+    return (aToB, amountIn, reservesUP, reservesETH, upPrice);
   }
 
   function addDarbiFunds() public payable {
