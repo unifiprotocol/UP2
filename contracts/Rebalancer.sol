@@ -192,7 +192,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       WETH
     );
 
-    (uint256 upLpBalance, uint256 ethLpBalance) = getLiquidityPoolBalance(reservesUP, reservesETH);
+    (, uint256 ethLpBalance) = getLiquidityPoolBalance(reservesUP, reservesETH);
 
     uint256 actualRedeemAmount = (getupcBalance() * allocationRedeem) / 100;
     uint256 actualEthLpAllocation = getupcBalance() - actualRedeemAmount; // ETH

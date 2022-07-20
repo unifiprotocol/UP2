@@ -1,4 +1,5 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { BN } from "@unifiprotocol/utils"
 import { assert, expect } from "chai"
 import { ethers } from "hardhat"
 import {
@@ -222,7 +223,7 @@ describe("Rebalancer", function () {
     })
   })
 
-  describe.only("rebalance", () => {
+  describe("rebalance", () => {
     describe("without strategy", () => {
       let addr1: SignerWithAddress
       let router: IUniswapV2Router02
@@ -329,8 +330,25 @@ describe("Rebalancer", function () {
         const initialLP = await liquidityPool.balanceOf(rebalancer.address)
         assert(initialLP.eq(0))
         await rebalancer.rebalance()
+
+        const [r0, r1] = await uniswapHelper.getReserves(
+          contracts["Factory"],
+          contracts["WETH"],
+          UP_TOKEN.address
+        )
+        const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
+        const upcBalances = await UP_CONTROLLER.getNativeBalance()
+
         const finalLP = await liquidityPool.balanceOf(rebalancer.address)
         assert(finalLP.gt(0), "LP balance cannot be 0")
+
+        const nativeSumUp = BN(reservesETH.add(upcBalances).toHexString())
+          .div(ethers.utils.parseEther("1").toHexString())
+          .dp(2)
+          .toNumber()
+        expect(nativeSumUp).greaterThan(
+          9.97 // minus 0.3% uTrade fee
+        )
       })
 
       it("Shouldn't rebalance again because the LP is already balanced", async () => {
@@ -352,9 +370,25 @@ describe("Rebalancer", function () {
         const finalUpBorrow = await UP_CONTROLLER.upBorrowed()
         const finalLp = await liquidityPool.balanceOf(rebalancer.address)
 
+        const [r0, r1] = await uniswapHelper.getReserves(
+          contracts["Factory"],
+          contracts["WETH"],
+          UP_TOKEN.address
+        )
+        const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
+        const upcBalances = await UP_CONTROLLER.provider.getBalance(UP_CONTROLLER.address)
+
         assert(initialNativeBorrow.lt(finalNativeBorrow), "BORROWED ETH AMOUNTS ARE NOT LESSER")
         assert(initialUpBorrow.lt(finalUpBorrow), "BORROWED UP AMOUNTS ARE NOT LESSER")
         assert(initialLp.lt(finalLp), "LP POSITION SHOULD DECREASE")
+
+        const nativeSumUp = BN(reservesETH.add(upcBalances).toHexString())
+          .div(ethers.utils.parseEther("1").toHexString())
+          .dp(2)
+          .toNumber()
+        expect(nativeSumUp).greaterThan(
+          9.97 // minus 0.3% uTrade fee
+        )
       })
 
       it("Should rebalance the LP because the UPController redeem value went up", async () => {
@@ -371,9 +405,25 @@ describe("Rebalancer", function () {
         const finalUpBorrow = await UP_CONTROLLER.upBorrowed()
         const finalLp = await liquidityPool.balanceOf(rebalancer.address)
 
+        const [r0, r1] = await uniswapHelper.getReserves(
+          contracts["Factory"],
+          contracts["WETH"],
+          UP_TOKEN.address
+        )
+        const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
+        const upcBalances = await UP_CONTROLLER.provider.getBalance(UP_CONTROLLER.address)
+
         assert(initialNativeBorrow.gt(finalNativeBorrow), "BORROWED ETH AMOUNTS ARE NOT GREATER")
         assert(initialUpBorrow.gt(finalUpBorrow), "BORROWED UP AMOUNTS ARE NOT GREATER")
         assert(initialLp.gt(finalLp), "LP POSITION SHOULD GROW")
+
+        const nativeSumUp = BN(reservesETH.add(upcBalances).toHexString())
+          .div(ethers.utils.parseEther("1").toHexString())
+          .dp(2)
+          .toNumber()
+        expect(nativeSumUp).greaterThan(
+          9.97 // minus 0.3% uTrade fee
+        )
       })
     })
   })
