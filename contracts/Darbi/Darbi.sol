@@ -96,11 +96,13 @@ contract Darbi is AccessControl, Pausable, Safe {
       require(amountIn > gasRefund, "Darbi: Trade will not be profitable");
       if (amountIn < arbitrageThreshold) return;
       _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
+      refund();
     } else {
       uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
       require(amountInETHTerms > gasRefund, "Darbi: Trade will not be profitable");
       if (amountInETHTerms < arbitrageThreshold) return;
       _arbitrageSell(balances, amountIn, backedValue);
+      refund();
     }
   }
 
@@ -157,8 +159,6 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_TOKEN.approve(address(UP_CONTROLLER), amounts[1]);
     UP_CONTROLLER.redeem(amounts[1]);
 
-    refund();
-
     emit Arbitrage(false, actualAmountIn);
   }
 
@@ -183,8 +183,6 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_TOKEN.approve(address(router), up2Balance);
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
 
-    refund();
-
     emit Arbitrage(true, up2Balance);
   }
 
@@ -194,7 +192,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "Darbi: FAIL_SENDING_GAS_REFUND_TO_MONITOR");
     uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
-    if (!hasRole(REBALANCER_ROLE, msg.sender)) {
+    if (!hasRole(REBALANCER_ROLE, msg.sender)) { 
       (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
       require(success2, "Darbi: FAIL_SENDING_BALANCES_TO_CONTROLLER");
     }

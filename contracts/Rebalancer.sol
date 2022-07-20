@@ -178,6 +178,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         block.timestamp + 150
       );
     }
+    darbi.refund();
   }
 
   function _rebalanceWithoutStrategy() internal {
