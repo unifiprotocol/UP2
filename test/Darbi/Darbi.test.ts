@@ -14,7 +14,7 @@ import contracts from "../Contracts"
 import { getUniswapRouter } from "../Helper"
 import { BN } from "@unifiprotocol/utils"
 
-describe("Darbi", async () => {
+describe.only("Darbi", async () => {
   let darbiContract: Darbi
   let unpermissionedDarbiContract: Darbi
   let admin: SignerWithAddress
@@ -375,6 +375,82 @@ describe("Darbi", async () => {
       const diff = BN(1).minus(newPrice.dividedBy(virtualPrice))
       const diffPercentage = diff.multipliedBy(100).dp(4).abs().toNumber()
       expect(diffPercentage).lessThan(1) // 1% of difference
+    })
+
+    it("should try to align LP price to backed value when upc funds were not enough to balance (no refund processed)", async () => {
+      await admin.sendTransaction({
+        to: UP_CONTROLLER.address,
+        value: ethers.utils.parseEther("10") // New balance = 15 ETH / 2 UP
+      })
+
+      await UP_CONTROLLER.grantRole(await UP_CONTROLLER.REBALANCER_ROLE(), admin.address)
+      await UP_CONTROLLER.borrowNative(ethers.utils.parseEther("14"), admin.address)
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("32"))
+
+      const { reserveA: priorReserveA, reserveB: priorReserveB } = await UNISWAP_HELPER.getReserves(
+        contracts["Factory"],
+        contracts["WETH"],
+        UP_TOKEN.address
+      )
+      const priorPrice = BN(priorReserveA.toHexString())
+        .div(priorReserveB.toHexString())
+        .multipliedBy(ethers.utils.parseEther("1").toHexString())
+
+      const virtualPrice = await UP_CONTROLLER["getVirtualPrice()"]().then((res) =>
+        BN(res.toHexString())
+      )
+      await darbiContract.arbitrage()
+      const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
+        contracts["Factory"],
+        contracts["WETH"],
+        UP_TOKEN.address
+      )
+      const newPrice = BN(reserveA.toHexString())
+        .div(reserveB.toHexString())
+        .multipliedBy(ethers.utils.parseEther("1").toHexString())
+      expect(newPrice.toNumber()).lessThan(virtualPrice.toNumber())
+      expect(newPrice.toNumber()).greaterThan(priorPrice.toNumber())
+      expect(
+        await ethers.provider.getBalance(UP_CONTROLLER.address).then((bn) => bn.toNumber())
+      ).closeTo(0, 10)
+    })
+
+    it("should try to align LP price to backed value when upc funds were not enough to balance (refund processed)", async () => {
+      await admin.sendTransaction({
+        to: UP_CONTROLLER.address,
+        value: ethers.utils.parseEther("10") // New balance = 15 ETH / 2 UP
+      })
+
+      await UP_CONTROLLER.grantRole(await UP_CONTROLLER.REBALANCER_ROLE(), admin.address)
+      await UP_CONTROLLER.borrowNative(ethers.utils.parseEther("14"), admin.address)
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("10"))
+
+      const { reserveA: priorReserveA, reserveB: priorReserveB } = await UNISWAP_HELPER.getReserves(
+        contracts["Factory"],
+        contracts["WETH"],
+        UP_TOKEN.address
+      )
+      const priorPrice = BN(priorReserveA.toHexString())
+        .div(priorReserveB.toHexString())
+        .multipliedBy(ethers.utils.parseEther("1").toHexString())
+
+      const virtualPrice = await UP_CONTROLLER["getVirtualPrice()"]().then((res) =>
+        BN(res.toHexString())
+      )
+      await darbiContract.arbitrage()
+      const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
+        contracts["Factory"],
+        contracts["WETH"],
+        UP_TOKEN.address
+      )
+      const newPrice = BN(reserveA.toHexString())
+        .div(reserveB.toHexString())
+        .multipliedBy(ethers.utils.parseEther("1").toHexString())
+      expect(newPrice.toNumber()).lessThan(virtualPrice.toNumber())
+      expect(newPrice.toNumber()).greaterThan(priorPrice.toNumber())
+      expect(await ethers.provider.getBalance(darbiContract.address)).to.be.equal(
+        ethers.utils.parseEther("10")
+      )
     })
   })
 
