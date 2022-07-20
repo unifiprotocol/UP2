@@ -33,24 +33,24 @@ contract Darbi is AccessControl, Pausable, Safe {
   event Arbitrage(bool isSellingUp, uint256 actualAmountIn);
 
   modifier onlyAdmin() {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Darbi: ONLY_ADMIN");
     _;
   }
 
   modifier onlyMonitor() {
-    require(hasRole(MONITOR_ROLE, msg.sender), "ONLY_MONITOR");
+    require(hasRole(MONITOR_ROLE, msg.sender), "Darbi: ONLY_MONITOR");
     _;
   }
 
   modifier onlyRebalancer() {
-    require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
+    require(hasRole(REBALANCER_ROLE, msg.sender), "Darbi: ONLY_REBALANCER");
     _;
   }
 
   modifier onlyRebalancerOrMonitor() {
     require(
       hasRole(REBALANCER_ROLE, msg.sender) || hasRole(MONITOR_ROLE, msg.sender),
-      "ONLY_REBALANCER_OR_MONITOR"
+      "Darbi: ONLY_REBALANCER_OR_MONITOR"
     );
     _;
   }
@@ -93,12 +93,12 @@ contract Darbi is AccessControl, Pausable, Safe {
     uint256 balances = address(this).balance;
     // If Buying UP
     if (!aToB) {
-      require(amountIn > gasRefund, "Trade will not be profitable");
+      require(amountIn > gasRefund, "Darbi: Trade will not be profitable");
       if (amountIn < arbitrageThreshold) return;
       _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
     } else {
       uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
-      require(amountInETHTerms > gasRefund, "Trade will not be profitable");
+      require(amountInETHTerms > gasRefund, "Darbi: Trade will not be profitable");
       if (amountInETHTerms < arbitrageThreshold) return;
       _arbitrageSell(balances, amountIn, backedValue);
     }
@@ -146,7 +146,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     address[] memory path = new address[](2);
     path[0] = WETH;
     path[1] = address(UP_TOKEN);
-    
+
     uint256[] memory amounts = router.swapExactETHForTokens{value: actualAmountIn}(
       0,
       path,
@@ -192,11 +192,11 @@ contract Darbi is AccessControl, Pausable, Safe {
     uint256 newBalances = address(this).balance;
     if ((newBalances + gasRefund) < darbiDepositBalance) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
-    require(success1, "FAIL_SENDING_GAS_REFUND_TO_MONITOR");
+    require(success1, "Darbi: FAIL_SENDING_GAS_REFUND_TO_MONITOR");
     uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
     if (!hasRole(REBALANCER_ROLE, msg.sender)) {
       (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
-      require(success2, "FAIL_SENDING_BALANCES_TO_CONTROLLER");
+      require(success2, "Darbi: FAIL_SENDING_BALANCES_TO_CONTROLLER");
     }
   }
 

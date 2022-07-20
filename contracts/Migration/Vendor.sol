@@ -28,7 +28,7 @@ contract Vendor is ReentrancyGuard, Pausable, Ownable, Safe {
   /// @notice Giving an amount of tokens, will swap between them
   /// @param _amount Amount to be swapped
   function swap(uint256 _amount) public nonReentrant whenNotPaused {
-    require(_amount > 0, "INVALID_AMOUNT");
+    require(_amount > 0, "Vendor: INVALID_AMOUNT");
     IERC20 oldUp = IERC20(OLD_UP);
     oldUp.safeTransferFrom(msg.sender, address(this), _amount);
 

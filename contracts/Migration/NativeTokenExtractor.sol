@@ -53,13 +53,13 @@ contract Migrator {
   }
 
   function withdrawBalance(address _to) external {
-    require(owner == msg.sender, "Unauthorized");
+    require(owner == msg.sender, "Migrator: Unauthorized");
     payable(address(_to)).transfer(address(this).balance);
   }
 
   //for legacy UP minting call back hook
   function updateFeeState(uint256 _fee) external returns (bool) {
-    require(owner == msg.sender, "Unauthorized");
+    require(owner == msg.sender, "Migrator: Unauthorized");
     return true;
   }
 
@@ -74,7 +74,7 @@ contract Migrator {
     uint256 multiplier,
     bool forceCheck
   ) external payable {
-    require(owner == msg.sender, "Unauthorized");
+    require(owner == msg.sender, "Migrator: Unauthorized");
     uint256 totalSupply = IUP(_Uptoken).totalSupply();
     //IUP(_Uptoken).addMinter(address(this));
     IUP(_Uptoken).updateValues("MintRate", totalSupply * multiplier);
@@ -85,7 +85,7 @@ contract Migrator {
     if (forceCheck) {
       require(
         noOfUpToBurn <= IUP(_Uptoken).balanceOf(address(this)),
-        " not enough UP token minted  to "
+        "Migrator: not enough UP token minted  to "
       );
     }
 
@@ -95,7 +95,7 @@ contract Migrator {
   }
 
   function mintUP(address upToken) external payable {
-    require(owner == msg.sender, "Unauthorized");
+    require(owner == msg.sender, "Migrator: Unauthorized");
     IUP(upToken).mint{value: msg.value}(address(this), msg.value);
   }
 

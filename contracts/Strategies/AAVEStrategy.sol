@@ -28,12 +28,12 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   address public aaveDepositToken;
 
   modifier onlyAdmin() {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "AAVEStrategy: ONLY_ADMIN");
     _;
   }
 
   modifier onlyRebalancer() {
-    require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
+    require(hasRole(REBALANCER_ROLE, msg.sender), "AAVEStrategy: ONLY_REBALANCER");
     _;
   }
 
@@ -128,11 +128,11 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
 
   ///@notice Withdraws an amount from Token Deposits from AAVE
   function withdraw(uint256 amount) public override whenNotPaused onlyRebalancer returns (bool) {
-    require(amount <= amountDeposited, "Amount Requested to Withdraw is Greater Than Amount Deposited");
+    require(amount <= amountDeposited, "AAVEStrategy: Amount Requested to Withdraw is Greater Than Amount Deposited");
     IERC20(aaveDepositToken).approve(wethGateway, amount);
     IWETHGateway(wethGateway).withdrawETH(aavePool, amount, address(this));
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
-    require(successTransfer, "FAIL_SENDING_NATIVE");
+    require(successTransfer, "AAVEStrategy: FAIL_SENDING_NATIVE");
     amountDeposited -= amount;
     return successTransfer;
   }
@@ -151,7 +151,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
 
    ///@notice Deposits native tokens to AAVE.
   function deposit(uint256 depositValue) public whenNotPaused onlyRebalancer override payable returns (bool) {
-    require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
+    require(depositValue == msg.value, "AAVEStrategy: Deposit Value Parameter does not equal payable amount");
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
     amountDeposited += depositValue;
     return true;
@@ -181,35 +181,35 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   ///@notice Permissioned function to update the address of the Aave Incentives Controller
   ///@param _aaveIncentivesController - the address of the new Aave Incentives Controller
   function updateaaveIncentivesController(address _aaveIncentivesController) public onlyAdmin {
-    require(_aaveIncentivesController != address(0), "INVALID_ADDRESS");
+    require(_aaveIncentivesController != address(0), "AAVEStrategy: INVALID_ADDRESS");
     aaveIncentivesController = _aaveIncentivesController;
   }
 
   ///@notice Permissioned function to update the address of the aavePool
   ///@param _aavePool - the address of the new aavePool
   function updateaavePool(address _aavePool) public onlyAdmin {
-    require(_aavePool != address(0), "INVALID_ADDRESS");
+    require(_aavePool != address(0), "AAVEStrategy: INVALID_ADDRESS");
     aavePool = _aavePool;
   }
 
   ///@notice Permissioned function to update the address of the wethGateway
   ///@param _wethGateway - the address of the new wethGateway
   function updatewethGateway(address _wethGateway) public onlyAdmin {
-    require(_wethGateway != address(0), "INVALID_ADDRESS");
+    require(_wethGateway != address(0), "AAVEStrategy: INVALID_ADDRESS");
     wethGateway = _wethGateway;
   }
 
   ///@notice Permissioned function to update the address of the aaveDataProvider
   ///@param _aaveDataProvider - the address of the new aaveDataProvider
   function updateaaveDataProvider(address _aaveDataProvider) public onlyAdmin{
-    require(_aaveDataProvider != address(0), "INVALID_ADDRESS");
+    require(_aaveDataProvider != address(0), "AAVEStrategy: INVALID_ADDRESS");
     aaveDataProvider = _aaveDataProvider;
   }
 
   ///@notice Permissioned function to update the address of the aaveDepositToken
   ///@param _aaveDepositToken - the address of the new aaveDepositToken
   function updateaaveDepositToken(address _aaveDepositToken) public onlyAdmin {
-    require(_aaveDepositToken != address(0), "INVALID_ADDRESS");
+    require(_aaveDepositToken != address(0), "AAVEStrategy: INVALID_ADDRESS");
     aaveDepositToken = _aaveDepositToken;
   }
 }

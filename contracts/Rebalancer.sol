@@ -31,12 +31,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   IStrategy.Rewards[] public rewards;
 
   modifier onlyRebalance() {
-    require(hasRole(REBALANCE_ROLE, msg.sender), "ONLY_REBALANCE");
+    require(hasRole(REBALANCE_ROLE, msg.sender), "Rebalancer: ONLY_REBALANCE");
     _;
   }
 
   modifier onlyAdmin() {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Rebalancer: ONLY_ADMIN");
     _;
   }
 
@@ -94,7 +94,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: strategyRewards.rewardsAmount}(
       ""
     );
-    require(successUpcTransfer, "FAIL_SENDING_REWARDS_TO_UPC");
+    require(successUpcTransfer, "Rebalancer: FAIL_SENDING_REWARDS_TO_UPC");
     // UPController balances after get rewards
 
     // Force Arbitrage
@@ -285,21 +285,21 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   function setAllocationLP(uint256 _allocationLP) public onlyAdmin returns (bool) {
     bool lessthan100 = allocationRedeem + _allocationLP <= 100;
-    require(lessthan100, "Allocation for Redeem and LP is over 100%");
+    require(lessthan100, "Rebalancer: Allocation for Redeem and LP is over 100%");
     allocationLP = _allocationLP;
     return true;
   }
 
   function setAllocationRedeem(uint256 _allocationRedeem) public onlyAdmin returns (bool) {
     bool lessthan100 = allocationLP + _allocationRedeem <= 100;
-    require(lessthan100, "Allocation for Redeem and LP is over 100%");
+    require(lessthan100, "Rebalancer: Allocation for Redeem and LP is over 100%");
     allocationRedeem = _allocationRedeem;
     return true;
   }
 
   function setSlippageTolerance(uint256 _slippageTolerance) public onlyAdmin returns (bool) {
     bool lessthan10000 = _slippageTolerance <= 10000;
-    require(lessthan10000, "Cannot Set Slippage Tolerance over 100%");
+    require(lessthan10000, "Rebalancer: Cannot Set Slippage Tolerance over 100%");
     slippageTolerance = _slippageTolerance;
     return true;
   }

@@ -18,12 +18,12 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   address payable public UP_CONTROLLER = payable(address(0));
 
   modifier onlyDarbi() {
-    require(hasRole(DARBI_ROLE, msg.sender), "ONLY_DARBI");
+    require(hasRole(DARBI_ROLE, msg.sender), "UPMintDarbi: ONLY_DARBI");
     _;
   }
 
   modifier onlyAdmin() {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "UPMintDarbi: ONLY_ADMIN");
     _;
   }
 
@@ -31,7 +31,7 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   event UpdateController(address _upController);
 
   constructor(address _UP, address _UPController) {
-    require(_UP != address(0), "Invalid UP address");
+    require(_UP != address(0), "UPMintDarbi: Invalid UP address");
     UP_TOKEN = payable(_UP);
     UP_CONTROLLER = payable(_UPController);
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -39,20 +39,20 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
 
   /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
   function mintUP() public payable whenNotPaused onlyDarbi {
-    require(msg.value > 0, "INVALID_PAYABLE_AMOUNT");
+    require(msg.value > 0, "UPMintDarbi: INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     if (currentPrice == 0) return;
     uint256 mintAmount = (msg.value * 1e18) / currentPrice;
     UP(UP_TOKEN).mint(msg.sender, mintAmount);
     (bool successTransfer, ) = UP_CONTROLLER.call{value: msg.value}(""); /// GO BACK
-    require(successTransfer, "FAIL_SENDING_NATIVE");
+    require(successTransfer, "UPMintDarbi: FAIL_SENDING_NATIVE");
     emit DarbiMint(msg.sender, mintAmount, currentPrice, msg.value);
   }
 
   ///@notice Permissioned function to update the address of the UP Controller
   ///@param _upController - the address of the new UP Controller
   function updateController(address _upController) public onlyAdmin {
-    require(_upController != address(0), "INVALID_ADDRESS");
+    require(_upController != address(0), "UPMintDarbi: INVALID_ADDRESS");
     UP_CONTROLLER = payable(_upController);
     emit UpdateController(_upController);
   }
@@ -60,14 +60,14 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   ///@notice Grant DARBi role
   ///@param _darbiAddr - a new DARBi address
   function grantDarbiRole(address _darbiAddr) public onlyAdmin {
-    require(_darbiAddr != address(0), "INVALID_ADDRESS");
+    require(_darbiAddr != address(0), "UPMintDarbi: INVALID_ADDRESS");
     grantRole(DARBI_ROLE, _darbiAddr);
   }
 
   ///@notice Revoke DARBi role
   ///@param _darbiAddr - DARBi address to revoke
   function revokeDarbiRole(address _darbiAddr) public onlyAdmin {
-    require(_darbiAddr != address(0), "INVALID_ADDRESS");
+    require(_darbiAddr != address(0), "UPMintDarbi: INVALID_ADDRESS");
     revokeRole(DARBI_ROLE, _darbiAddr);
   }
 

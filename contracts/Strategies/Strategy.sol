@@ -9,7 +9,7 @@ abstract contract Strategy is IStrategy, Safe {
   mapping(address => bool) public owners;
 
   modifier onlyOwner() {
-    require(owners[msg.sender], "ONLY_OWNER");
+    require(owners[msg.sender], "Strategy: ONLY_OWNER");
     _;
   }
 
@@ -25,20 +25,20 @@ abstract contract Strategy is IStrategy, Safe {
 
   function withdraw(uint256 amount) external virtual override returns (bool) {
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
-    require(successTransfer, "FAIL_SENDING_NATIVE");
+    require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
     return true;
   }
 
   function withdrawAll() external virtual override returns (bool) {
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
-    require(successTransfer, "FAIL_SENDING_NATIVE");
+    require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
     return true;
   }
 
   function gather() public virtual override {
     uint256 nativeAmount = address(this).balance;
     (bool successTransfer, ) = address(msg.sender).call{value: nativeAmount}("");
-    require(successTransfer, "FAIL_SENDING_NATIVE");
+    require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
   }
 
   function checkRewards() public virtual override view returns (IStrategy.Rewards memory) {
