@@ -1,6 +1,7 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 import {
   Darbi,
+  IUniswapV2Pair__factory,
   IUniswapV2Router02,
   UniswapHelper,
   UP,
@@ -13,7 +14,7 @@ import contracts from "../Contracts"
 import { getUniswapRouter } from "../Helper"
 import { BN } from "@unifiprotocol/utils"
 
-describe("Darbi", async () => {
+describe.only("Darbi", async () => {
   let darbiContract: Darbi
   let unpermissionedDarbiContract: Darbi
   let admin: SignerWithAddress
@@ -65,7 +66,7 @@ describe("Darbi", async () => {
       contracts["Factory"],
       contracts["Router"],
       contracts["WETH"],
-      MEANINGLESS_ADDRESS,
+      admin.address,
       UP_CONTROLLER.address,
       UP_MINT_DARBI.address,
       MEANINGLESS_AMOUNT
@@ -150,7 +151,7 @@ describe("Darbi", async () => {
         contracts["Factory"],
         contracts["Router"],
         contracts["WETH"],
-        MEANINGLESS_ADDRESS,
+        admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
         MEANINGLESS_AMOUNT
@@ -221,7 +222,7 @@ describe("Darbi", async () => {
     })
   })
 
-  describe.only("arbitrage", async () => {
+  describe("arbitrage", async () => {
     beforeEach(async () => {
       // Create pool
       const router = await getUniswapRouter(contracts["Router"])
@@ -246,7 +247,7 @@ describe("Darbi", async () => {
         contracts["Factory"],
         contracts["Router"],
         contracts["WETH"],
-        MEANINGLESS_ADDRESS,
+        admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
         MEANINGLESS_AMOUNT
@@ -262,14 +263,14 @@ describe("Darbi", async () => {
       unpermissionedDarbiContract = darbiContract.connect(unpermissionedAccount)
     })
 
-    it.skip("should be able to call arbitrage function monitor and notPaused", async () => {
+    it("should be able to call arbitrage function monitor and notPaused", async () => {
       await darbiContract.grantRole(await darbiContract.MONITOR_ROLE(), admin.address)
       let promise = darbiContract.arbitrage()
       await expect(promise).not.to.revertedWith("ONLY_MONITOR")
       await expect(promise).not.to.revertedWith("Pausable: paused")
     })
 
-    it.skip("should not be able to call arbitrage function unpermissioned account until its assigned monitor role", async () => {
+    it("should not be able to call arbitrage function unpermissioned account until its assigned monitor role", async () => {
       await expect(unpermissionedDarbiContract.arbitrage()).to.revertedWith("ONLY_MONITOR")
       const MONITOR_ROLE = await darbiContract.MONITOR_ROLE()
       await darbiContract.grantRole(MONITOR_ROLE, unpermissionedAccount.address)
@@ -278,14 +279,14 @@ describe("Darbi", async () => {
       await expect(promise).not.to.revertedWith("Pausable: paused")
     })
 
-    it.skip("should not be able to call arbitrage function while its paused", async () => {
+    it("should not be able to call arbitrage function while its paused", async () => {
       await darbiContract.pause()
       await expect(darbiContract.arbitrage()).to.revertedWith("Pausable: paused")
       await darbiContract.unpause()
       await expect(darbiContract.arbitrage()).not.to.revertedWith("Pausable: paused")
     })
 
-    it.skip("should return an amountIn enough for aligning the price of the LP <1% increasing the UP circulation supply", async () => {
+    it("should return an amountIn enough for aligning the price of the LP <1% increasing the UP circulation supply", async () => {
       await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("1"))
       const virtualPrice = await UP_CONTROLLER["getVirtualPrice()"]().then((res) =>
         BN(res.toHexString())
@@ -304,10 +305,11 @@ describe("Darbi", async () => {
       expect(diffPercentage).lessThan(1) // 1% of difference
     })
 
-    it("should try to match LP price to UPC virtual price", async () => {
-      await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("1"))
-      const ethAmount = ethers.utils.parseEther("0.001")
+    it("should try to match LP price to UPC virtual price. refund to be processed", async () => {
+      await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("10"))
+      const ethAmount = ethers.utils.parseEther("1")
 
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("1"))
       await darbiContract.withdrawFunds(admin.address)
       await admin.sendTransaction({
         to: darbiContract.address,
@@ -315,10 +317,45 @@ describe("Darbi", async () => {
       })
 
       await darbiContract.arbitrage()
-      expect(await ethers.provider.getBalance(darbiContract.address)).to.be.equal(0)
+
+      expect(await ethers.provider.getBalance(darbiContract.address)).to.be.equal(
+        ethers.utils.parseEther("1")
+      )
     })
 
-    it.skip("should return an amountIn enough for aligning the price of the LP <1% increasing the NativeToken backing UP", async () => {
+    it("should try to match LP price to UPC virtual price. refund to not be processed", async () => {
+      await UP_TOKEN.mint(admin.address, ethers.utils.parseEther("10"))
+      const ethAmount = ethers.utils.parseEther("1")
+
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("6"))
+      await darbiContract.withdrawFunds(admin.address)
+      await admin.sendTransaction({
+        to: darbiContract.address,
+        value: ethAmount
+      })
+
+      const arbitrageTrx = await darbiContract.arbitrage().then((trx) => trx.wait())
+
+      const pairInterface = IUniswapV2Pair__factory.createInterface()
+
+      const log = arbitrageTrx.logs.find((log) =>
+        log.topics.includes(pairInterface.getEventTopic("Swap"))
+      )
+
+      const eventData = pairInterface.decodeEventLog("Swap", log!.data)
+      const amount1Out = BN(eventData.amount1Out.toHexString())
+      const finalBalance = await ethers.provider
+        .getBalance(darbiContract.address)
+        .then((balance) => BN(balance.toHexString()))
+
+      const PRECISION_THRESHOLD = 1
+
+      expect(amount1Out.plus(finalBalance.negated()).abs().toNumber()).lessThanOrEqual(
+        PRECISION_THRESHOLD
+      )
+    })
+
+    it("should return an amountIn enough for aligning the price of the LP <1% increasing the NativeToken backing UP", async () => {
       await admin.sendTransaction({
         to: UP_CONTROLLER.address,
         value: ethers.utils.parseEther("2") // New balance = 7 ETH / 2 UP
@@ -338,6 +375,82 @@ describe("Darbi", async () => {
       const diff = BN(1).minus(newPrice.dividedBy(virtualPrice))
       const diffPercentage = diff.multipliedBy(100).dp(4).abs().toNumber()
       expect(diffPercentage).lessThan(1) // 1% of difference
+    })
+
+    it("should try to align LP price to backed value when upc funds were not enough to balance (no refund processed)", async () => {
+      await admin.sendTransaction({
+        to: UP_CONTROLLER.address,
+        value: ethers.utils.parseEther("10") // New balance = 15 ETH / 2 UP
+      })
+
+      await UP_CONTROLLER.grantRole(await UP_CONTROLLER.REBALANCER_ROLE(), admin.address)
+      await UP_CONTROLLER.borrowNative(ethers.utils.parseEther("14"), admin.address)
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("32"))
+
+      const { reserveA: priorReserveA, reserveB: priorReserveB } = await UNISWAP_HELPER.getReserves(
+        contracts["Factory"],
+        contracts["WETH"],
+        UP_TOKEN.address
+      )
+      const priorPrice = BN(priorReserveA.toHexString())
+        .div(priorReserveB.toHexString())
+        .multipliedBy(ethers.utils.parseEther("1").toHexString())
+
+      const virtualPrice = await UP_CONTROLLER["getVirtualPrice()"]().then((res) =>
+        BN(res.toHexString())
+      )
+      await darbiContract.arbitrage()
+      const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
+        contracts["Factory"],
+        contracts["WETH"],
+        UP_TOKEN.address
+      )
+      const newPrice = BN(reserveA.toHexString())
+        .div(reserveB.toHexString())
+        .multipliedBy(ethers.utils.parseEther("1").toHexString())
+      expect(newPrice.toNumber()).lessThan(virtualPrice.toNumber())
+      expect(newPrice.toNumber()).greaterThan(priorPrice.toNumber())
+      expect(
+        await ethers.provider.getBalance(UP_CONTROLLER.address).then((bn) => bn.toNumber())
+      ).closeTo(0, 10)
+    })
+
+    it("should try to align LP price to backed value when upc funds were not enough to balance (refund processed)", async () => {
+      await admin.sendTransaction({
+        to: UP_CONTROLLER.address,
+        value: ethers.utils.parseEther("10") // New balance = 15 ETH / 2 UP
+      })
+
+      await UP_CONTROLLER.grantRole(await UP_CONTROLLER.REBALANCER_ROLE(), admin.address)
+      await UP_CONTROLLER.borrowNative(ethers.utils.parseEther("14"), admin.address)
+      await darbiContract.setDarbiFunds(ethers.utils.parseEther("10"))
+
+      const { reserveA: priorReserveA, reserveB: priorReserveB } = await UNISWAP_HELPER.getReserves(
+        contracts["Factory"],
+        contracts["WETH"],
+        UP_TOKEN.address
+      )
+      const priorPrice = BN(priorReserveA.toHexString())
+        .div(priorReserveB.toHexString())
+        .multipliedBy(ethers.utils.parseEther("1").toHexString())
+
+      const virtualPrice = await UP_CONTROLLER["getVirtualPrice()"]().then((res) =>
+        BN(res.toHexString())
+      )
+      await darbiContract.arbitrage()
+      const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
+        contracts["Factory"],
+        contracts["WETH"],
+        UP_TOKEN.address
+      )
+      const newPrice = BN(reserveA.toHexString())
+        .div(reserveB.toHexString())
+        .multipliedBy(ethers.utils.parseEther("1").toHexString())
+      expect(newPrice.toNumber()).lessThan(virtualPrice.toNumber())
+      expect(newPrice.toNumber()).greaterThan(priorPrice.toNumber())
+      expect(await ethers.provider.getBalance(darbiContract.address)).to.be.equal(
+        ethers.utils.parseEther("10")
+      )
     })
   })
 
