@@ -9,7 +9,7 @@ abstract contract Safe {
 
   function _withdrawFunds(address target) internal returns (bool) {
     (bool sent, ) = address(target).call{value: address(this).balance}("");
-    require(sent, "Failed to send Ether");
+    require(sent, "Safe: Failed to send Ether");
     return sent;
   }
 

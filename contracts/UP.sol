@@ -13,12 +13,12 @@ contract UP is ERC20, AccessControl {
   event SetUPController(address _setter, address _newController);
 
   modifier onlyMint() {
-    require(hasRole(MINT_ROLE, msg.sender), "ONLY_MINT");
+    require(hasRole(MINT_ROLE, msg.sender), "UP: ONLY_MINT");
     _;
   }
 
   modifier onlyAdmin() {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "UP: ONLY_ADMIN");
     _;
   }
 
@@ -50,7 +50,7 @@ contract UP is ERC20, AccessControl {
       (bool success, ) = UP_CONTROLLER.call{value: msg.value}(
         abi.encodeWithSignature(("mintUP(address)"), to)
       );
-      require(success, "LEGACY_MINT_FAILED");
+      require(success, "UP: LEGACY_MINT_FAILED");
     } else {
       _mint(to, amount);
     }

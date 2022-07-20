@@ -25,22 +25,22 @@ contract UPController is AccessControl, Safe, Pausable {
   event Redeem(uint256 _upAmount, uint256 _redeemAmount);
 
   modifier onlyRebalancer() {
-    require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
+    require(hasRole(REBALANCER_ROLE, msg.sender), "UPController: ONLY_REBALANCER");
     _;
   }
 
   modifier onlyAdmin() {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "UPController: ONLY_ADMIN");
     _;
   }
 
   modifier onlyRedeemer() {
-    require(hasRole(REDEEMER_ROLE, msg.sender), "ONLY_REDEEMER");
+    require(hasRole(REDEEMER_ROLE, msg.sender), "UPController: ONLY_REDEEMER");
     _;
   }
 
   constructor(address _UP) {
-    require(_UP != address(0), "Invalid UP address");
+    require(_UP != address(0), "UPController: Invalid UP address");
     UP_TOKEN = payable(_UP);
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
   }
@@ -72,10 +72,10 @@ contract UPController is AccessControl, Safe, Pausable {
 
   /// @notice Borrows native token from the back up reserves
   function borrowNative(uint256 _borrowAmount, address _to) public onlyRebalancer whenNotPaused {
-    require(address(this).balance >= _borrowAmount, "NOT_ENOUGH_BALANCE");
+    require(address(this).balance >= _borrowAmount, "UPController: NOT_ENOUGH_BALANCE");
     (bool success, ) = _to.call{value: _borrowAmount}("");
     nativeBorrowed += _borrowAmount;
-    require(success, "BORROW_NATIVE_FAILED");
+    require(success, "UPController: BORROW_NATIVE_FAILED");
     emit BorrowNative(_to, _borrowAmount, nativeBorrowed);
   }
 
@@ -92,15 +92,15 @@ contract UPController is AccessControl, Safe, Pausable {
 
   /// @notice Mints UP based on virtual price - UPv1 logic
   function mintUP(address to) external payable whenNotPaused {
-    require(msg.sender == UP_TOKEN, "NON_UP_CONTRACT");
+    require(msg.sender == UP_TOKEN, "UPController: NON_UP_CONTRACT");
     uint256 mintAmount = (msg.value * 1e18) / getVirtualPrice(msg.value);
     UP(UP_TOKEN).mint(to, mintAmount);
   }
 
   /// @notice Allows to return back borrowed amounts to the controller
   function repay(uint256 upAmount) public payable onlyRebalancer whenNotPaused {
-    require(upAmount <= upBorrowed, "UP_AMOUNT_GT_BORROWED");
-    require(msg.value <= nativeBorrowed, "NATIVE_AMOUNT_GT_BORROWED");
+    require(upAmount <= upBorrowed, "UPController: UP_AMOUNT_GT_BORROWED");
+    require(msg.value <= nativeBorrowed, "UPController: NATIVE_AMOUNT_GT_BORROWED");
     UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
     upBorrowed -= upAmount;
     nativeBorrowed -= msg.value;
@@ -109,11 +109,11 @@ contract UPController is AccessControl, Safe, Pausable {
 
   /// @notice Swaps UP token by native token
   function redeem(uint256 upAmount) public onlyRedeemer whenNotPaused {
-    require(upAmount > 0, "AMOUNT_EQ_0");
+    require(upAmount > 0, "UPController: AMOUNT_EQ_0");
     uint256 redeemAmount = (getVirtualPrice() * upAmount) / 1e18;
     UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
     (bool success, ) = msg.sender.call{value: redeemAmount}("");
-    require(success, "REDEEM_FAILED");
+    require(success, "UPController: REDEEM_FAILED");
     emit Redeem(upAmount, redeemAmount);
   }
 
