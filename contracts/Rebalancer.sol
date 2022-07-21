@@ -12,20 +12,21 @@ import "./UP.sol";
 import "./Strategies/IStrategy.sol";
 import "./Helpers/Safe.sol";
 import "./Darbi/Darbi.sol";
+import "hardhat/console.sol";
 
 contract Rebalancer is AccessControl, Pausable, Safe {
   bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
 
   address public WETH = address(0);
-  IStrategy public strategy;
   address public unifiFactory = address(0);
+  IStrategy public strategy;
   IUnifiPair public liquidityPool;
   Darbi public darbi;
   UP public UPToken;
   UPController public UP_CONTROLLER;
   uint256 public allocationLP = 5; //Whole Number for Percent, i.e. 5 = 5%
   uint256 public allocationRedeem = 5; //Whole Number for Percent, i.e. 5 = 5%
-  uint256 public slippageTolerance = 10; //Percent with 2 Percision, i.e. 10 = 0.1%
+  uint256 public slippageTolerance = 30; //Percent with 2 Percision, i.e. 10 = 0.1%
 
   IUniswapV2Router02 public unifiRouter;
   IStrategy.Rewards[] public rewards;
@@ -68,7 +69,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     UPToken.justBurn(UPToken.balanceOf(address(this)));
   }
 
-  function getupcBalance() internal view returns (uint256) {
+  function getControllerBalance() internal view returns (uint256) {
     return UP_CONTROLLER.getNativeBalance();
   }
 
@@ -101,52 +102,55 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Step 3
     darbi.forceArbitrage();
 
-    (uint256 reserves0, uint256 reserves1) = UniswapHelper.getReserves(
+    (uint256 reservesUP, uint256 reservesETH) = UniswapHelper.getReserves(
       unifiFactory,
       address(UPToken),
       WETH
     );
-    (uint256 amountLpUP, uint256 amountLpETH) = getLiquidityPoolBalance(reserves0, reserves1);
-    uint256 totalETH = amountLpETH + getupcBalance() + strategyRewards.depositedAmount;
+    (, uint256 ethLpBalance) = getLiquidityPoolBalance(reservesUP, reservesETH);
 
-    //Take money from the strategy - 5% of the total of the strategy
-    // Step 4
+    uint256 totalETH = getControllerBalance();
     uint256 targetRedeemAmount = (totalETH * allocationRedeem) / 100;
-    //Step 4.1
-    if (address(UP_CONTROLLER).balance > targetRedeemAmount) {
-      // If UP Controller balance is greater than 5%, the rebalancer withdraws from the UP Controller to deposit into the strategy
-      uint256 amountToWithdraw = address(UP_CONTROLLER).balance - targetRedeemAmount;
-      UP_CONTROLLER.borrowNative(amountToWithdraw, address(this));
-      strategy.deposit{value: amountToWithdraw}(amountToWithdraw);
+    uint256 targetLpAmount = (totalETH * allocationLP) / 100;
+    uint256 targetStrategyAmount = totalETH - targetLpAmount - targetRedeemAmount;
+
+    // Take money from the strategy - 5% of the total of the strategy
+    // Step 4
+    // Step 4.1
+    if (strategyRewards.depositedAmount < targetStrategyAmount) {
+      uint256 amountToDeposit = targetStrategyAmount - strategyRewards.depositedAmount;
+      UP_CONTROLLER.borrowNative(amountToDeposit, address(this));
+      strategy.deposit{value: amountToDeposit}(amountToDeposit);
       //Step 4.2
-    } else if (address(UP_CONTROLLER).balance < targetRedeemAmount) {
+    } else if (strategyRewards.depositedAmount > targetStrategyAmount) {
       // If UP Controller balance is less than 5%, the rebalancer withdraws from the strategy to deposit into the UP Controller
-      uint256 amountToDeposit = targetRedeemAmount - address(UP_CONTROLLER).balance;
-      strategy.withdraw(amountToDeposit);
-      UP_CONTROLLER.repay{value: amountToDeposit}(0);
+      uint256 amountToWithdraw = strategyRewards.depositedAmount - targetStrategyAmount;
+      strategy.withdraw(amountToWithdraw);
+      UP_CONTROLLER.repay{value: amountToWithdraw}(0);
     }
 
     // REBALANCE LP
     // Step 5
-    uint256 lpBalance = liquidityPool.balanceOf(address(this));
+    // IF after arbitrage the backedValue vs marketValue is still depegged over the threshold we dont have nothing to do
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
-    uint256 marketValue = (reserves0 * 1e18) / reserves1;
+    uint256 marketValue = (reservesETH * 1e18) / reservesUP;
     // Step 5.1
-    if (
-      backedValue > (marketValue * (1 + (slippageTolerance / 10000))) ||
-      backedValue < (marketValue * (1 - (slippageTolerance / 10000)))
-    ) {
-      return;
-    }
+    uint256 deviation = backedValue < marketValue
+      ? (1e18 - ((backedValue * 1e18) / marketValue)) / 1e14
+      : (1e18 - ((marketValue * 1e18) / backedValue)) / 1e14;
+    if (deviation > slippageTolerance) return;
 
-    uint256 LPtargetAmount = (totalETH * allocationLP) / 100;
     // Step 6
     // Step 6.1
-    if (amountLpETH > LPtargetAmount) {
-      // withdraw the amount of LP so that getupcBalance() = ETHtoTake, send native tokens to Strategy, 'repay' / burn the synthetic UP withdrawn
-      uint256 ETHtoTakeFromLP = amountLpETH - LPtargetAmount;
+    if (ethLpBalance > targetLpAmount) {
+      // We get the needed amount of LP token that we need to sell in order to get enough
+      // ETH in this contract to rebalance to the redeem target amount.
+      uint256 amountToBeWithdrawnFromLp = ethLpBalance - targetLpAmount;
+      uint256 diffLpToRemove = (liquidityPool.totalSupply() * amountToBeWithdrawnFromLp) /
+        reservesETH;
+      uint256 lpBalance = liquidityPool.balanceOf(address(this));
+      uint256 totalLpToRemove = lpBalance - diffLpToRemove;
 
-      uint256 totalLpToRemove = lpBalance * (ETHtoTakeFromLP / (amountLpETH * 100) / 100);
       liquidityPool.approve(address(unifiRouter), totalLpToRemove);
       (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
         address(UPToken),
@@ -157,27 +161,33 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         block.timestamp + 150
       );
 
-      strategy.deposit{value: amountETH}(amountETH);
       UPToken.approve(address(UP_CONTROLLER), amountToken);
-      UP_CONTROLLER.repay{value: 0}(amountToken);
-    } else if (amountLpETH < LPtargetAmount) {
-      // Step 6.2
-      // calculate the amount of UP / native required. Withdraw native tokens from Strategy, mint the equivlent amount of synthetic UP, Deposit an amount of liquidity so that getupcBalance() = ETHtoTake.
-      uint256 ETHtoAddtoLP = ((totalETH * allocationLP) / 100) - amountLpETH;
-      strategy.withdraw(ETHtoAddtoLP);
-      uint256 lpPrice = (amountLpUP * 1e18) / amountLpETH;
-      uint256 UPtoAddtoLP = (lpPrice * ETHtoAddtoLP) / 1e18;
-      UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
-      UPToken.approve(address(unifiRouter), UPtoAddtoLP);
-      unifiRouter.addLiquidityETH{value: ETHtoAddtoLP}(
-        address(UPToken),
-        UPtoAddtoLP,
-        0,
-        0,
-        address(this),
-        block.timestamp + 150
-      );
+      UP_CONTROLLER.repay{value: amountETH}(amountToken);
+    } else if (ethLpBalance < targetLpAmount) {
+      uint256 amountToWithdrawFromRedeem = targetLpAmount - ethLpBalance;
+      UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
+      // IF ethLpBalance == 0 = first iteration of the rebalancer
+    } else if (ethLpBalance == 0) {
+      UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
     }
+
+    uint256 ETHAmountToDeposit = address(this).balance;
+
+    uint256 lpPrice = (reservesETH * 1e18) / reservesUP;
+    uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / lpPrice;
+    if (ETHAmountToDeposit == 0 || UPtoAddtoLP == 0) return;
+
+    UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
+    UPToken.approve(address(unifiRouter), UPtoAddtoLP);
+    unifiRouter.addLiquidityETH{value: ETHAmountToDeposit}(
+      address(UPToken),
+      UPtoAddtoLP,
+      0,
+      0,
+      address(this),
+      block.timestamp + 150
+    );
+
     darbi.refund();
   }
 
@@ -193,10 +203,20 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       WETH
     );
 
+    // IF after arbitrage the backedValue vs marketValue is still depegged over the threshold we dont have nothing to do
+    uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
+    uint256 marketValue = (reservesUP * 1e18) / reservesETH;
+    if (
+      backedValue > (marketValue * (1 + (slippageTolerance / 10000))) ||
+      backedValue < (marketValue * (1 - (slippageTolerance / 10000)))
+    ) {
+      return;
+    }
+
     (, uint256 ethLpBalance) = getLiquidityPoolBalance(reservesUP, reservesETH);
 
-    uint256 actualRedeemAmount = (getupcBalance() * allocationRedeem) / 100;
-    uint256 actualEthLpAllocation = getupcBalance() - actualRedeemAmount; // ETH
+    uint256 actualRedeemAmount = (getControllerBalance() * allocationRedeem) / 100;
+    uint256 actualEthLpAllocation = getControllerBalance() - actualRedeemAmount; // ETH
 
     // IF current LpPrice(95%) > RedeemPrice(95%) = we need to rebalance it to accomplish the rule
     if (ethLpBalance > actualEthLpAllocation) {
@@ -248,6 +268,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       address(this),
       block.timestamp + 150
     );
+
+    darbi.refund();
   }
 
   function setStrategy(address newAddress) public onlyAdmin {

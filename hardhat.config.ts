@@ -43,7 +43,7 @@ export default {
     },
     hardhat: {
       forking: {
-        url: "https://data-seed-prebsc-2-s1.binance.org:8545/"
+        url: "https://proxy.unifiprotocol.com/rpc-internal/binance"
       }
     }
   },

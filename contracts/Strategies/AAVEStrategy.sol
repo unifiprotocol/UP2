@@ -12,15 +12,13 @@ import "./Interfaces/IAaveIncentivesController.sol";
 import "./Interfaces/IDataProvider.sol";
 import "../Helpers/Safe.sol";
 
-
 /// @title Staking Contract for UP to interact with AAVE
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This controller deposits the native tokens backing UP into the AAVE Supply Pool, and triggers the Rebalancer
 
 contract AAVEStrategy is Strategy, AccessControl, Pausable {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
-  uint256 public amountDeposited = 0;
-  address public wrappedTokenAddress; 
+  address public wrappedTokenAddress;
   address public aaveIncentivesController;
   address public aavePool;
   address public wethGateway;
@@ -46,13 +44,14 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   ///@param _aaveDataProvider AAVE's Pool Data Provider - typically 0x69FA688f1Dc47d4B5d8029D5a35FB7a548310654 on all chains.
   ///@param _aaveDepositToken AAVE's aToken for the deposited wrapped address  - typically 0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97 on all chains.
 
-  constructor(    
+  constructor(
     address _wrappedTokenAddress,
     address _aaveIncentivesController,
     address _aavePool,
     address _wethGateway,
     address _aaveDataProvider,
-    address _aaveDepositToken) {
+    address _aaveDepositToken
+  ) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
     wrappedTokenAddress = _wrappedTokenAddress;
@@ -63,32 +62,38 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
     aaveDepositToken = _aaveDepositToken;
   }
 
-
   /// Read Functions
 
   ///@notice Checks the total amount of incentives earned by this address, excluding interest.
   function checkRewardsBalance() public view returns (uint256 rewardsBalance) {
     address[] memory asset = new address[](1);
     asset[0] = address(aaveDepositToken);
-    rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
+    rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(
+      asset,
+      address(this),
+      wrappedTokenAddress
+    );
     return (rewardsBalance);
   }
 
   ///@notice Checks amonut of assets sent to AAVE by this address.
   function checkAAVEBalance() public view returns (uint256 aaveBalance) {
-    (uint256 aaveBalanceData,,,,,,,,) = IDataProvider(aaveDataProvider).getUserReserveData(wrappedTokenAddress, address(this));
+    (uint256 aaveBalanceData, , , , , , , , ) = IDataProvider(aaveDataProvider).getUserReserveData(
+      wrappedTokenAddress,
+      address(this)
+    );
     aaveBalance = aaveBalanceData;
     return aaveBalance;
   }
 
   ///@notice Checks the amount of interest earned by the lending pool, excluding incentives.
   function checkAAVEInterest() public view returns (uint256 aaveEarnings) {
-      uint256 aaveBalance = checkAAVEBalance();
-      aaveEarnings = aaveBalance - amountDeposited;
-      return aaveEarnings;
+    uint256 aaveBalance = checkAAVEBalance();
+    aaveEarnings = aaveBalance - amountDeposited;
+    return aaveEarnings;
   }
 
-    ///@notice Checks Total Amount Earned by AAVE deposit above deposited total.
+  ///@notice Checks Total Amount Earned by AAVE deposit above deposited total.
   function checkUnclaimedEarnings() public view returns (uint256 unclaimedEarnings) {
     uint256 aaveEarnings = checkAAVEInterest();
     uint256 rewardsBalance = checkRewardsBalance();
@@ -96,14 +101,10 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
     return unclaimedEarnings;
   }
 
-     ///@notice Returns Amount of Native Tokens Earned since last rebalance
+  ///@notice Returns Amount of Native Tokens Earned since last rebalance
   function checkRewards() public view override returns (IStrategy.Rewards memory) {
     uint256 unclaimedEarnings = checkUnclaimedEarnings();
-    return IStrategy.Rewards(
-      unclaimedEarnings,
-      amountDeposited,
-      block.timestamp
-    );
+    return IStrategy.Rewards(unclaimedEarnings, amountDeposited, block.timestamp);
   }
 
   /// Write Functions
@@ -112,13 +113,22 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   function _claimAAVERewards() internal returns (uint256 aaveClaimed) {
     address[] memory asset = new address[](1);
     asset[0] = address(aaveDepositToken);
-    uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(asset, address(this), wrappedTokenAddress);
-    uint256 rewardsClaimed = IAaveIncentivesController(aaveIncentivesController).claimRewards(asset, rewardsBalance, address(this), wrappedTokenAddress);
+    uint256 rewardsBalance = IAaveIncentivesController(aaveIncentivesController).getUserRewards(
+      asset,
+      address(this),
+      wrappedTokenAddress
+    );
+    uint256 rewardsClaimed = IAaveIncentivesController(aaveIncentivesController).claimRewards(
+      asset,
+      rewardsBalance,
+      address(this),
+      wrappedTokenAddress
+    );
     IWETH(wrappedTokenAddress).withdraw(rewardsClaimed);
     return (rewardsClaimed);
   }
 
-  ///@notice Withdraws Interest from Token Deposits from AAVE. 
+  ///@notice Withdraws Interest from Token Deposits from AAVE.
   function _withdrawAAVEInterest() internal returns (uint256 yieldEarned) {
     yieldEarned = checkAAVEInterest();
     IERC20(aaveDepositToken).approve(wethGateway, yieldEarned);
@@ -128,7 +138,10 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
 
   ///@notice Withdraws an amount from Token Deposits from AAVE
   function withdraw(uint256 amount) public override whenNotPaused onlyRebalancer returns (bool) {
-    require(amount <= amountDeposited, "AAVEStrategy: Amount Requested to Withdraw is Greater Than Amount Deposited");
+    require(
+      amount <= amountDeposited,
+      "AAVEStrategy: Amount Requested to Withdraw is Greater Than Amount Deposited"
+    );
     IERC20(aaveDepositToken).approve(wethGateway, amount);
     IWETHGateway(wethGateway).withdrawETH(aavePool, amount, address(this));
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
@@ -138,7 +151,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
   }
 
   ///@notice Withdraws all funds from AAVE, as well as claims & unwraps token rewards
-   function withdrawAll() public override whenNotPaused onlyRebalancer returns (bool) {
+  function withdrawAll() public override whenNotPaused onlyRebalancer returns (bool) {
     _claimAAVERewards();
     uint256 aaveBalance = checkAAVEBalance();
     IERC20(aaveDepositToken).approve(wethGateway, aaveBalance);
@@ -149,9 +162,19 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
     return successTransfer;
   }
 
-   ///@notice Deposits native tokens to AAVE.
-  function deposit(uint256 depositValue) public whenNotPaused onlyRebalancer override payable returns (bool) {
-    require(depositValue == msg.value, "AAVEStrategy: Deposit Value Parameter does not equal payable amount");
+  ///@notice Deposits native tokens to AAVE.
+  function deposit(uint256 depositValue)
+    public
+    payable
+    override
+    whenNotPaused
+    onlyRebalancer
+    returns (bool)
+  {
+    require(
+      depositValue == msg.value,
+      "AAVEStrategy: Deposit Value Parameter does not equal payable amount"
+    );
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
     amountDeposited += depositValue;
     return true;
@@ -201,7 +224,7 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
 
   ///@notice Permissioned function to update the address of the aaveDataProvider
   ///@param _aaveDataProvider - the address of the new aaveDataProvider
-  function updateaaveDataProvider(address _aaveDataProvider) public onlyAdmin{
+  function updateaaveDataProvider(address _aaveDataProvider) public onlyAdmin {
     require(_aaveDataProvider != address(0), "AAVEStrategy: INVALID_ADDRESS");
     aaveDataProvider = _aaveDataProvider;
   }

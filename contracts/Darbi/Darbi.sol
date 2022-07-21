@@ -24,7 +24,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   address public gasRefundAddress;
   uint256 public arbitrageThreshold = 100000;
   uint256 public gasRefund = 3500000000000000;
-  uint256 public darbiDepositBalance = 0;
+  uint256 public darbiDepositBalance = 0.5 ether;
   IERC20 public UP_TOKEN;
   IUniswapV2Router02 public router;
   UPController public UP_CONTROLLER;
@@ -96,14 +96,13 @@ contract Darbi is AccessControl, Pausable, Safe {
       require(amountIn > gasRefund, "Darbi: Trade will not be profitable");
       if (amountIn < arbitrageThreshold) return;
       _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
-      refund();
     } else {
       uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
       require(amountInETHTerms > gasRefund, "Darbi: Trade will not be profitable");
       if (amountInETHTerms < arbitrageThreshold) return;
       _arbitrageSell(balances, amountIn, backedValue);
-      refund();
     }
+    refund();
   }
 
   function forceArbitrage() public whenNotPaused onlyRebalancer {
@@ -207,7 +206,11 @@ contract Darbi is AccessControl, Pausable, Safe {
       uint256 upPrice
     )
   {
-    (reservesUP, reservesETH) = UniswapHelper.getReserves(factory, address(UP_TOKEN), address(WETH));
+    (reservesUP, reservesETH) = UniswapHelper.getReserves(
+      factory,
+      address(UP_TOKEN),
+      address(WETH)
+    );
     upPrice = UP_CONTROLLER.getVirtualPrice();
     (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
       1000000000000000000, // Ratio = 1:UPVirtualPrice

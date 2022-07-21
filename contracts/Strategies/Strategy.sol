@@ -7,6 +7,7 @@ import "../Helpers/Safe.sol";
 
 abstract contract Strategy is IStrategy, Safe {
   mapping(address => bool) public owners;
+  uint256 public amountDeposited = 0;
 
   modifier onlyOwner() {
     require(owners[msg.sender], "Strategy: ONLY_OWNER");
@@ -19,34 +20,39 @@ abstract contract Strategy is IStrategy, Safe {
 
   receive() external payable virtual {}
 
-  function deposit(uint256 amount) external virtual payable override returns (bool) {
+  function deposit(uint256 amount) external payable virtual override returns (bool) {
+    amountDeposited += amount;
     return true;
   }
 
   function withdraw(uint256 amount) external virtual override returns (bool) {
+    amountDeposited -= amount;
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
     require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
     return true;
   }
 
   function withdrawAll() external virtual override returns (bool) {
+    amountDeposited -= address(this).balance > amountDeposited
+      ? address(this).balance
+      : amountDeposited - address(this).balance;
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
     return true;
   }
 
   function gather() public virtual override {
-    uint256 nativeAmount = address(this).balance;
+    uint256 nativeAmount = address(this).balance - amountDeposited;
     (bool successTransfer, ) = address(msg.sender).call{value: nativeAmount}("");
     require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
   }
 
-  function checkRewards() public virtual override view returns (IStrategy.Rewards memory) {
-    uint256 nativeAmount = address(this).balance;
+  function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
+    uint256 rewards = address(this).balance - amountDeposited;
     IStrategy.Rewards memory result = IStrategy.Rewards(
-      nativeAmount,
-      nativeAmount,
-      block.timestamp
+      rewards,
+      amountDeposited,
+      block.timestamp * 1000
     );
     return result;
   }

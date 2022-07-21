@@ -10,7 +10,8 @@ import {
   UniswapHelper,
   UP,
   UPController,
-  UPMintDarbi
+  UPMintDarbi,
+  Vanilla
 } from "../typechain-types"
 import contracts from "./Contracts"
 import { getUniswapRouter } from "./Helper"
@@ -423,6 +424,217 @@ describe("Rebalancer", function () {
           .toNumber()
         expect(nativeSumUp).greaterThan(
           9.97 // minus 0.3% uTrade fee
+        )
+      })
+    })
+
+    describe.only("with strategy", () => {
+      let addr1: SignerWithAddress
+      let router: IUniswapV2Router02
+      let liquidityPool: IUnifiPair
+      let VANILLA: Vanilla
+
+      beforeEach(async () => {
+        const [a1] = await ethers.getSigners()
+        addr1 = a1
+
+        router = await getUniswapRouter(contracts["Router"])
+
+        VANILLA = await ethers
+          .getContractFactory("Vanilla")
+          .then((f) => f.deploy())
+          .then((i) => i.deployed())
+
+        UP_TOKEN = await ethers
+          .getContractFactory("UP")
+          .then((factory) => factory.deploy())
+          .then((instance) => instance.deployed())
+
+        await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), addr1.address)
+        await UP_TOKEN.mint(addr1.address, ethers.utils.parseEther("4"))
+        await UP_TOKEN.approve(router.address, ethers.utils.parseEther("666"))
+
+        await router.addLiquidityETH(
+          UP_TOKEN.address,
+          ethers.utils.parseEther("2"),
+          0,
+          0,
+          addr1.address,
+          Date.now() + 150,
+          { value: ethers.utils.parseEther("5") }
+        )
+
+        const factory = await ethers.getContractAt("IUniswapV2Factory", contracts["Factory"])
+        const pairAddress = await factory.getPair(UP_TOKEN.address, contracts["WETH"])
+        liquidityPool = await ethers.getContractAt("IUnifiPair", pairAddress)
+
+        UP_CONTROLLER = await ethers
+          .getContractFactory("UPController")
+          .then((cf) => cf.deploy(UP_TOKEN.address))
+
+        await addr1.sendTransaction({
+          to: UP_CONTROLLER.address,
+          value: ethers.utils.parseEther("10")
+        })
+        await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), addr1.address)
+
+        UP_MINT_DARBI = await ethers
+          .getContractFactory("UPMintDarbi")
+          .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address))
+          .then((instance) => instance.deployed())
+
+        await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_MINT_DARBI.address)
+
+        DARBI = await ethers
+          .getContractFactory("Darbi", {
+            libraries: {
+              UniswapHelper: uniswapHelper.address
+            }
+          })
+          .then((factory) =>
+            factory.deploy(
+              contracts["Factory"],
+              contracts["Router"],
+              contracts["WETH"],
+              addr1.address,
+              UP_CONTROLLER.address,
+              UP_MINT_DARBI.address,
+              MEANINGLESS_AMOUNT
+            )
+          )
+
+        await DARBI.addDarbiFunds({ value: ethers.utils.parseEther("10") })
+
+        rebalancer = await ethers
+          .getContractFactory("Rebalancer", {
+            libraries: {
+              UniswapHelper: uniswapHelper.address
+            }
+          })
+          .then((cf) =>
+            cf.deploy(
+              contracts["WETH"],
+              UP_TOKEN.address,
+              UP_CONTROLLER.address,
+              VANILLA.address,
+              contracts["Router"],
+              contracts["Factory"],
+              pairAddress,
+              DARBI.address
+            )
+          )
+
+        await rebalancer.grantRole(await rebalancer.REBALANCE_ROLE(), addr1.address)
+        await DARBI.grantRole(await DARBI.REBALANCER_ROLE(), rebalancer.address)
+        await UP_CONTROLLER.grantRole(await UP_CONTROLLER.REBALANCER_ROLE(), rebalancer.address)
+        await UP_CONTROLLER.grantRole(await UP_CONTROLLER.REDEEMER_ROLE(), rebalancer.address)
+        await UP_CONTROLLER.grantRole(await UP_CONTROLLER.REDEEMER_ROLE(), DARBI.address)
+        await UP_MINT_DARBI.grantDarbiRole(DARBI.address)
+        await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_CONTROLLER.address)
+      })
+
+      it("Should add liquidity to the LP when there is no LP tokens yet", async () => {
+        const initialLP = await liquidityPool.balanceOf(rebalancer.address)
+        assert(initialLP.eq(0))
+        await rebalancer.rebalance()
+
+        const { depositedAmount } = await VANILLA.checkRewards()
+
+        const [r0, r1] = await uniswapHelper.getReserves(
+          contracts["Factory"],
+          contracts["WETH"],
+          UP_TOKEN.address
+        )
+        const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
+        const upcBalances = await UP_CONTROLLER.getNativeBalance()
+
+        const finalLP = await liquidityPool.balanceOf(rebalancer.address)
+        assert(finalLP.gt(0), "LP balance cannot be 0")
+
+        const nativeSumUp = BN(reservesETH.add(upcBalances).toHexString())
+          .div(ethers.utils.parseEther("1").toHexString())
+          .dp(2)
+          .toNumber()
+        expect(nativeSumUp).greaterThan(
+          9.97 // minus 0.3% uTrade fee
+        )
+        assert(depositedAmount.eq(ethers.utils.parseEther("9")), "Wrong strategy deposited amount")
+        const _reservesETH = BN(reservesETH.toHexString()).div(
+          ethers.utils.parseEther("1").toHexString()
+        )
+        expect(_reservesETH.toNumber()).closeTo(0.5, 0.01)
+      })
+
+      it("Should rebalance the LP because the UPController redeem value went down", async () => {
+        await UP_TOKEN.mint(addr1.address, ethers.utils.parseEther("0.05"))
+        // NEW VIRTUAL PRICE = 10/4.05 = ~2.469 | PREVIOUS = 10/4 = 2.5 = ~1.01% deviation
+
+        await rebalancer.rebalance()
+
+        const [r0, r1] = await uniswapHelper.getReserves(
+          contracts["Factory"],
+          contracts["WETH"],
+          UP_TOKEN.address
+        )
+
+        const upcTotalBalances = await UP_CONTROLLER.getNativeBalance()
+        // 5% allocation of the upcTotalBalances
+        const upcBalance = await UP_CONTROLLER.provider.getBalance(UP_CONTROLLER.address)
+        // 5% allocation of the upcTotalBalances
+        const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
+        // 90% allocation of the upcTotalBalances
+        const strategyInfo = await VANILLA.checkRewards()
+
+        const _sumRebalance = BN(
+          upcBalance.add(reservesETH).add(strategyInfo.depositedAmount).toHexString()
+        )
+          .div(ethers.constants.WeiPerEther.toHexString())
+          .toNumber()
+        const _upcTotalBalances = BN(upcTotalBalances.toHexString())
+          .div(ethers.constants.WeiPerEther.toHexString())
+          .toNumber()
+
+        expect(_sumRebalance).closeTo(
+          _upcTotalBalances,
+          1000,
+          "TOTAL BALANCES NOT EQUAL TO DISTRIBUTION"
+        )
+      })
+
+      it("Should rebalance the LP because the UPController redeem value went up", async () => {
+        await UP_TOKEN.burn(ethers.utils.parseEther("0.05"))
+        // NEW VIRTUAL PRICE = 10/3.95 = ~2.531 | PREVIOUS = 10/4 = 2.5 = ~1.01% deviation
+
+        await rebalancer.rebalance()
+
+        const [r0, r1] = await uniswapHelper.getReserves(
+          contracts["Factory"],
+          contracts["WETH"],
+          UP_TOKEN.address
+        )
+
+        const upcTotalBalances = await UP_CONTROLLER.getNativeBalance()
+        // 5% allocation of the upcTotalBalances
+        const upcBalance = await UP_CONTROLLER.provider.getBalance(UP_CONTROLLER.address)
+        // 5% allocation of the upcTotalBalances
+        const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
+        // 90% allocation of the upcTotalBalances
+        const strategyInfo = await VANILLA.checkRewards()
+
+        const _sumRebalance = BN(
+          upcBalance.add(reservesETH).add(strategyInfo.depositedAmount).toHexString()
+        )
+          .div(ethers.constants.WeiPerEther.toHexString())
+          .toNumber()
+
+        const _upcTotalBalances = BN(upcTotalBalances.toHexString())
+          .div(ethers.constants.WeiPerEther.toHexString())
+          .toNumber()
+
+        expect(_sumRebalance).closeTo(
+          _upcTotalBalances,
+          1000,
+          "TOTAL BALANCES NOT EQUAL TO DISTRIBUTION"
         )
       })
     })

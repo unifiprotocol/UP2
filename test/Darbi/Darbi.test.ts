@@ -14,7 +14,7 @@ import contracts from "../Contracts"
 import { getUniswapRouter } from "../Helper"
 import { BN } from "@unifiprotocol/utils"
 
-describe.only("Darbi", async () => {
+describe("Darbi", async () => {
   let darbiContract: Darbi
   let unpermissionedDarbiContract: Darbi
   let admin: SignerWithAddress
@@ -454,7 +454,7 @@ describe.only("Darbi", async () => {
     })
   })
 
-  describe.only("refund", () => {
+  describe("refund", () => {
     it("Shouldn't refund because balances aren't enough for covering the base balances", async () => {
       const initialBalance = await darbiContract.provider.getBalance(darbiContract.address)
       await darbiContract.setDarbiFunds(ethers.utils.parseEther("6"))
