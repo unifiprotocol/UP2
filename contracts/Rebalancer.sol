@@ -316,12 +316,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return true;
   }
 
-  function withdrawFundsERC20(address target, address tokenAddress)
-    public
-    onlyAdmin
-    returns (bool)
-  {
-    return _withdrawFundsERC20(target, tokenAddress);
+  function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
+    uint256 balanceERC20 = IERC20(tokenAddress).balanceOf(address(this));
+    IERC20(tokenAddress).transferFrom(address(this), emergencyWithdrawAddress, balanceERC20);
+    return true;
   }
 
   /// @notice Permissioned function to pause UPToken Controller
