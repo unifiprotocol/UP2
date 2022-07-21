@@ -22,7 +22,8 @@ task("RebalancerDeploy", "Deploy Rebalancer contract")
       router,
       factory,
       lp,
-      darbi
+      darbi,
+      "<SAFE_WITHDRAW_ADDRESS>"
     )
     await rebalancer.deployed()
 

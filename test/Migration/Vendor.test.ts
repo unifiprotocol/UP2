@@ -23,7 +23,7 @@ describe("Vendor", function () {
       .then((instance) => instance.deployed())
     vendor = await ethers
       .getContractFactory("Vendor")
-      .then((factory) => factory.deploy(upToken1.address, upToken2.address))
+      .then((factory) => factory.deploy(upToken1.address, upToken2.address, addr1.address))
       .then((instance) => instance.deployed())
 
     const controllerRoleNS1 = await upToken1.MINT_ROLE()
@@ -105,7 +105,7 @@ describe("Vendor", function () {
 
   it("Should withdraw 1 UP using withdrawFundsERC20", async () => {
     await upToken2.mint(vendor.address, ethers.constants.WeiPerEther)
-    await vendor.withdrawFundsERC20(addr1.address, upToken2.address)
+    await vendor.withdrawFundsERC20(upToken2.address)
     expect(await upToken2.balanceOf(vendor.address)).equal(0)
     expect(await upToken2.balanceOf(addr1.address)).equal(ethers.constants.WeiPerEther)
   })
@@ -114,7 +114,7 @@ describe("Vendor", function () {
     const [, addr2] = await ethers.getSigners()
     const addr2Vendor = vendor.connect(addr2)
     await upToken2.mint(vendor.address, ethers.constants.WeiPerEther)
-    await expect(addr2Vendor.withdrawFundsERC20(addr2.address, upToken2.address)).revertedWith(
+    await expect(addr2Vendor.withdrawFundsERC20(upToken2.address)).revertedWith(
       "Ownable: caller is not the owner"
     )
     expect(await upToken2.balanceOf(vendor.address)).equal(ethers.constants.WeiPerEther)

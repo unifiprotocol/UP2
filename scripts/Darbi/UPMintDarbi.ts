@@ -8,7 +8,7 @@ task("UPMintDarbiDeploy", "Deploy UPMintDarbi contract")
     await hre.run("compile")
 
     const UPMintDarbiContract = await hre.ethers.getContractFactory("UPMintDarbi")
-    const upMintDarbi = await UPMintDarbiContract.deploy(up, controller)
+    const upMintDarbi = await UPMintDarbiContract.deploy(up, controller, "<SAFE_WITHDRAW_ADDRESS>")
     await upMintDarbi.deployed()
 
     console.log("UPMintDarbi -", upMintDarbi.address)

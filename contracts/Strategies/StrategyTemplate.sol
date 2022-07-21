@@ -32,7 +32,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
 
   event UpdateRebalancer(address _rebalancer);
 
-  constructor() {
+  constructor(address _fundsTarget) Safe(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
   }
@@ -104,15 +104,15 @@ function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused r
 
   receive() external payable virtual {}
 
-  function withdrawFunds(address target) public onlyAdmin returns (bool) {
-    return _withdrawFunds(target);
+  function withdrawFunds() public onlyAdmin returns (bool) {
+    return _withdrawFunds();
   }
 
-  function withdrawFundsERC20(address target, address tokenAddress)
+  function withdrawFundsERC20(address tokenAddress)
     public
     onlyAdmin
     returns (bool)
   {
-    return _withdrawFundsERC20(target, tokenAddress);
+    return _withdrawFundsERC20(tokenAddress);
   }
 }

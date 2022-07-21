@@ -49,8 +49,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     address _unifiRouter,
     address _unifiFactory,
     address _liquidityPool,
-    address _darbi
-  ) {
+    address _darbi,
+    address _fundsTarget
+  ) Safe(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     WETH = _WETH;
     setUPController(_UPController);
@@ -327,16 +328,14 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return true;
   }
 
-  function withdrawFunds(address target) public onlyAdmin returns (bool) {
-    return _withdrawFunds(target);
+  /// @notice Permissioned function to withdraw any native coins accidentally deposited to the Public Mint contract.
+  function withdrawFunds() public onlyAdmin returns (bool) {
+    return _withdrawFunds();
   }
 
-  function withdrawFundsERC20(address target, address tokenAddress)
-    public
-    onlyAdmin
-    returns (bool)
-  {
-    return _withdrawFundsERC20(target, tokenAddress);
+  /// @notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
+  function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
+    return _withdrawFundsERC20(tokenAddress);
   }
 
   /// @notice Permissioned function to pause UPToken Controller

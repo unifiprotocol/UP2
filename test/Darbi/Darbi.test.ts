@@ -39,7 +39,7 @@ describe("Darbi", async () => {
       .then((instance) => instance.deployed())
     UP_CONTROLLER = await ethers
       .getContractFactory("UPController")
-      .then((cf) => cf.deploy(UP_TOKEN.address))
+      .then((cf) => cf.deploy(UP_TOKEN.address, admin.address))
 
     await admin.sendTransaction({
       to: UP_CONTROLLER.address,
@@ -50,7 +50,7 @@ describe("Darbi", async () => {
 
     UP_MINT_DARBI = await ethers
       .getContractFactory("UPMintDarbi")
-      .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address))
+      .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address, admin.address))
       .then((instance) => instance.deployed())
 
     await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_MINT_DARBI.address)
@@ -69,7 +69,8 @@ describe("Darbi", async () => {
       admin.address,
       UP_CONTROLLER.address,
       UP_MINT_DARBI.address,
-      MEANINGLESS_AMOUNT
+      MEANINGLESS_AMOUNT,
+      admin.address
     )
 
     await admin.sendTransaction({
@@ -154,7 +155,8 @@ describe("Darbi", async () => {
         admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
-        MEANINGLESS_AMOUNT
+        MEANINGLESS_AMOUNT,
+        admin.address
       )
     })
 
@@ -250,7 +252,8 @@ describe("Darbi", async () => {
         admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
-        MEANINGLESS_AMOUNT
+        MEANINGLESS_AMOUNT,
+        admin.address
       )
 
       await admin.sendTransaction({
@@ -489,30 +492,5 @@ describe("Darbi", async () => {
         )
       ).equal(afterUpControllerBalances, "wrong up controller balance")
     })
-
-    // it("Should refund gasRefundAddress and upController when msg.sender is rebalancer", async () => {
-    //   await darbiContract.setDarbiFunds(ethers.utils.parseEther("4"))
-    //   const gasRefund = await darbiContract.gasRefund()
-    //   const initialBalance = await darbiContract.provider.getBalance(darbiContract.address)
-    //   expect(initialBalance).equal(ethers.utils.parseEther("5"), "wrong initial balance")
-    //   // const initialGasRefundAddressBalances = await darbiContract.provider.getBalance(admin.address)
-    //   const initialUpControllerBalances = await darbiContract.provider.getBalance(
-    //     UP_CONTROLLER.address
-    //   )
-    //   await darbiContract.refund()
-    //   // const gasUsage = refund.gasLimit.mul(refund.gasPrice ?? "1")
-    //   // const afterGasRefundAddressBalances = await darbiContract.provider.getBalance(admin.address)
-    //   const afterBalance = await darbiContract.provider.getBalance(darbiContract.address)
-    //   const afterUpControllerBalances = await darbiContract.provider.getBalance(
-    //     UP_CONTROLLER.address
-    //   )
-    //   expect(afterBalance).equal(initialBalance.sub(gasRefund), "wrong darbi after balance")
-    //   // const totalGasRefunds = initialGasRefundAddressBalances.sub(gasUsage).add(gasRefund)
-    //   // expect(totalGasRefunds).equal(afterGasRefundAddressBalances, "wrong gas refund balance")
-    //   expect(initialUpControllerBalances).equal(
-    //     afterUpControllerBalances,
-    //     "up controller balance shouldn't change"
-    //   )
-    // })
   })
 })

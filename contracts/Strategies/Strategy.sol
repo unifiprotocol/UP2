@@ -14,7 +14,7 @@ abstract contract Strategy is IStrategy, Safe {
     _;
   }
 
-  constructor() {
+  constructor(address _fundsTarget) Safe(_fundsTarget) {
     owners[msg.sender] = true;
   }
 
@@ -66,15 +66,15 @@ abstract contract Strategy is IStrategy, Safe {
     owners[_owner] = false;
   }
 
-  function withdrawFunds(address target) public onlyOwner returns (bool) {
-    return _withdrawFunds(target);
+  function withdrawFunds() public onlyOwner returns (bool) {
+    return _withdrawFunds();
   }
 
-  function withdrawFundsERC20(address target, address tokenAddress)
+  function withdrawFundsERC20(address tokenAddress)
     public
     onlyOwner
     returns (bool)
   {
-    return _withdrawFundsERC20(target, tokenAddress);
+    return _withdrawFundsERC20(tokenAddress);
   }
 }
