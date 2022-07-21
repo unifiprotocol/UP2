@@ -206,13 +206,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     // IF after arbitrage the backedValue vs marketValue is still depegged over the threshold we dont have nothing to do
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
-    uint256 marketValue = (reservesUP * 1e18) / reservesETH;
-    if (
-      backedValue > (marketValue * (1 + (slippageTolerance / 10000))) ||
-      backedValue < (marketValue * (1 - (slippageTolerance / 10000)))
-    ) {
-      return;
-    }
+    uint256 marketValue = (reservesETH * 1e18) / reservesUP;
+    uint256 deviation = backedValue < marketValue
+      ? (1e18 - ((backedValue * 1e18) / marketValue)) / 1e14
+      : (1e18 - ((marketValue * 1e18) / backedValue)) / 1e14;
+    if (deviation > slippageTolerance) return;
 
     (, uint256 ethLpBalance) = getLiquidityPoolBalance(reservesUP, reservesETH);
 
