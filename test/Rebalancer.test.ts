@@ -44,6 +44,7 @@ describe("Rebalancer", function () {
           ethers.constants.AddressZero,
           ethers.constants.AddressZero,
           ethers.constants.AddressZero,
+          ethers.constants.AddressZero,
           ethers.constants.AddressZero
         )
       )
@@ -133,7 +134,7 @@ describe("Rebalancer", function () {
 
       UP_CONTROLLER = await ethers
         .getContractFactory("UPController")
-        .then((cf) => cf.deploy(UP_TOKEN.address))
+        .then((cf) => cf.deploy(UP_TOKEN.address, addr1.address))
 
       await addr1.sendTransaction({
         to: UP_CONTROLLER.address,
@@ -144,7 +145,7 @@ describe("Rebalancer", function () {
 
       UP_MINT_DARBI = await ethers
         .getContractFactory("UPMintDarbi")
-        .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address))
+        .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address, addr1.address))
         .then((instance) => instance.deployed())
 
       await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_MINT_DARBI.address)
@@ -163,7 +164,8 @@ describe("Rebalancer", function () {
             addr1.address,
             UP_CONTROLLER.address,
             UP_MINT_DARBI.address,
-            MEANINGLESS_AMOUNT
+            MEANINGLESS_AMOUNT,
+            addr1.address
           )
         )
 
@@ -187,7 +189,8 @@ describe("Rebalancer", function () {
             contracts["Router"],
             contracts["Factory"],
             pairAddress,
-            DARBI.address
+            DARBI.address,
+            addr1.address
           )
         )
     })
@@ -260,7 +263,7 @@ describe("Rebalancer", function () {
 
         UP_CONTROLLER = await ethers
           .getContractFactory("UPController")
-          .then((cf) => cf.deploy(UP_TOKEN.address))
+          .then((cf) => cf.deploy(UP_TOKEN.address, addr1.address))
 
         await addr1.sendTransaction({
           to: UP_CONTROLLER.address,
@@ -270,7 +273,7 @@ describe("Rebalancer", function () {
 
         UP_MINT_DARBI = await ethers
           .getContractFactory("UPMintDarbi")
-          .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address))
+          .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address, addr1.address))
           .then((instance) => instance.deployed())
 
         await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_MINT_DARBI.address)
@@ -289,7 +292,8 @@ describe("Rebalancer", function () {
               addr1.address,
               UP_CONTROLLER.address,
               UP_MINT_DARBI.address,
-              MEANINGLESS_AMOUNT
+              MEANINGLESS_AMOUNT,
+              addr1.address
             )
           )
 
@@ -313,7 +317,8 @@ describe("Rebalancer", function () {
               contracts["Router"],
               contracts["Factory"],
               pairAddress,
-              DARBI.address
+              DARBI.address,
+              addr1.address
             )
           )
 

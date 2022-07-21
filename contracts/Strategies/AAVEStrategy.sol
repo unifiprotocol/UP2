@@ -52,7 +52,9 @@ contract AAVEStrategy is Strategy, AccessControl, Pausable {
     address _aavePool,
     address _wethGateway,
     address _aaveDataProvider,
-    address _aaveDepositToken) {
+    address _aaveDepositToken,
+    address _safeWithdrawalAddress
+    ) Strategy(_safeWithdrawalAddress) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
     wrappedTokenAddress = _wrappedTokenAddress;

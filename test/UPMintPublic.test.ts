@@ -19,11 +19,11 @@ describe("UPMintPublic", () => {
       .then((instance) => instance.deployed())
     upController = await ethers
       .getContractFactory("UPController")
-      .then((factory) => factory.deploy(upToken.address))
+      .then((factory) => factory.deploy(upToken.address, addr1.address))
       .then((instance) => instance.deployed())
     upMintPublic = await ethers
       .getContractFactory("UPMintPublic")
-      .then((factory) => factory.deploy(upToken.address, upController.address, 5))
+      .then((factory) => factory.deploy(upToken.address, upController.address, 5, addr1.address))
       .then((instance) => instance.deployed())
     await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
     await upToken.grantRole(await upToken.MINT_ROLE(), upMintPublic.address)

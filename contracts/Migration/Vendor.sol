@@ -20,7 +20,7 @@ contract Vendor is ReentrancyGuard, Pausable, Ownable, Safe {
 
   event Swap(address _from, uint256 _amount);
 
-  constructor(address oldUp, address newUp) {
+  constructor(address oldUp, address newUp, address _fundsTarget) Safe(_fundsTarget) {
     OLD_UP = oldUp;
     UP = newUp;
   }
@@ -50,11 +50,11 @@ contract Vendor is ReentrancyGuard, Pausable, Ownable, Safe {
     _unpause();
   }
 
-  function withdrawFundsERC20(address target, address tokenAddress)
+  function withdrawFundsERC20(address tokenAddress)
     public
     onlyOwner
     returns (bool)
   {
-    return _withdrawFundsERC20(target, tokenAddress);
+    return _withdrawFundsERC20(tokenAddress);
   }
 }

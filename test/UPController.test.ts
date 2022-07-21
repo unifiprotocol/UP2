@@ -18,7 +18,7 @@ describe("UPController", function () {
     await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
     upController = await ethers
       .getContractFactory("UPController")
-      .then((factory) => factory.deploy(upToken.address))
+      .then((factory) => factory.deploy(upToken.address, addr1.address))
       .then((instance) => instance.deployed())
     await upToken.grantRole(await upToken.MINT_ROLE(), upController.address)
     await upController.grantRole(await upController.REBALANCER_ROLE(), addr1.address)
@@ -244,7 +244,7 @@ describe("UPController", function () {
   describe("WithdrawFunds", () => {
     it("Should withdraw 1 UP using withdrawFundsERC20", async () => {
       await upToken.mint(upController.address, ethers.constants.WeiPerEther)
-      await upController.withdrawFundsERC20(addr1.address, upToken.address)
+      await upController.withdrawFundsERC20(upToken.address)
       expect(await upToken.balanceOf(upController.address)).equal(0)
       expect(await upToken.balanceOf(addr1.address)).equal(ethers.constants.WeiPerEther)
     })
@@ -257,7 +257,7 @@ describe("UPController", function () {
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.constants.WeiPerEther
       )
-      await upController.withdrawFunds(addr1.address)
+      await upController.withdrawFunds()
       expect(await upController.provider.getBalance(upController.address)).equal(0)
     })
 
@@ -265,9 +265,7 @@ describe("UPController", function () {
       const [, addr2] = await ethers.getSigners()
       const addr2upController = upController.connect(addr2)
       await upToken.mint(upController.address, ethers.constants.WeiPerEther)
-      await expect(
-        addr2upController.withdrawFundsERC20(addr2.address, upToken.address)
-      ).revertedWith("ONLY_ADMIN")
+      await expect(addr2upController.withdrawFundsERC20(upToken.address)).revertedWith("ONLY_ADMIN")
       expect(await upToken.balanceOf(upController.address)).equal(ethers.constants.WeiPerEther)
       expect(await upToken.balanceOf(addr2.address)).equal(0)
     })

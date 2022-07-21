@@ -31,8 +31,9 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   constructor(
     address _UP,
     address _UPController,
-    uint256 _mintRate
-  ) {
+    uint256 _mintRate,
+    address _targetFunds
+  ) Safe(_targetFunds) {
     require(_UP != address(0), "UPMintPublic: Invalid UP address");
     UP_TOKEN = payable(_UP);
     UP_CONTROLLER = payable(_UPController);
@@ -81,16 +82,16 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   }
 
   /// @notice Permissioned function to withdraw any native coins accidentally deposited to the Public Mint contract.
-  function withdrawFunds(address target) public onlyOwner returns (bool) {
-    return _withdrawFunds(target);
+  function withdrawFunds() public onlyOwner returns (bool) {
+    return _withdrawFunds();
   }
 
   /// @notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
-  function withdrawFundsERC20(address target, address tokenAddress)
+  function withdrawFundsERC20(address tokenAddress)
     public
     onlyOwner
     returns (bool)
   {
-    return _withdrawFundsERC20(target, tokenAddress);
+    return _withdrawFundsERC20(tokenAddress);
   }
 }

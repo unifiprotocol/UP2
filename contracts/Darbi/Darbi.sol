@@ -62,8 +62,9 @@ contract Darbi is AccessControl, Pausable, Safe {
     address _gasRefundAddress,
     address _UP_CONTROLLER,
     address _darbiMinter,
-    uint256 _arbitrageThreshold
-  ) {
+    uint256 _arbitrageThreshold,
+    address _fundsTarget
+  ) Safe(_fundsTarget) {
     factory = _factory;
     router = IUniswapV2Router02(_router);
     WETH = _WETH;
@@ -258,7 +259,7 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   function withdrawFunds(address target) public onlyAdmin returns (bool) {
     darbiDepositBalance == 0;
-    return _withdrawFunds(target);
+    return _withdrawFunds();
   }
 
   function withdrawFundsERC20(address target, address tokenAddress)
@@ -266,7 +267,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     onlyAdmin
     returns (bool)
   {
-    return _withdrawFundsERC20(target, tokenAddress);
+    return _withdrawFundsERC20(tokenAddress);
   }
 
   /// @notice Permissioned function to pause UPaddress Controller

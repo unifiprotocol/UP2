@@ -17,7 +17,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
 
   address public WETH = address(0);
-  address public emergencyWithdrawAddress = address(0);
   IStrategy public strategy;
   address public unifiFactory = address(0);
   IUnifiPair public liquidityPool;
@@ -43,18 +42,17 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   constructor(
     address _WETH,
-    address _emergencyWithdrawAddress,
     address _UPAddress,
     address _UPController,
     address _Strategy,
     address _unifiRouter,
     address _unifiFactory,
     address _liquidityPool,
-    address _darbi
-  ) {
+    address _darbi,
+    address _fundsTarget
+  ) Safe(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     WETH = _WETH;
-    emergencyWithdrawAddress = _emergencyWithdrawAddress;
     setUPController(_UPController);
     strategy = IStrategy(_Strategy);
     UPToken = UP(payable(_UPAddress));
@@ -309,17 +307,18 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return true;
   }
 
+  /// @notice Permissioned function to withdraw any native coins accidentally deposited to the Public Mint contract.
   function withdrawFunds() public onlyAdmin returns (bool) {
-    uint256 newBalances = address(this).balance;
-    (bool successTransfer, ) = address(emergencyWithdrawAddress).call{value: newBalances}("");
-    require(successTransfer);
-    return true;
+    return _withdrawFunds();
   }
 
-  function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
-    uint256 balanceERC20 = IERC20(tokenAddress).balanceOf(address(this));
-    IERC20(tokenAddress).transferFrom(address(this), emergencyWithdrawAddress, balanceERC20);
-    return true;
+  /// @notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
+  function withdrawFundsERC20(address tokenAddress)
+    public
+    onlyAdmin
+    returns (bool)
+  {
+    return _withdrawFundsERC20(tokenAddress);
   }
 
   /// @notice Permissioned function to pause UPToken Controller

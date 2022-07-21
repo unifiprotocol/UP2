@@ -39,7 +39,7 @@ contract UPController is AccessControl, Safe, Pausable {
     _;
   }
 
-  constructor(address _UP) {
+  constructor(address _UP, address _fundsTarget) Safe(_fundsTarget) {
     require(_UP != address(0), "UPController: Invalid UP address");
     UP_TOKEN = payable(_UP);
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
@@ -125,15 +125,15 @@ contract UPController is AccessControl, Safe, Pausable {
     _unpause();
   }
 
-  function withdrawFunds(address target) public onlyAdmin returns (bool) {
-    return _withdrawFunds(target);
+  function withdrawFunds() public onlyAdmin returns (bool) {
+    return _withdrawFunds();
   }
 
-  function withdrawFundsERC20(address target, address tokenAddress)
+  function withdrawFundsERC20(address tokenAddress)
     public
     onlyAdmin
     returns (bool)
   {
-    return _withdrawFundsERC20(target, tokenAddress);
+    return _withdrawFundsERC20(tokenAddress);
   }
 }

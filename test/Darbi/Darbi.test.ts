@@ -14,7 +14,7 @@ import contracts from "../Contracts"
 import { getUniswapRouter } from "../Helper"
 import { BN } from "@unifiprotocol/utils"
 
-describe.only("Darbi", async () => {
+describe("Darbi", async () => {
   let darbiContract: Darbi
   let unpermissionedDarbiContract: Darbi
   let admin: SignerWithAddress
@@ -39,7 +39,7 @@ describe.only("Darbi", async () => {
       .then((instance) => instance.deployed())
     UP_CONTROLLER = await ethers
       .getContractFactory("UPController")
-      .then((cf) => cf.deploy(UP_TOKEN.address))
+      .then((cf) => cf.deploy(UP_TOKEN.address, admin.address))
 
     await admin.sendTransaction({
       to: UP_CONTROLLER.address,
@@ -50,7 +50,7 @@ describe.only("Darbi", async () => {
 
     UP_MINT_DARBI = await ethers
       .getContractFactory("UPMintDarbi")
-      .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address))
+      .then((factory) => factory.deploy(UP_TOKEN.address, UP_CONTROLLER.address, admin.address))
       .then((instance) => instance.deployed())
 
     await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_MINT_DARBI.address)
@@ -69,7 +69,8 @@ describe.only("Darbi", async () => {
       admin.address,
       UP_CONTROLLER.address,
       UP_MINT_DARBI.address,
-      MEANINGLESS_AMOUNT
+      MEANINGLESS_AMOUNT,
+      admin.address
     )
 
     await admin.sendTransaction({
@@ -154,7 +155,8 @@ describe.only("Darbi", async () => {
         admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
-        MEANINGLESS_AMOUNT
+        MEANINGLESS_AMOUNT,
+        admin.address
       )
     })
 
@@ -250,7 +252,8 @@ describe.only("Darbi", async () => {
         admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
-        MEANINGLESS_AMOUNT
+        MEANINGLESS_AMOUNT,
+        admin.address
       )
 
       await admin.sendTransaction({
@@ -454,7 +457,7 @@ describe.only("Darbi", async () => {
     })
   })
 
-  describe.only("refund", () => {
+  describe("refund", () => {
     it("Shouldn't refund because balances aren't enough for covering the base balances", async () => {
       const initialBalance = await darbiContract.provider.getBalance(darbiContract.address)
       await darbiContract.setDarbiFunds(ethers.utils.parseEther("6"))

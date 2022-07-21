@@ -157,7 +157,7 @@ describe("UPv2", function () {
     beforeEach(async () => {
       upController = await ethers
         .getContractFactory("UPController")
-        .then((factory) => factory.deploy(upToken.address))
+        .then((factory) => factory.deploy(upToken.address, addr1.address))
         .then((instance) => instance.deployed())
       await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
       await upToken.grantRole(await upToken.MINT_ROLE(), upController.address)
