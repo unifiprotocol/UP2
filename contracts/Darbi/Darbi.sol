@@ -260,16 +260,12 @@ contract Darbi is AccessControl, Pausable, Safe {
     DARBI_MINTER = UPMintDarbi(payable(_newMinter));
   }
 
-  function withdrawFunds(address target) public onlyAdmin returns (bool) {
+  function withdrawFunds() public onlyAdmin returns (bool) {
     darbiDepositBalance == 0;
     return _withdrawFunds();
   }
 
-  function withdrawFundsERC20(address target, address tokenAddress)
-    public
-    onlyAdmin
-    returns (bool)
-  {
+  function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
     return _withdrawFundsERC20(tokenAddress);
   }
 

@@ -30,7 +30,11 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   event DarbiMint(address indexed _from, uint256 _amount, uint256 _price, uint256 _value);
   event UpdateController(address _upController);
 
-  constructor(address _UP, address _UPController, address _fundsTarget) Safe(_fundsTarget) {
+  constructor(
+    address _UP,
+    address _UPController,
+    address _fundsTarget
+  ) Safe(_fundsTarget) {
     require(_UP != address(0), "UPMintDarbi: Invalid UP address");
     UP_TOKEN = payable(_UP);
     UP_CONTROLLER = payable(_UPController);
@@ -72,20 +76,16 @@ contract UPMintDarbi is AccessControl, Pausable, Safe {
   }
 
   ///@notice Permissioned function to withdraw any native coins accidentally deposited to the Darbi Mint contract.
-  function withdrawFunds(address target) public onlyAdmin returns (bool) {
+  function withdrawFunds() public onlyAdmin returns (bool) {
     return _withdrawFunds();
   }
 
   ///@notice Permissioned function to withdraw any tokens accidentally deposited to the Darbi Mint contract.
-  function withdrawFundsERC20(address target, address tokenAddress)
-    public
-    onlyAdmin
-    returns (bool)
-  {
+  function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
     return _withdrawFundsERC20(tokenAddress);
   }
 
-    /// @notice Permissioned function to pause UPaddress Controller
+  /// @notice Permissioned function to pause UPaddress Controller
   function pause() public onlyAdmin {
     _pause();
   }

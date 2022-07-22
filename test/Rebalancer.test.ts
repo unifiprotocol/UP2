@@ -433,7 +433,7 @@ describe("Rebalancer", function () {
       })
     })
 
-    describe.only("with strategy", () => {
+    describe("with strategy", () => {
       let addr1: SignerWithAddress
       let router: IUniswapV2Router02
       let liquidityPool: IUnifiPair
@@ -637,6 +637,54 @@ describe("Rebalancer", function () {
         const _upcTotalBalances = BN(upcTotalBalances.toHexString())
           .div(ethers.constants.WeiPerEther.toHexString())
           .toNumber()
+
+        expect(_sumRebalance).closeTo(
+          _upcTotalBalances,
+          1000,
+          "TOTAL BALANCES NOT EQUAL TO DISTRIBUTION"
+        )
+      })
+
+      it("Shouldn't rebalance the LP since it would lead into impermanent loss", async () => {
+        const GAS_REFUND = await DARBI.gasRefund()
+        await rebalancer.rebalance()
+        await UP_TOKEN.burn(ethers.utils.parseEther("1"))
+        // NEW VIRTUAL PRICE = 10/3.95 = ~2.531 | PREVIOUS = 10/4 = 2.5 = ~1.01% deviation
+
+        const priorRebalancerLpBalance = await liquidityPool.balanceOf(rebalancer.address)
+
+        await rebalancer.rebalance()
+
+        const rebalancerLpBalance = await liquidityPool.balanceOf(rebalancer.address)
+
+        const [r0, r1] = await uniswapHelper.getReserves(
+          contracts["Factory"],
+          contracts["WETH"],
+          UP_TOKEN.address
+        )
+
+        const upcTotalBalances = await UP_CONTROLLER.getNativeBalance()
+        // 5% allocation of the upcTotalBalances
+        const upcBalance = await UP_CONTROLLER.provider.getBalance(UP_CONTROLLER.address)
+        // 5% allocation of the upcTotalBalances
+        const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
+        // 90% allocation of the upcTotalBalances
+        const strategyInfo = await VANILLA.checkRewards()
+
+        const _sumRebalance = BN(
+          upcBalance.add(reservesETH).add(strategyInfo.depositedAmount).toHexString()
+        )
+          .div(ethers.constants.WeiPerEther.toHexString())
+          .toNumber()
+
+        const _upcTotalBalances = BN(upcTotalBalances.toHexString())
+          .div(ethers.constants.WeiPerEther.toHexString())
+          .toNumber()
+
+        expect(rebalancerLpBalance).to.be.equals(
+          priorRebalancerLpBalance,
+          "REBALANCER LP BALANCE HAS CHANGED"
+        )
 
         expect(_sumRebalance).closeTo(
           _upcTotalBalances,

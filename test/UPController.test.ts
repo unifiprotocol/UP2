@@ -1,5 +1,8 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { BN } from "@unifiprotocol/utils"
 import { expect } from "chai"
+import { assert } from "console"
+import { BigNumber } from "ethers"
 import { ethers } from "hardhat"
 import { UP, UPController } from "../typechain-types"
 
@@ -254,11 +257,21 @@ describe("UPController", function () {
         to: upController.address,
         value: ethers.constants.WeiPerEther
       })
+      const priorAddr1Balance = await ethers.provider.getBalance(addr1.address)
       expect(await upController.provider.getBalance(upController.address)).equal(
         ethers.constants.WeiPerEther
       )
       await upController.withdrawFunds()
+      const addr1Balance = await ethers.provider.getBalance(addr1.address)
       expect(await upController.provider.getBalance(upController.address)).equal(0)
+      const balanceDiff = addr1Balance.sub(priorAddr1Balance)
+      const threshold = ethers.constants.WeiPerEther.div(2)
+      assert(
+        balanceDiff.gt(threshold),
+        `Balance diff (${ethers.utils.formatEther(
+          balanceDiff
+        )}) should be greater than threshold (${ethers.utils.formatEther(threshold)} ETH)`
+      )
     })
 
     it("Should fail withdrawing 1 UP using withdrawFundsERC20 because is not owner", async () => {

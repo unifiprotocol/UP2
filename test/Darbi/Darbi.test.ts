@@ -313,7 +313,7 @@ describe("Darbi", async () => {
       const ethAmount = ethers.utils.parseEther("1")
 
       await darbiContract.setDarbiFunds(ethers.utils.parseEther("1"))
-      await darbiContract.withdrawFunds(admin.address)
+      await darbiContract.withdrawFunds()
       await admin.sendTransaction({
         to: darbiContract.address,
         value: ethAmount
@@ -331,7 +331,7 @@ describe("Darbi", async () => {
       const ethAmount = ethers.utils.parseEther("1")
 
       await darbiContract.setDarbiFunds(ethers.utils.parseEther("6"))
-      await darbiContract.withdrawFunds(admin.address)
+      await darbiContract.withdrawFunds()
       await admin.sendTransaction({
         to: darbiContract.address,
         value: ethAmount
