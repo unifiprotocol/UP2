@@ -6,8 +6,8 @@ import "./IStrategy.sol";
 import "../Helpers/Safe.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "./UPController.sol";
-import "./Rebalancer.sol";
+import "../UPController.sol";
+import "./Interfaces/IRebalancer.sol";
 
 
 // Contract Strategy must use our customized Safe.sol and OpenZeppelin's AccessControl and Pauseable Contracts.
@@ -23,7 +23,8 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
   uint256 public amountDeposited = 0;
   address public stakingSmartContract;
   address public upController;
-  address public rebalancer; 
+
+  IRebalancer public rebalancer;
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
@@ -37,10 +38,12 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
 
   event UpdateRebalancer(address _rebalancer);
 
-  constructor(address _fundsTarget, address _stakingSmartContract) Safe(_fundsTarget) {
+  constructor(address _fundsTarget, address _stakingSmartContract, address _upController, address _rebalancer) Safe(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
     stakingSmartContract = _stakingSmartContract;
+    upController = _upController; 
+    rebalancer = IRebalancer(_rebalancer);
   }
 
   // Read Functions
@@ -50,8 +53,9 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
 ///the function should calculate the return for selling 2 TokenA, and add to the 5 Native Tokens.
 ///If we assume that each TokenA is worth 4 native tokens, then the unclaimedEarnings value should return a value of 13, adjusted for percision. 
 
-function checkAllocation() public virtual override view returns (uint256 allocationLPUPC) {
-  uint256 allocationLPUPC= rebalancer.allocationLP + rebalancer.allocationRedeem;
+function checkAllocation() public virtual view returns (uint256 allocationOthers) {
+  uint256 allocations = rebalancer.allocationLP() + rebalancer.allocationRedeem();
+  return allocations;
 }
 
 function checkRewards() public virtual override view returns (IStrategy.Rewards memory) {

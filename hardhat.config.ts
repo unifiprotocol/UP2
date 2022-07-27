@@ -10,7 +10,7 @@ const harmonymainnetpk = process.env.HARMONY_MAINNET_PRIVATE_KEY
 const bsctestnetpk = process.env.BSC_TESTNET_PRIVATE_KEY
 
 // TASKS
-import "./scripts/"
+// import "./scripts/"
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
