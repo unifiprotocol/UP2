@@ -120,7 +120,7 @@ function deposit(uint256 depositValue) public onlyRebalancer whenNotPaused overr
 
 function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused returns (bool) {
     require(amount <= amountDeposited, "Amount Requested to Withdraw is Greater Than Amount Deposited");
-    //Work your magic here - Code the logic to withdraw and send the requested amount of native tokens here!
+    require(amount <= address(this).balance, "Amount Requested to Withdraw is Greater Than Currently Available in Wallet");
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     amountDeposited -= amount;
@@ -133,7 +133,7 @@ function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused r
     // Check if any native tokens are still delegated
     // If so, undelegate 
     // Check if amountDeposited < 1
-    // If not, return message that native tokens are still being undelegated.
+    // If not, undelegate. Return message that native tokens are still being undelegated. Rebalance must occur after undelegation funds are received.
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     return true;
