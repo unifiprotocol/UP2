@@ -21,6 +21,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
 
   /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
   uint256 public amountDeposited = 0;
+  uint256 public epochOfLastRebalance = 0;
   address public stakingSmartContract;
   address public upController;
 
@@ -58,6 +59,19 @@ function checkAllocation() public virtual view returns (uint256 allocationOthers
   return allocations;
 }
 
+function epoch() public view returns (uint256) {
+  bytes32 input;
+  bytes32 epochNumber;
+  assembly {
+    let memPtr := mload(0x40)
+    if iszero(staticcall(not(0), 0xfb, input, 32, memPtr, 32)) {
+      invalid()
+  }
+  epochNumber := mload(memPtr)
+}
+return uint256(epochNumber);
+}
+
 function checkRewards() public virtual override view returns (IStrategy.Rewards memory) {
     uint256 unclaimedEarnings = address(this).balance;
     IStrategy.Rewards memory result = IStrategy.Rewards(
@@ -77,7 +91,8 @@ function checkRewards() public virtual override view returns (IStrategy.Rewards 
 
 function deposit(uint256 depositValue) public onlyRebalancer whenNotPaused override payable returns (bool) {
     require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
-    //Work your magic here - Code the logic to earn yield!
+    require(checkAllocation() <= 50, "Allocation for LP and Redeem exceeds 50%");
+    require(epoch() > epochOfLastRebalance + 7, "Seven epoches have not passed since last rebalance");
     amountDeposited += depositValue;
     return true;
   }
