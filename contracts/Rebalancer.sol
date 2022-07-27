@@ -30,6 +30,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   IUniswapV2Router02 public unifiRouter;
   IStrategy.Rewards[] public rewards;
+  uint256 private initRewardsPos = 0;
 
   modifier onlyRebalance() {
     require(hasRole(REBALANCE_ROLE, msg.sender), "Rebalancer: ONLY_REBALANCE");
@@ -299,10 +300,19 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function saveReward(IStrategy.Rewards memory reward) internal {
-    if (rewards.length == 10) {
-      delete rewards[0];
+    if (getRewardsLength() == 10) {
+      delete rewards[initRewardsPos];
+      initRewardsPos += 1;
     }
     rewards.push(reward);
+  }
+
+  function getRewardsLength() public view returns (uint256) {
+    return rewards.length - initRewardsPos;
+  }
+
+  function getReward(uint256 position) public view returns (IStrategy.Rewards memory) {
+    return rewards[initRewardsPos + position];
   }
 
   function setAllocationLP(uint256 _allocationLP) public onlyAdmin returns (bool) {
