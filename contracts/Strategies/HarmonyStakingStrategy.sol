@@ -6,7 +6,7 @@ import "./IStrategy.sol";
 import "../Helpers/Safe.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "../UPController.sol";
+import "./Interfaces/IUPController.sol";
 import "./Interfaces/IRebalancer.sol";
 
 
@@ -23,8 +23,8 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
   uint256 public amountDeposited = 0;
   uint256 public epochOfLastRebalance = 0;
   address public stakingSmartContract;
-  address public upController;
-
+  
+  IUPController public upController;
   IRebalancer public rebalancer;
 
   modifier onlyAdmin() {
@@ -43,7 +43,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
     stakingSmartContract = _stakingSmartContract;
-    upController = _upController; 
+    upController = IUPController(_upController); 
     rebalancer = IRebalancer(_rebalancer);
   }
 
@@ -91,9 +91,25 @@ function checkRewards() public virtual override view returns (IStrategy.Rewards 
 
 function deposit(uint256 depositValue) public onlyRebalancer whenNotPaused override payable returns (bool) {
     require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
-    require(checkAllocation() <= 50, "Allocation for LP and Redeem exceeds 50%");
-    require(epoch() > epochOfLastRebalance + 7, "Seven epoches have not passed since last rebalance");
-    amountDeposited += depositValue;
+    uint256 currentAllocation = checkAllocation() * 2;
+    require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
+    uint256 currentEpoch = epoch();
+    require(currentEpoch > epochOfLastRebalance + 7, "Seven epoches have not passed since last rebalance");
+    uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) / 100;
+    // Claim Rewards Here
+    if (targetAmountToStake > amountDeposited) {
+      uint256 amountToStake = targetAmountToStake - amountDeposited;
+      require(amountToStake > address(this).balance, "Strategy does not have enough native tokens to add to stake");
+      // delegate amountToStake Here
+      amountDeposited += amountToStake;
+    }
+    if (targetAmountToStake < amountDeposited) {
+      uint256 amountToUnstake = targetAmountToStake - amountDeposited;
+      require(amountToUnstake > amountDeposited, "Stake does not have enough of a balance to undelegate");
+      // undelegate amountToUnstake Here
+      amountDeposited -= amountToUnstake;
+    }
+    epochOfLastRebalance = currentEpoch;
     return true;
   }
 
@@ -114,7 +130,10 @@ function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused r
   ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the rebalancer.
   
   function withdrawAll() external virtual override onlyRebalancer whenNotPaused returns(bool) {
-    //Get all those tokens here - code the logic to withdraw all here!
+    // Check if any native tokens are still delegated
+    // If so, undelegate 
+    // Check if amountDeposited < 1
+    // If not, return message that native tokens are still being undelegated.
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     return true;
