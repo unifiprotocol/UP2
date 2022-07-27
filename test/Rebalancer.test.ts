@@ -646,14 +646,28 @@ describe("Rebalancer", function () {
       })
 
       it("Shouldn't rebalance the LP since it would lead into impermanent loss", async () => {
-        const GAS_REFUND = await DARBI.gasRefund()
+        const rewardsLength0 = await rebalancer.getRewardsLength()
+        expect(rewardsLength0.toNumber()).equals(0)
+
         await rebalancer.rebalance()
         await UP_TOKEN.burn(ethers.utils.parseEther("1"))
-        // NEW VIRTUAL PRICE = 10/3.95 = ~2.531 | PREVIOUS = 10/4 = 2.5 = ~1.01% deviation
 
         const priorRebalancerLpBalance = await liquidityPool.balanceOf(rebalancer.address)
+        const rewards0 = await rebalancer.getReward(0)
+
+        // Feed the Strategy
+        await VANILLA.deposit(1, { value: ethers.utils.parseEther("1") })
+        await addr1.sendTransaction({
+          to: VANILLA.address,
+          value: ethers.utils.parseEther("5")
+        })
 
         await rebalancer.rebalance()
+        const rewards1 = await rebalancer.getReward(1)
+
+        assert(rewards1.depositedAmount.gt(rewards0.depositedAmount))
+        assert(rewards1.rewardsAmount.gt(rewards0.rewardsAmount))
+        expect(new Date(rewards0.timestamp.toNumber())).lt(new Date(rewards1.timestamp.toNumber()))
 
         const rebalancerLpBalance = await liquidityPool.balanceOf(rebalancer.address)
 
@@ -691,6 +705,19 @@ describe("Rebalancer", function () {
           1000,
           "TOTAL BALANCES NOT EQUAL TO DISTRIBUTION"
         )
+      })
+
+      it("Should store only the last 10 rewards", async () => {
+        const RUNS = 12
+        await rebalancer.rebalance()
+        const rewards0 = await rebalancer.getReward(0)
+        for (let i = 0; i < RUNS; i++) {
+          await rebalancer.rebalance()
+        }
+        const rewards1 = await rebalancer.getReward(0)
+        const rewardsLength = await rebalancer.getRewardsLength()
+        expect(new Date(rewards1.timestamp.toNumber())).gt(new Date(rewards0.timestamp.toNumber()))
+        expect(rewardsLength.toNumber()).equals(10)
       })
     })
   })

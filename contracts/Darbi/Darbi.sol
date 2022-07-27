@@ -62,7 +62,6 @@ contract Darbi is AccessControl, Pausable, Safe {
     address _gasRefundAddress,
     address _UP_CONTROLLER,
     address _darbiMinter,
-    uint256 _arbitrageThreshold,
     address _fundsTarget
   ) Safe(_fundsTarget) {
     factory = _factory;
@@ -72,10 +71,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_CONTROLLER = UPController(payable(_UP_CONTROLLER));
     DARBI_MINTER = UPMintDarbi(payable(_darbiMinter));
     UP_TOKEN = IERC20(payable(UP_CONTROLLER.UP_TOKEN()));
-    arbitrageThreshold = _arbitrageThreshold;
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
-    _setupRole(MONITOR_ROLE, msg.sender);
-    _setupRole(REBALANCER_ROLE, msg.sender);
   }
 
   receive() external payable {}
