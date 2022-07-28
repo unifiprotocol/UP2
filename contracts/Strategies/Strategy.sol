@@ -61,6 +61,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
   function deposit(uint256 depositValue)
     public
     payable
+    virtual
     override
     onlyRebalancer
     whenNotPaused
@@ -80,7 +81,14 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
   ///In addition, the depositValue should be updated to reflect the tokens withdrawn into your strategy. UP requires all tokens returned to the balancer be in native token format.
   ///@param amount This is the amount of native tokens that is to be withdrawn from the strategy.
 
-  function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused returns (bool) {
+  function withdraw(uint256 amount)
+    public
+    virtual
+    override
+    onlyRebalancer
+    whenNotPaused
+    returns (bool)
+  {
     require(
       amount <= amountDeposited,
       "Strategy: Amount Requested to Withdraw is Greater Than Amount Deposited"
