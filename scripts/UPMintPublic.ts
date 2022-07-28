@@ -9,12 +9,7 @@ task("UPMintPublicDeploy", "Deploy UPMintPublic contract")
     await hre.run("compile")
 
     const UPMintPublicContract = await hre.ethers.getContractFactory("UPMintPublic")
-    const upMintPublic = await UPMintPublicContract.deploy(
-      up,
-      controller,
-      mintRate,
-      "<SAFE_WITHDRAW_ADDRESS>"
-    )
+    const upMintPublic = await UPMintPublicContract.deploy(up, controller, mintRate)
     await upMintPublic.deployed()
 
     console.log("UPMintPublic -", upMintPublic.address)
