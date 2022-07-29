@@ -138,8 +138,7 @@ function withdraw(uint256 withdrawAmount) public override onlyRebalancer whenNot
       uint256 amountUnDelegated = sp.undelegate(targetValidator, amountToUnstake);
       amountDeposited -= amountUnDelegated;
     }
-
-    return successTransfer;
+    return true;
   }
 
   ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the rebalancer.
