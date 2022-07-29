@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "./Interfaces/IUPController.sol";
 import "./Interfaces/IRebalancer.sol";
+import "../Helpers/StakingPrecompiles.sol";
 
 
 // Contract Strategy must use our customized Safe.sol and OpenZeppelin's AccessControl and Pauseable Contracts.
@@ -17,12 +18,15 @@ import "./Interfaces/IRebalancer.sol";
 
 contract Strategy is IStrategy, Safe, AccessControl, Pausable {
 
+  StakingPrecompiles private sp = new StakingPrecompiles();
+
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
 
   /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
   uint256 public amountDeposited = 0;
   uint256 public epochOfLastRebalance = 0;
-  address public stakingSmartContract;
+  uint256 public lastClaimedAmount = 0;
+  address public targetValidator;
   
   IUPController public upController;
   IRebalancer public rebalancer;
@@ -39,10 +43,10 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
 
   event UpdateRebalancer(address _rebalancer);
 
-  constructor(address _fundsTarget, address _stakingSmartContract, address _upController, address _rebalancer) Safe(_fundsTarget) {
+  constructor(address _fundsTarget, address _targetValidator, address _upController, address _rebalancer) Safe(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
-    stakingSmartContract = _stakingSmartContract;
+    targetValidator = _targetValidator;
     upController = IUPController(_upController); 
     rebalancer = IRebalancer(_rebalancer);
   }
@@ -59,6 +63,7 @@ function checkAllocation() public virtual view returns (uint256 allocationOthers
   return allocations;
 }
 
+
 function epoch() public view returns (uint256) {
   bytes32 input;
   bytes32 epochNumber;
@@ -72,10 +77,9 @@ function epoch() public view returns (uint256) {
 return uint256(epochNumber);
 }
 
-function checkRewards() public virtual override view returns (IStrategy.Rewards memory) {
-    uint256 unclaimedEarnings = address(this).balance;
+function checkRewards() public virtual view override returns (IStrategy.Rewards memory) {
     IStrategy.Rewards memory result = IStrategy.Rewards(
-      unclaimedEarnings,
+      lastClaimedAmount,
       amountDeposited,
       block.timestamp
     );
@@ -93,37 +97,48 @@ function deposit(uint256 depositValue) public onlyRebalancer whenNotPaused overr
     require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
     uint256 currentAllocation = checkAllocation() * 2;
     require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
-    uint256 currentEpoch = epoch();
-    require(currentEpoch > epochOfLastRebalance + 7, "Seven epoches have not passed since last rebalance");
     uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) / 100;
-    // Claim Rewards Here
     if (targetAmountToStake > amountDeposited) {
       uint256 amountToStake = targetAmountToStake - amountDeposited;
       require(amountToStake > address(this).balance, "Strategy does not have enough native tokens to add to stake");
-      // delegate amountToStake Here
-      amountDeposited += amountToStake;
+      uint256 amountDelegated = sp.delegate(targetValidator, amountToStake);
+      amountDeposited += amountDelegated;
     }
     if (targetAmountToStake < amountDeposited) {
       uint256 amountToUnstake = targetAmountToStake - amountDeposited;
       require(amountToUnstake > amountDeposited, "Stake does not have enough of a balance to undelegate");
-      // undelegate amountToUnstake Here
-      amountDeposited -= amountToUnstake;
+      uint256 amountUnDelegated = sp.undelegate(targetValidator, amountToUnstake);
+      amountDeposited -= amountUnDelegated;
     }
-    epochOfLastRebalance = currentEpoch;
     return true;
   }
 
    ///@notice The withdraw function should withdraw an amount from your strategy and send them to the rebalancer.
    ///For example, if using a lending protocol, this function should withdraw tokens from the strategy, and send them to the rebalancer.
    ///In addition, the depositValue should be updated to reflect the tokens withdrawn into your strategy. UP requires all tokens returned to the balancer be in native token format.
-   ///@param amount This is the amount of native tokens that is to be withdrawn from the strategy.
+   ///@param withdrawAmount This is the amount of native tokens that is to be withdrawn from the strategy.
 
-function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused returns (bool) {
-    require(amount <= amountDeposited, "Amount Requested to Withdraw is Greater Than Amount Deposited");
-    require(amount <= address(this).balance, "Amount Requested to Withdraw is Greater Than Currently Available in Wallet");
-    (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
+function withdraw(uint256 withdrawAmount) public override onlyRebalancer whenNotPaused returns (bool) {
+    require(withdrawAmount <= address(this).balance, "Amount Requested to Withdraw is Greater Than Currently Available in Wallet");
+    uint256 currentAllocation = checkAllocation() * 2;
+    require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
+    uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) / 100;
+    // This needs to undelegate the maximum amount versus requiring
+    (bool successTransfer, ) = address(this).call{value: withdrawAmount}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
-    amountDeposited -= amount;
+      if (targetAmountToStake > amountDeposited) {
+      uint256 amountToStake = targetAmountToStake - amountDeposited;
+      require(amountToStake > address(this).balance, "Strategy does not have enough native tokens to add to stake");
+      uint256 amountDelegated = sp.delegate(targetValidator, amountToStake);
+      amountDeposited += amountDelegated;
+    }
+    if (targetAmountToStake < amountDeposited) {
+      uint256 amountToUnstake = targetAmountToStake - amountDeposited;
+      require(amountToUnstake > amountDeposited, "Stake does not have enough of a balance to undelegate");
+      uint256 amountUnDelegated = sp.undelegate(targetValidator, amountToUnstake);
+      amountDeposited -= amountUnDelegated;
+    }
+
     return successTransfer;
   }
 
@@ -144,10 +159,17 @@ function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused r
   ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
 
   function gather() public virtual override onlyRebalancer whenNotPaused {
-    //Claim all those rewards here
-    uint256 nativeAmount = address(this).balance;
-    (bool successTransfer, ) = address(msg.sender).call{value: nativeAmount}("");
+    uint256 currentEpoch = epoch();
+    require(currentEpoch > epochOfLastRebalance + 7, "Seven epoches have not passed since last rebalance");
+    uint256 balanceBefore = address(this).balance;
+    sp.collectRewards();
+    uint256 balanceAfter = address(this).balance;
+    uint256 claimedRewards = balanceAfter - balanceBefore;
+    lastClaimedAmount = claimedRewards;
+    checkRewards();
+    (bool successTransfer, ) = address(msg.sender).call{value: claimedRewards}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
+    epochOfLastRebalance = currentEpoch;
   }
 
   receive() external payable virtual {}
