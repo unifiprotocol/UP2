@@ -69,7 +69,6 @@ describe("Darbi", async () => {
       admin.address,
       UP_CONTROLLER.address,
       UP_MINT_DARBI.address,
-      MEANINGLESS_AMOUNT,
       admin.address
     )
 
@@ -155,7 +154,6 @@ describe("Darbi", async () => {
         admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
-        MEANINGLESS_AMOUNT,
         admin.address
       )
     })
@@ -252,7 +250,6 @@ describe("Darbi", async () => {
         admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
-        MEANINGLESS_AMOUNT,
         admin.address
       )
 

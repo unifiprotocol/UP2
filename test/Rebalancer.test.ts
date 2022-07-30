@@ -165,7 +165,6 @@ describe("Rebalancer", function () {
             addr1.address,
             UP_CONTROLLER.address,
             UP_MINT_DARBI.address,
-            MEANINGLESS_AMOUNT,
             addr1.address
           )
         )
@@ -293,15 +292,11 @@ describe("Rebalancer", function () {
               addr1.address,
               UP_CONTROLLER.address,
               UP_MINT_DARBI.address,
-              MEANINGLESS_AMOUNT,
               addr1.address
             )
           )
 
-        await addr1.sendTransaction({
-          to: DARBI.address,
-          value: ethers.utils.parseEther("10")
-        })
+        await DARBI.addDarbiFunds({ value: ethers.utils.parseEther("1") })
 
         rebalancer = await ethers
           .getContractFactory("Rebalancer", {
@@ -368,8 +363,8 @@ describe("Rebalancer", function () {
         const initialUpBorrow = await UP_CONTROLLER.upBorrowed()
         const initialLp = await liquidityPool.balanceOf(rebalancer.address)
 
-        await UP_TOKEN.mint(addr1.address, ethers.utils.parseEther("0.05"))
-        // NEW VIRTUAL PRICE = 10/4.05 = ~2.469 | PREVIOUS = 10/4 = 2.5 = ~1.01% deviation
+        await UP_TOKEN.mint(addr1.address, ethers.utils.parseEther("0.5"))
+        // NEW VIRTUAL PRICE = 10/4.5 = ~2.222 | PREVIOUS = 10/4 = 2.5 = ~1.01% deviation
         await rebalancer.rebalance()
 
         const finalNativeBorrow = await UP_CONTROLLER.nativeBorrowed()
@@ -504,7 +499,6 @@ describe("Rebalancer", function () {
               addr1.address,
               UP_CONTROLLER.address,
               UP_MINT_DARBI.address,
-              MEANINGLESS_AMOUNT,
               addr1.address
             )
           )
@@ -538,6 +532,8 @@ describe("Rebalancer", function () {
         await UP_CONTROLLER.grantRole(await UP_CONTROLLER.REDEEMER_ROLE(), DARBI.address)
         await UP_MINT_DARBI.grantDarbiRole(DARBI.address)
         await UP_TOKEN.grantRole(await UP_TOKEN.MINT_ROLE(), UP_CONTROLLER.address)
+        await VANILLA.grantRole(await VANILLA.REBALANCER_ROLE(), rebalancer.address)
+        await VANILLA.grantRole(await VANILLA.REBALANCER_ROLE(), addr1.address)
       })
 
       it("Should add liquidity to the LP when there is no LP tokens yet", async () => {
@@ -656,7 +652,7 @@ describe("Rebalancer", function () {
         const rewards0 = await rebalancer.getReward(0)
 
         // Feed the Strategy
-        await VANILLA.deposit(1, { value: ethers.utils.parseEther("1") })
+        await VANILLA.deposit(ethers.utils.parseEther("1"), { value: ethers.utils.parseEther("1") })
         await addr1.sendTransaction({
           to: VANILLA.address,
           value: ethers.utils.parseEther("5")

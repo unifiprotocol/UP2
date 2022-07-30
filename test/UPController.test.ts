@@ -1,8 +1,6 @@
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
-import { BN } from "@unifiprotocol/utils"
 import { expect } from "chai"
 import { assert } from "console"
-import { BigNumber } from "ethers"
 import { ethers } from "hardhat"
 import { UP, UPController } from "../typechain-types"
 
@@ -153,25 +151,22 @@ describe("UPController", function () {
         expect(await upController.upBorrowed()).equal(ethers.utils.parseEther("0"))
       })
 
-      it("Should fail repaying native tokens because amount is higher than the borrowed", async () => {
+      it("Should repay more ETH than borrowed and set nativeBorrowed to 0", async () => {
         await addr1.sendTransaction({
           to: upController.address,
           value: ethers.utils.parseEther("4")
         })
         await upController.borrowNative(ethers.utils.parseEther("4"), addr1.address)
-        await expect(upController.repay(0, { value: ethers.utils.parseEther("5") })).revertedWith(
-          "NATIVE_AMOUNT_GT_BORROWED"
-        )
-        expect(await upController.nativeBorrowed()).equal(ethers.utils.parseEther("4"))
+        await upController.repay(0, { value: ethers.utils.parseEther("5") })
+        expect(await upController.nativeBorrowed()).equal(ethers.utils.parseEther("0"))
       })
 
-      it("Should fail repaying UP tokens because amount is higher than the borrowed", async () => {
+      it("Should repay more UP than borrowed and set upBorrowed to 0", async () => {
+        await upToken.mint(addr1.address, ethers.utils.parseEther("1"))
         await upController.borrowUP(ethers.utils.parseEther("3"), addr1.address)
-        await upToken.approve(upController.address, ethers.utils.parseEther("3"))
-        await expect(upController.repay(ethers.utils.parseEther("4"))).revertedWith(
-          "UP_AMOUNT_GT_BORROWED"
-        )
-        expect(await upController.upBorrowed()).equal(ethers.utils.parseEther("3"))
+        await upToken.approve(upController.address, ethers.utils.parseEther("4"))
+        await upController.repay(ethers.utils.parseEther("4"))
+        expect(await upController.upBorrowed()).equal(ethers.utils.parseEther("0"))
       })
 
       it("Should fail repaying tokens because is not owner", async () => {

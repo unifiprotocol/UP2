@@ -12,7 +12,6 @@ import "./UP.sol";
 import "./Strategies/IStrategy.sol";
 import "./Helpers/Safe.sol";
 import "./Darbi/Darbi.sol";
-import "hardhat/console.sol";
 
 contract Rebalancer is AccessControl, Pausable, Safe {
   bytes32 public constant REBALANCE_ROLE = keccak256("REBALANCE_ROLE");
@@ -150,21 +149,21 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       uint256 amountToBeWithdrawnFromLp = ethLpBalance - targetLpAmount;
       uint256 diffLpToRemove = (liquidityPool.totalSupply() * amountToBeWithdrawnFromLp) /
         reservesETH;
-      uint256 lpBalance = liquidityPool.balanceOf(address(this));
-      uint256 totalLpToRemove = lpBalance - diffLpToRemove;
 
-      liquidityPool.approve(address(unifiRouter), totalLpToRemove);
-      (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
-        address(UPToken),
-        totalLpToRemove,
-        0,
-        0,
-        address(this),
-        block.timestamp + 150
-      );
+      if (diffLpToRemove > 0) {
+        liquidityPool.approve(address(unifiRouter), diffLpToRemove);
+        (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
+          address(UPToken),
+          diffLpToRemove,
+          0,
+          0,
+          address(this),
+          block.timestamp + 150
+        );
 
-      UPToken.approve(address(UP_CONTROLLER), amountToken);
-      UP_CONTROLLER.repay{value: amountETH}(amountToken);
+        UPToken.approve(address(UP_CONTROLLER), amountToken);
+        UP_CONTROLLER.repay{value: amountETH}(amountToken);
+      }
     } else if (ethLpBalance < targetLpAmount) {
       uint256 amountToWithdrawFromRedeem = targetLpAmount - ethLpBalance;
       UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
@@ -175,8 +174,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     uint256 ETHAmountToDeposit = address(this).balance;
 
-    uint256 lpPrice = (reservesETH * 1e18) / reservesUP;
-    uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / lpPrice;
+    uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / marketValue;
     if (ETHAmountToDeposit == 0 || UPtoAddtoLP == 0) return;
 
     UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
@@ -225,21 +223,21 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       uint256 amountToBeWithdrawnFromLp = ethLpBalance - actualEthLpAllocation;
       uint256 diffLpToRemove = (liquidityPool.totalSupply() * amountToBeWithdrawnFromLp) /
         reservesETH;
-      uint256 lpBalance = liquidityPool.balanceOf(address(this));
-      uint256 totalLpToRemove = lpBalance - diffLpToRemove;
 
-      liquidityPool.approve(address(unifiRouter), totalLpToRemove);
-      (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
-        address(UPToken),
-        totalLpToRemove,
-        0,
-        0,
-        address(this),
-        block.timestamp + 150
-      );
+      if (diffLpToRemove > 0) {
+        liquidityPool.approve(address(unifiRouter), diffLpToRemove);
+        (uint256 amountToken, uint256 amountETH) = unifiRouter.removeLiquidityETH(
+          address(UPToken),
+          diffLpToRemove,
+          0,
+          0,
+          address(this),
+          block.timestamp + 150
+        );
 
-      UPToken.approve(address(UP_CONTROLLER), amountToken);
-      UP_CONTROLLER.repay{value: amountETH}(amountToken);
+        UPToken.approve(address(UP_CONTROLLER), amountToken);
+        UP_CONTROLLER.repay{value: amountETH}(amountToken);
+      }
       // IF current RedeemPrice(95%) > LpPrice(95%)
     } else if (ethLpBalance < actualEthLpAllocation) {
       uint256 amountToWithdrawFromRedeem = actualEthLpAllocation - ethLpBalance;
@@ -253,8 +251,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     if (ETHAmountToDeposit == 0) return;
 
-    uint256 lpPrice = (reservesETH * 1e18) / reservesUP;
-    uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / lpPrice;
+    uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / marketValue;
 
     require(UPtoAddtoLP > 0, "ALREADY_REBALANCED");
 

@@ -99,11 +99,9 @@ contract UPController is AccessControl, Safe, Pausable {
 
   /// @notice Allows to return back borrowed amounts to the controller
   function repay(uint256 upAmount) public payable onlyRebalancer whenNotPaused {
-    require(upAmount <= upBorrowed, "UPController: UP_AMOUNT_GT_BORROWED");
-    require(msg.value <= nativeBorrowed, "UPController: NATIVE_AMOUNT_GT_BORROWED");
     UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
-    upBorrowed -= upAmount;
-    nativeBorrowed -= msg.value;
+    upBorrowed -= upAmount <= upBorrowed ? upAmount : upBorrowed;
+    nativeBorrowed -= msg.value <= nativeBorrowed ? msg.value : nativeBorrowed;
     emit Repay(msg.value, upAmount);
   }
 
@@ -129,11 +127,7 @@ contract UPController is AccessControl, Safe, Pausable {
     return _withdrawFunds();
   }
 
-  function withdrawFundsERC20(address tokenAddress)
-    public
-    onlyAdmin
-    returns (bool)
-  {
+  function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
     return _withdrawFundsERC20(tokenAddress);
   }
 }
