@@ -167,9 +167,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     } else if (ethLpBalance < targetLpAmount) {
       uint256 amountToWithdrawFromRedeem = targetLpAmount - ethLpBalance;
       UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
-      // IF ethLpBalance == 0 = first iteration of the rebalancer
-    } else if (ethLpBalance == 0) {
-      UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
     }
 
     uint256 ETHAmountToDeposit = address(this).balance;
@@ -242,9 +239,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     } else if (ethLpBalance < actualEthLpAllocation) {
       uint256 amountToWithdrawFromRedeem = actualEthLpAllocation - ethLpBalance;
       UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
-      // IF ethLpBalance == 0 = first iteration of the rebalancer
-    } else if (ethLpBalance == 0) {
-      UP_CONTROLLER.borrowNative(actualEthLpAllocation, address(this));
     }
 
     uint256 ETHAmountToDeposit = address(this).balance;
