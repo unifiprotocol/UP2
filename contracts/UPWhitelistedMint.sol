@@ -6,14 +6,9 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./Helpers/Safe.sol";
+import "./UP.sol";
+import "./UPController.sol";
 
-interface UP{
-    function mint(address to, uint256 amount) external  payable  returns (bool);
-}
-
-interface UPController{
-    function getVirtualPrice() external view returns (uint256) ;
-}
 /// @title UP Public Mint
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
@@ -22,7 +17,7 @@ contract UPWhitelistedMint is Ownable, Pausable, ReentrancyGuard, Safe {
   uint256 public mintRate;
   address payable public UP_TOKEN = payable(address(0));
   address payable public UP_CONTROLLER = payable(address(0));
-  mapping(address =>bool) public whiteListedAddress ;
+  mapping(address => bool) public whiteListedAddress;
   event NewMintRate(uint256 _newMintRate);
   event WhitelistedMint(
     address indexed _from,
@@ -47,11 +42,11 @@ contract UPWhitelistedMint is Ownable, Pausable, ReentrancyGuard, Safe {
     preLoadData();
   }
 
-
   modifier onlyWhitlisted() {
-    require(whiteListedAddress[msg.sender] == true , "UP: ONLY_WHITELISTED");
+    require(whiteListedAddress[msg.sender] == true, "UP: ONLY_WHITELISTED");
     _;
   }
+
   /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
   /// @param to Destination address for minted tokens
   function mintUP(address to) public payable whenNotPaused nonReentrant onlyWhitlisted {
@@ -66,23 +61,22 @@ contract UPWhitelistedMint is Ownable, Pausable, ReentrancyGuard, Safe {
     emit WhitelistedMint(msg.sender, to, mintAmount, currentPrice, msg.value);
   }
 
-  function addWhiteListed(address[] memory account ) public onlyOwner(){
-            uint i = 0;
-            while (i < account.length) {
-                whiteListedAddress[account[i]] = true;
-                emit whiteListAdded(account[i]);
-                i++;
-            }
-      
+  function addWhiteListed(address[] memory account) public onlyOwner {
+    uint256 i = 0;
+    while (i < account.length) {
+      whiteListedAddress[account[i]] = true;
+      emit whiteListAdded(account[i]);
+      i++;
+    }
   }
 
-  function removeWhiteListed(address[] memory account ) public onlyOwner(){
-            uint i = 0;
-            while (i < account.length) {
-                whiteListedAddress[account[i]] = false;
-                 emit whiteListRemoved(account[i]);
-                i++;
-            }
+  function removeWhiteListed(address[] memory account) public onlyOwner {
+    uint256 i = 0;
+    while (i < account.length) {
+      whiteListedAddress[account[i]] = false;
+      emit whiteListRemoved(account[i]);
+      i++;
+    }
   }
 
   /// @notice Permissioned function that sets the public rint of UP.
@@ -113,23 +107,17 @@ contract UPWhitelistedMint is Ownable, Pausable, ReentrancyGuard, Safe {
   }
 
   /// @notice Permissioned function to withdraw any native coins accidentally deposited to the Public Mint contract.
-  function withdrawFunds(address target) public onlyOwner returns (bool) {
-    return _withdrawFunds(target);
+  function withdrawFunds() public onlyOwner returns (bool) {
+    return _withdrawFunds();
   }
 
   /// @notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
-  function withdrawFundsERC20(address target, address tokenAddress)
-    public
-    onlyOwner
-    returns (bool)
-  {
-    return _withdrawFundsERC20(target, tokenAddress);
+  function withdrawFundsERC20(address tokenAddress) public onlyOwner returns (bool) {
+    return _withdrawFundsERC20(tokenAddress);
   }
 
-
-  function preLoadData() internal{
-      //sample data 
-      whiteListedAddress[0x4Fa62Ce3Faac2327F0F795256aB87BD9DFC2660A] = true;
-
+  function preLoadData() internal {
+    //sample data
+    whiteListedAddress[0x4Fa62Ce3Faac2327F0F795256aB87BD9DFC2660A] = true;
   }
 }
