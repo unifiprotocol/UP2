@@ -10,7 +10,7 @@ import "./UP.sol";
 import "./UPController.sol";
 
 /// @title UP Public Mint
-/// @author dxffffff & A Fistful of Stray Cat Hair
+/// @author dxffffff & A Fistful of Stray Cat Hair & Kerk
 /// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
 
 contract UPWhitelistedMint is Ownable, Pausable, ReentrancyGuard, Safe {
@@ -33,8 +33,9 @@ contract UPWhitelistedMint is Ownable, Pausable, ReentrancyGuard, Safe {
   constructor(
     address _UP,
     address _UPController,
-    uint256 _mintRate
-  ) {
+    uint256 _mintRate,
+    address _fundsTarget
+  ) Safe(_fundsTarget) {
     require(_UP != address(0), "UPWhitelistedMint: Invalid UP address");
     UP_TOKEN = payable(_UP);
     UP_CONTROLLER = payable(_UPController);
