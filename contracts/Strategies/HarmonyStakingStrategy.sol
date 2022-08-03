@@ -63,6 +63,12 @@ function checkAllocation() public virtual view returns (uint256 allocationOthers
   return allocations;
 }
 
+function rewardsAmount() public view returns (uint256) {
+  (bool success,bytes memory response) = address(sp).staticcall(abi.encodeWithSignature("collectRewards()"));
+  require(success, "YOU ARE TARD");
+  uint256 result = abi.decode(response, (uint256));
+  return result;
+}
 
 function epoch() public view returns (uint256) {
   bytes32 input;
