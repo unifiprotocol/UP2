@@ -64,8 +64,8 @@ function checkAllocation() public virtual view returns (uint256 allocationOthers
 }
 
 function rewardsAmount() public view returns (uint256) {
-  (bool success,bytes memory response) = address(sp).staticcall(abi.encodeWithSignature("collectRewards()"));
-  require(success, "YOU ARE TARD");
+  (bool success,bytes memory response) = address(this).staticcall(abi.encodeWithSignature("collectRewards()"));
+  require(success, "Failed to Fetch Pending Rewards Amount");
   uint256 result = abi.decode(response, (uint256));
   return result;
 }
