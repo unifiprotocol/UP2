@@ -1,0 +1,275 @@
+import { ethers, network } from "hardhat"
+import { expect } from "chai"
+import { UP, UPController, UPWhitelistedMint } from "../typechain-types"
+import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
+import { BigNumber } from "ethers"
+
+describe("UPWhitelistedMint", () => {
+  let upToken: UP
+  let upController: UPController
+  let upMintPublic: UPWhitelistedMint
+  let addr1: SignerWithAddress
+
+  beforeEach(async () => {
+    const [a1] = await ethers.getSigners()
+    addr1 = a1
+    upToken = await ethers
+      .getContractFactory("UP")
+      .then((factory) => factory.deploy())
+      .then((instance) => instance.deployed())
+    upController = await ethers
+      .getContractFactory("UPController")
+      .then((factory) => factory.deploy(upToken.address, addr1.address))
+      .then((instance) => instance.deployed())
+    upMintPublic = await ethers
+      .getContractFactory("UPWhitelistedMint")
+      .then((factory) => factory.deploy(upToken.address, upController.address, 500, addr1.address))
+      .then((instance) => instance.deployed())
+    await upToken.grantRole(await upToken.MINT_ROLE(), addr1.address)
+    await upToken.grantRole(await upToken.MINT_ROLE(), upMintPublic.address)
+    await upMintPublic.addWhiteListed([addr1.address])
+  })
+
+  it('Should set a new "mintRate"', async () => {
+    await upMintPublic.setMintRate(100)
+    expect(await upMintPublic.mintRate()).equal(100)
+  })
+
+  it('Shouldnt set a new "mintRate" because not enough permissions', async () => {
+    const [, addr2] = await ethers.getSigners()
+    const addr2UpController = upMintPublic.connect(addr2)
+    await expect(addr2UpController.setMintRate(100)).revertedWith(
+      "Ownable: caller is not the owner"
+    )
+  })
+
+  it('Should revert "setMintRate" because value is out of threshold #0', async () => {
+    await expect(upMintPublic.setMintRate(10_001)).revertedWith("MINT_RATE_GT_10000")
+  })
+
+  it('Should revert "setMintRate" because value is out of threshold #1', async () => {
+    await expect(upMintPublic.setMintRate(0)).revertedWith("MINT_RATE_EQ_0")
+  })
+
+  describe("MintUP", () => {
+    let addr2: SignerWithAddress
+    let addr2UpMintPublic: UPWhitelistedMint
+
+    beforeEach(async () => {
+      const [, a2] = await ethers.getSigners()
+      addr2 = a2
+      addr2UpMintPublic = upMintPublic.connect(a2)
+      await upMintPublic.addWhiteListed([addr2.address])
+    })
+
+    function getExpectedMint(
+      virtualPrice: BigNumber,
+      sendValue: BigNumber,
+      mintRate: string = "500"
+    ): BigNumber {
+      const discountedAmount = sendValue.sub(
+        sendValue.mul(ethers.BigNumber.from(mintRate).mul(100)).div(1_000_000)
+      )
+      const expectedMint = discountedAmount.mul(ethers.utils.parseEther("1")).div(virtualPrice)
+      return expectedMint
+    }
+
+    it("Should mint UP at premium rates #0", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upController.address, ethers.utils.parseEther("2"))
+      const sendValue = ethers.utils.parseEther("100")
+      const virtualPrice = ethers.utils.parseEther("2.5")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue)
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should mint UP at premium rates #1", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upController.address, ethers.utils.parseEther("2"))
+      const sendValue = ethers.utils.parseEther("5")
+      const virtualPrice = ethers.utils.parseEther("2.5")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue)
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should mint UP at premium rates #2", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
+      const sendValue = ethers.utils.parseEther("31")
+      const virtualPrice = ethers.utils.parseEther("2.5")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue)
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should mint UP at premium rates #3", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
+      const sendValue = ethers.utils.parseEther("1233")
+      const virtualPrice = ethers.utils.parseEther("2.5")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue)
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should mint UP at premium rates #4", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
+      const sendValue = ethers.utils.parseEther("999.1")
+      const virtualPrice = ethers.utils.parseEther("2.5")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue)
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should mint UP at premium rates #5", async () => {
+      await network.provider.send("hardhat_setBalance", [
+        addr2.address,
+        ethers.utils.parseEther("99900").toHexString()
+      ])
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upMintPublic.address, ethers.utils.parseEther("2"))
+      const sendValue = ethers.utils.parseEther("91132.42")
+      const virtualPrice = ethers.utils.parseEther("2.5")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue)
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should mint UP at premium rates #6", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upMintPublic.address, ethers.utils.parseEther("4"))
+      const sendValue = ethers.utils.parseEther("999")
+      const virtualPrice = ethers.utils.parseEther("1.25")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue)
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should mint UP at premium rates #7", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upMintPublic.setMintRate(30) // 0.3%
+      await upToken.mint(upMintPublic.address, ethers.utils.parseEther("4"))
+      const sendValue = ethers.utils.parseEther("999")
+      const virtualPrice = ethers.utils.parseEther("1.25")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue, "30")
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should mint UP at premium rates #8", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upMintPublic.setMintRate(150) // 1.5%
+      await upToken.mint(upMintPublic.address, ethers.utils.parseEther("4"))
+      const sendValue = ethers.utils.parseEther("999")
+      const virtualPrice = ethers.utils.parseEther("1.25")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue, "150")
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+
+    it("Should fail minting UP because payable value is zero", async () => {
+      await expect(upMintPublic.mintUP(addr1.address, { value: 0 })).revertedWith(
+        "INVALID_PAYABLE_AMOUNT"
+      )
+    })
+
+    it("Should fail minting UP because address not whitelisted", async () => {
+      await upMintPublic.removeWhiteListed([addr2.address])
+      await expect(addr2UpMintPublic.mintUP(addr1.address, { value: 1 })).revertedWith(
+        "UPWhitelistedMint: ONLY_WHITELISTED"
+      )
+    })
+
+    it("Should mint zero UP because virtual price is zero and throw UP_PRICE_0", async () => {
+      await expect(
+        upMintPublic.mintUP(addr1.address, { value: ethers.utils.parseEther("100") })
+      ).revertedWith("UP_PRICE_0")
+      expect(await upToken.balanceOf(addr1.address)).equal(0)
+    })
+
+    it("Shouldn't mint up because contract is paused", async () => {
+      await upMintPublic.pause()
+      await expect(
+        upMintPublic.mintUP(addr1.address, { value: ethers.utils.parseEther("100") })
+      ).revertedWith("Pausable: pause")
+    })
+
+    it("Should mint UP after pause and unpause", async () => {
+      await addr1.sendTransaction({
+        to: upController.address,
+        value: ethers.utils.parseEther("5")
+      })
+      await upToken.mint(upController.address, ethers.utils.parseEther("2"))
+      await upMintPublic.pause()
+      await expect(
+        addr2UpMintPublic.mintUP(addr2.address, { value: ethers.utils.parseEther("100") })
+      ).revertedWith("Pausable: pause")
+      await upMintPublic.unpause()
+      const sendValue = ethers.utils.parseEther("100")
+      const virtualPrice = ethers.utils.parseEther("2.5")
+      const expectedMint = getExpectedMint(virtualPrice, sendValue)
+      await addr2UpMintPublic.mintUP(addr2.address, { value: sendValue })
+      expect(await upToken.balanceOf(addr2.address)).equal(expectedMint)
+      expect(await upController.provider.getBalance(upController.address)).equal(
+        ethers.utils.parseEther("5").add(sendValue)
+      )
+    })
+  })
+})

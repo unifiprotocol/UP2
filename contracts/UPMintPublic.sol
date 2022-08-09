@@ -42,7 +42,7 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
 
   /// @notice Payable function that mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
   /// @param to Destination address for minted tokens
-  function mintUP(address to) public payable whenNotPaused nonReentrant {
+  function mintUP(address to) public payable virtual whenNotPaused nonReentrant {
     require(msg.value > 0, "UPMintPublic: INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     require(currentPrice > 0, "UPMintPublic: UP_PRICE_0");
