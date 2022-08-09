@@ -18,7 +18,9 @@ contract UPWhitelistedMint is UPMintPublic {
     address _UPController,
     uint256 _mintRate,
     address _fundsTarget
-  ) UPMintPublic(_UP, _UPController, _mintRate, _fundsTarget) {}
+  ) UPMintPublic(_UP, _UPController, _mintRate, _fundsTarget) {
+    preLoadData();
+  }
 
   modifier onlyWhitelisted() {
     require(whiteListedAddress[msg.sender] == true, "UPWhitelistedMint: ONLY_WHITELISTED");
