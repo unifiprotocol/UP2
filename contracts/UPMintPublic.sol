@@ -14,7 +14,7 @@ import "./Helpers/Safe.sol";
 /// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
 
 contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
-  uint256 public mintRate;
+  uint256 public mintRate; // with 2 decimals - 150 = 1.50%
   address payable public UP_TOKEN = payable(address(0));
   address payable public UP_CONTROLLER = payable(address(0));
 
@@ -46,7 +46,7 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
     require(msg.value > 0, "UPMintPublic: INVALID_PAYABLE_AMOUNT");
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     require(currentPrice > 0, "UPMintPublic: UP_PRICE_0");
-    uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 10000);
+    uint256 discountedAmount = msg.value - ((msg.value * (mintRate * 100)) / 1000000);
     uint256 mintAmount = (discountedAmount * 1e18) / currentPrice;
     UP(UP_TOKEN).mint(to, mintAmount);
     (bool successTransfer, ) = address(UP_CONTROLLER).call{value: msg.value}("");
@@ -57,7 +57,7 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   /// @notice Permissioned function that sets the public rint of UP.
   /// @param _mintRate - mint rate in percent terms, _mintRate = 5 = 5%.
   function setMintRate(uint256 _mintRate) public onlyOwner {
-    require(_mintRate <= 100, "UPMintPublic: MINT_RATE_GT_100");
+    require(_mintRate <= 10000, "UPMintPublic: MINT_RATE_GT_10000");
     require(_mintRate > 0, "UPMintPublic: MINT_RATE_EQ_0");
     mintRate = _mintRate;
     emit NewPublicMintRate(_mintRate);
@@ -87,11 +87,7 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
   }
 
   /// @notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
-  function withdrawFundsERC20(address tokenAddress)
-    public
-    onlyOwner
-    returns (bool)
-  {
+  function withdrawFundsERC20(address tokenAddress) public onlyOwner returns (bool) {
     return _withdrawFundsERC20(tokenAddress);
   }
 }
