@@ -183,11 +183,12 @@ contract Darbi is AccessControl, Pausable, Safe {
   }
 
   function refund() public whenNotPaused onlyRebalancerOrMonitor {
-    uint256 newBalances = address(this).balance;
-    if ((newBalances + gasRefund) < darbiDepositBalance) return;
+    uint256 newBalances0 = address(this).balance;
+    if ((newBalances0 + gasRefund) < darbiDepositBalance) return;
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "Darbi: FAIL_SENDING_GAS_REFUND_TO_MONITOR");
-    uint256 diffBalances = newBalances - darbiDepositBalance - gasRefund;
+    uint256 newBalances1 = newBalances0 - gasRefund;
+    uint256 diffBalances = newBalances1 > darbiDepositBalance ? newBalances1 - darbiDepositBalance : 0;
     if (diffBalances > 0) {
       (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
       require(success2, "Darbi: FAIL_SENDING_BALANCES_TO_CONTROLLER");
