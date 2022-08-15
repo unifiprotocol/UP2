@@ -6,9 +6,14 @@ import "./IStrategy.sol";
 import "../Helpers/Safe.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
-import "../UPController.sol";
-import "../Rebalancer.sol";
+import "./Interfaces/IUPController.sol";
+import "./Interfaces/IRebalancer.sol";
 import "../Helpers/StakingPrecompiles.sol";
+
+// Contract Strategy must use our customized Safe.sol and OpenZeppelin's AccessControl and Pauseable Contracts.
+// Safe.sol is utilized so the DAO can retrieve any lost assets within the Strategy Contract.
+// AccessControl.sol is utilized so only the Rebalancer can interact with the strategy, and only the DAO can update the Rebalancer Contract.
+// Pausable.sol is utilized so that DAO can pause the strategy in an emergency.
 
 // Contract Strategy must use our customized Safe.sol and OpenZeppelin's AccessControl and Pauseable Contracts.
 // Safe.sol is utilized so the DAO can retrieve any lost assets within the Strategy Contract.
@@ -26,8 +31,8 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   address public targetValidator;
   address public monitor;
 
-  UPController public upController;
-  Rebalancer public rebalancer;
+  IUPController public upController;
+  IRebalancer public rebalancer;
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
@@ -57,8 +62,8 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
     _setupRole(REBALANCER_ROLE, msg.sender);
     _setupRole(MONITOR_ROLE, msg.sender);
     targetValidator = _targetValidator;
-    upController = UPController(payable(_upController));
-    rebalancer = Rebalancer(payable(_rebalancer));
+    upController = IUPController(payable(_upController));
+    rebalancer = IRebalancer(payable(_rebalancer));
     monitor = _monitor;
   }
 
@@ -70,8 +75,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   ///If we assume that each TokenA is worth 4 native tokens, then the unclaimedEarnings value should return a value of 13, adjusted for percision.
 
   function checkAllocation() public view virtual returns (uint256 allocationOthers) {
-    uint256 allocations = rebalancer.allocationLP() + rebalancer.allocationRedeem();
-    return allocations;
+    return 10;
   }
 
   function rewardsAmount() public view returns (uint256) {
@@ -126,10 +130,10 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   }
 
   function adjustDelegation() public onlyMonitor whenNotPaused returns (bool) {
-    uint256 currentAllocation = checkAllocation() * 2;
-    require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
-    uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) /
-      100;
+    uint256 currentAllocation = checkAllocation();
+    require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 100%");
+    uint256 targetAmountToStake = (200000000000000000000 * (100 - currentAllocation)) / 100;
+    //logic bug is here
     if (targetAmountToStake > amountDeposited) {
       uint256 amountToStake = targetAmountToStake - amountDeposited;
       require(
@@ -183,15 +187,6 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
     (bool successTransfer, ) = address(msg.sender).call{value: claimedRewards}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     epochOfLastRebalance = currentEpoch;
-  }
-
-  function delegate(address validatorAddress, uint256 amount)
-    public
-    override
-    onlyAdmin
-    returns (uint256 result)
-  {
-    super.delegate(validatorAddress, amount);
   }
 
   function withdrawFunds() public onlyAdmin returns (bool) {
