@@ -20,7 +20,7 @@ const bsctestnetpk = process.env.BSC_TESTNET_PRIVATE_KEY
 export default {
   // solidity: "0.8.4",
   solidity: {
-    compilers: [{ version: "0.8.4" }]
+    compilers: [{ version: "0.8.7" }]
   },
   docgen: {
     pages: "files"
