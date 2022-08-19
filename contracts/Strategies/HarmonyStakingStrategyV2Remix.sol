@@ -24,8 +24,8 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
 
-  /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
-  uint256 public amountDeposited = 0;
+  /// @notice The amountStaked MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
+  uint256 public amountStaked = 0;
   uint256 public epochOfLastRebalance = 0;
   uint256 public lastClaimedAmount = 0;
   address public targetValidator;
@@ -90,7 +90,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
     IStrategy.Rewards memory result = IStrategy.Rewards(
       lastClaimedAmount,
-      amountDeposited,
+      amountStaked,
       block.timestamp
     );
     return result;
@@ -134,23 +134,23 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
     require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 100%");
     uint256 targetAmountToStake = (200000000000000000000 * (100 - currentAllocation)) / 100;
     //logic bug is here
-    if (targetAmountToStake > amountDeposited) {
-      uint256 amountToStake = targetAmountToStake - amountDeposited;
+    if (targetAmountToStake > amountStaked) {
+      uint256 amountToStake = targetAmountToStake - amountStaked; // This number
       require(
-        amountToStake > address(this).balance,
+        amountToStake < address(this).balance,
         "Strategy does not have enough native tokens to add to stake"
       );
-      uint256 amountDelegated = delegate(targetValidator, amountToStake);
-      amountDeposited += amountDelegated;
+      delegate(targetValidator, amountToStake);
+      amountStaked += amountToStake;
     }
-    if (targetAmountToStake < amountDeposited) {
-      uint256 amountToUnstake = targetAmountToStake - amountDeposited;
+    if (targetAmountToStake < amountStaked) {
+      uint256 amountToUnstake = targetAmountToStake - amountStaked;
       require(
-        amountToUnstake > amountDeposited,
+        amountToUnstake < amountStaked,
         "Stake does not have enough of a balance to undelegate"
       );
-      uint256 amountUnDelegated = undelegate(targetValidator, amountToUnstake);
-      amountDeposited -= amountUnDelegated;
+      undelegate(targetValidator, amountToUnstake);
+      amountStaked -= amountToUnstake;
     }
     return true;
   }
