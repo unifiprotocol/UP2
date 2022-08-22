@@ -20,7 +20,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
 
   /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
-  uint256 public amountDeposited = 0;
+  uint256 public amountStaked = 0;
   uint256 public epochOfLastRebalance = 0;
   uint256 public lastClaimedAmount = 0;
   address public targetValidator;
@@ -45,6 +45,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   }
 
   event UpdateRebalancer(address _rebalancer);
+  event gatherCalled();
 
   constructor(
     address _fundsTarget,
@@ -84,9 +85,10 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   }
 
   function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
+    uint256 depositedAmount = amountStaked + address(this).balance;
     IStrategy.Rewards memory result = IStrategy.Rewards(
       lastClaimedAmount,
-      amountDeposited,
+      depositedAmount,
       block.timestamp
     );
     return result;
@@ -130,23 +132,23 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
     require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
     uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) /
       100;
-    if (targetAmountToStake > amountDeposited) {
-      uint256 amountToStake = targetAmountToStake - amountDeposited;
+    if (targetAmountToStake > amountStaked) {
+      uint256 amountToStake = targetAmountToStake - amountStaked;
       require(
-        amountToStake > address(this).balance,
+        amountToStake < address(this).balance,
         "Strategy does not have enough native tokens to add to stake"
       );
       uint256 amountDelegated = delegate(targetValidator, amountToStake);
-      amountDeposited += amountDelegated;
+      amountStaked += amountDelegated;
     }
-    if (targetAmountToStake < amountDeposited) {
-      uint256 amountToUnstake = targetAmountToStake - amountDeposited;
+    if (targetAmountToStake < amountStaked) {
+      uint256 amountToUnstake = targetAmountToStake - amountStaked;
       require(
-        amountToUnstake > amountDeposited,
+        amountToUnstake < amountStaked,
         "Stake does not have enough of a balance to undelegate"
       );
       uint256 amountUnDelegated = undelegate(targetValidator, amountToUnstake);
-      amountDeposited -= amountUnDelegated;
+      amountStaked -= amountUnDelegated;
     }
     return true;
   }
@@ -174,7 +176,6 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
       "Seven epoches have not passed since last rebalance"
     );
     uint256 balanceBefore = address(this).balance;
-    //Check through console.logs if this too is affected by Smart Contract / Assembly schism
     collectRewards();
     uint256 balanceAfter = address(this).balance;
     uint256 claimedRewards = balanceAfter - balanceBefore;
@@ -183,15 +184,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
     (bool successTransfer, ) = address(msg.sender).call{value: claimedRewards}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     epochOfLastRebalance = currentEpoch;
-  }
-
-  function delegate(address validatorAddress, uint256 amount)
-    public
-    override
-    onlyAdmin
-    returns (uint256 result)
-  {
-    super.delegate(validatorAddress, amount);
+    emit gatherCalled();
   }
 
   function withdrawFunds() public onlyAdmin returns (bool) {
