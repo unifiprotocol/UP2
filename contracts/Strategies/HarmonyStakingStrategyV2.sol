@@ -41,8 +41,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     address _fundsTarget,
     address _targetValidator,
     address _upController,
-    address _rebalancer,
-    address _monitor
+    address _rebalancer
   ) Strategy(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
@@ -50,7 +49,6 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     targetValidator = _targetValidator;
     upController = UPController(payable(_upController));
     rebalancer = Rebalancer(payable(_rebalancer));
-    monitor = _monitor;
   }
 
   // Read Functions
@@ -184,10 +182,5 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   function setRebalancer(address newAddress) public onlyAdmin {
     rebalancer = Rebalancer(payable(newAddress));
     emit UpdateRebalancer(newAddress);
-  }
-
-  function setMonitor(address newAddress) public onlyAdmin {
-    monitor = newAddress;
-    emit UpdateMonitor(newAddress);
   }
 }
