@@ -35,7 +35,6 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
 
   event UpdateRebalancer(address _rebalancer);
   event UpdateUPController(address _upController);
-  event UpdateMonitor(address _monitor);
 
   constructor(
     address _fundsTarget,
