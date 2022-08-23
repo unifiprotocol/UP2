@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.4;
 
-import "./IStrategy.sol";
+import "./Strategy.sol";
 import "../Helpers/Safe.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -15,8 +15,7 @@ import "../Helpers/StakingPrecompiles.sol";
 // AccessControl.sol is utilized so only the Rebalancer can interact with the strategy, and only the DAO can update the Rebalancer Contract.
 // Pausable.sol is utilized so that DAO can pause the strategy in an emergency.
 
-contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompiles {
-  bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
+contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
 
   /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
@@ -29,22 +28,13 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
   UPController public upController;
   Rebalancer public rebalancer;
 
-  modifier onlyAdmin() {
-    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "ONLY_ADMIN");
-    _;
-  }
-
-  modifier onlyRebalancer() {
-    require(hasRole(REBALANCER_ROLE, msg.sender), "ONLY_REBALANCER");
-    _;
-  }
-
   modifier onlyMonitor() {
     require(hasRole(MONITOR_ROLE, msg.sender), "ONLY_MONITOR");
     _;
   }
 
   event UpdateRebalancer(address _rebalancer);
+  event UpdateUpController(address _upController);
   event gatherCalled();
 
   constructor(
@@ -53,7 +43,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
     address _upController,
     address _rebalancer,
     address _monitor
-  ) Safe(_fundsTarget) {
+  ) Strategy(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
     _setupRole(MONITOR_ROLE, msg.sender);
@@ -138,8 +128,8 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
         amountToStake < address(this).balance,
         "Strategy does not have enough native tokens to add to stake"
       );
-      uint256 amountDelegated = delegate(targetValidator, amountToStake);
-      amountStaked += amountDelegated;
+      delegate(targetValidator, amountToStake);
+      amountStaked += amountToStake;
     }
     if (targetAmountToStake < amountStaked) {
       uint256 amountToUnstake = targetAmountToStake - amountStaked;
@@ -147,20 +137,23 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
         amountToUnstake < amountStaked,
         "Stake does not have enough of a balance to undelegate"
       );
-      uint256 amountUnDelegated = undelegate(targetValidator, amountToUnstake);
-      amountStaked -= amountUnDelegated;
+      undelegate(targetValidator, amountToUnstake);
+      amountStaked -= amountToUnstake;
     }
     return true;
   }
 
-  ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the rebalancer.
+  ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the UP Controller.
+  ///@return bool value will be false if undelegation is required first and is successful, value will be true if there is there is nothing to undelegate. All balance will be sen
 
-  function withdrawAll() external virtual override onlyRebalancer whenNotPaused returns (bool) {
-    // Check if any native tokens are still delegated
-    // If so, undelegate
-    // Check if amountDeposited < 1
-    // If not, undelegate. Return message that native tokens are still being undelegated. Rebalance must occur after undelegation funds are received.
-    (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
+  function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
+    if (amountStaked > 10000000000000000000) {
+      undelegate(targetValidator, amountStaked);
+      uint256 currentEpoch = epoch();
+      epochOfLastRebalance = currentEpoch;
+      return false;
+    }
+    (bool successTransfer, ) = address(upController).call{value: address(this).balance}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     return true;
   }
@@ -185,13 +178,5 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
     require(successTransfer, "FAIL_SENDING_NATIVE");
     epochOfLastRebalance = currentEpoch;
     emit gatherCalled();
-  }
-
-  function withdrawFunds() public onlyAdmin returns (bool) {
-    return _withdrawFunds();
-  }
-
-  function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
-    return _withdrawFundsERC20(tokenAddress);
   }
 }

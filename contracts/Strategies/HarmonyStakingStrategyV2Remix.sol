@@ -1,5 +1,7 @@
 // SPDX-License-Identifier: MIT
 
+/// DISREGARD THIS - IT IS FOR TESTING IN REMIX, USE HARMONYSTAKINGSTRATEGYV2.sol
+
 pragma solidity ^0.8.4;
 
 import "./IStrategy.sol";
