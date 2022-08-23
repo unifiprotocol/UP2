@@ -34,6 +34,8 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
 
   receive() external payable virtual {}
 
+  event gatherCalled();
+
   // Read Functions
 
   ///@notice The public checkRewards function MUST return a struct with the amount of pending rewards valued in native tokens, the total amount deposited, and the block timestamp.
@@ -120,6 +122,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
     uint256 nativeAmount = address(this).balance - amountDeposited;
     (bool successTransfer, ) = address(msg.sender).call{value: nativeAmount}("");
     require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
+    emit gatherCalled();
   }
 
   function withdrawFunds() public onlyAdmin returns (bool) {

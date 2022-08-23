@@ -34,8 +34,8 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   }
 
   event UpdateRebalancer(address _rebalancer);
-  event UpdateUpController(address _upController);
-  event gatherCalled();
+  event UpdateUPController(address _upController);
+  event UpdateMonitor(address _monitor);
 
   constructor(
     address _fundsTarget,
@@ -86,8 +86,6 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
 
   // Write Functions
 
-  function acceptMoney() public payable {}
-
   function deposit(uint256 depositValue)
     public
     payable
@@ -97,7 +95,6 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     returns (bool)
   {
     require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
-    acceptMoney();
     return true;
   }
 
@@ -173,10 +170,24 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     uint256 balanceAfter = address(this).balance;
     uint256 claimedRewards = balanceAfter - balanceBefore;
     lastClaimedAmount = claimedRewards;
-    checkRewards();
     (bool successTransfer, ) = address(msg.sender).call{value: claimedRewards}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     epochOfLastRebalance = currentEpoch;
     emit gatherCalled();
+  }
+
+  function setUPController(address newAddress) public onlyAdmin {
+    upController = UPController(payable(newAddress));
+    emit UpdateUPController(newAddress);
+  }
+
+  function setRebalancer(address newAddress) public onlyAdmin {
+    rebalancer = Rebalancer(payable(newAddress));
+    emit UpdateRebalancer(newAddress);
+  }
+
+  function setMonitor(address newAddress) public onlyAdmin {
+    monitor = newAddress;
+    emit UpdateMonitor(newAddress);
   }
 }
