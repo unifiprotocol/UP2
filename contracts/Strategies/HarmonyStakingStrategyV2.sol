@@ -34,8 +34,9 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     _;
   }
 
-  event UpdateRebalancer(address _rebalancer);
-  event UpdateUPController(address _upController);
+  event UpdateRebalancer(address rebalancer);
+  event UpdateUPController(address upController);
+  event UpdateValidator(address targetValidator);
 
   constructor(
     address _fundsTarget,
@@ -72,16 +73,10 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     return result;
   }
 
-  function getDepositedAmount() public view returns (uint256) {
-    uint256 depositedAmount = amountStaked + address(this).balance + pendingUndelegation;
-    return depositedAmount;
-  }
-
   function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
-    uint256 totalAmount = getDepositedAmount();
     IStrategy.Rewards memory result = IStrategy.Rewards(
       lastClaimedAmount,
-      totalAmount,
+      amountDeposited,
       block.timestamp
     );
     return result;
@@ -89,45 +84,17 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
 
   // Write Functions
 
-  function deposit(uint256 depositValue)
-    public
-    payable
-    override
-    onlyRebalancer
-    whenNotPaused
-    returns (bool)
-  {
-    require(depositValue == msg.value, "Deposit Value Parameter does not equal payable amount");
-    return true;
-  }
-
-  function withdraw(uint256 withdrawAmount)
-    public
-    override
-    onlyRebalancer
-    whenNotPaused
-    returns (bool)
-  {
-    require(
-      withdrawAmount <= address(this).balance,
-      "Amount Requested to Withdraw is Greater Than Currently Available in Wallet"
-    );
-    (bool successTransfer, ) = address(msg.sender).call{value: withdrawAmount}("");
-    require(successTransfer, "FAIL_SENDING_NATIVE");
-    return true;
-  }
-
   function adjustDelegation() public onlyMonitor whenNotPaused returns (bool) {
     uint256 currentAllocation = checkAllocation() * 2;
     require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
     uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) /
       100;
-    require(
-      targetAmountToStake > 100000000000000000000,
-      "Harmony Delegate and Undelegate must be greater than 100 ONE"
-    );
     if (targetAmountToStake > amountStaked) {
       uint256 amountToStake = targetAmountToStake - amountStaked;
+      require(
+        amountToStake > 100000000000000000000,
+        "Harmony Delegate must be greater than 100 ONE"
+      );
       require(
         amountToStake < address(this).balance,
         "Strategy does not have enough native tokens to add to stake"
@@ -138,6 +105,10 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     if (targetAmountToStake < amountStaked) {
       uint256 amountToUnstake = targetAmountToStake - amountStaked;
       require(
+        amountToUnstake > 100000000000000000000,
+        "Harmony Undelegate must be greater than 100 ONE"
+      );
+      require(
         amountToUnstake < amountStaked,
         "Stake does not have enough of a balance to undelegate"
       );
@@ -145,6 +116,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
       pendingUndelegation = amountToUnstake;
       amountStaked -= amountToUnstake;
     }
+    amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
     return true;
   }
 
@@ -156,10 +128,14 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
       undelegate(targetValidator, amountStaked);
       uint256 currentEpoch = epoch();
       epochOfLastRebalance = currentEpoch;
+      pendingUndelegation = amountStaked;
+      amountStaked == 0;
       return false;
     }
-    (bool successTransfer, ) = address(upController).call{value: address(this).balance}("");
+    uint256 amountSent = address(this).balance;
+    (bool successTransfer, ) = address(upController).call{value: amountSent}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
+    amountDeposited - amountSent;
     return true;
   }
 
@@ -192,5 +168,10 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   function setRebalancer(address newAddress) public onlyAdmin {
     rebalancer = Rebalancer(payable(newAddress));
     emit UpdateRebalancer(newAddress);
+  }
+
+  function setValidator(address newAddress) public onlyAdmin {
+    targetValidator = newAddress;
+    emit UpdateValidator(newAddress);
   }
 }
