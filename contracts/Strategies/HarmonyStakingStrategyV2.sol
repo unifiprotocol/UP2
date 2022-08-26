@@ -22,6 +22,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   uint256 public amountStaked = 0;
   uint256 public epochOfLastRebalance = 0;
   uint256 public lastClaimedAmount = 0;
+  uint256 public pendingUndelegation = 0;
   address public targetValidator;
   address public monitor;
 
@@ -71,11 +72,16 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     return result;
   }
 
+  function getDepositedAmount() public view returns (uint256) {
+    uint256 depositedAmount = amountStaked + address(this).balance + pendingUndelegation;
+    return depositedAmount;
+  }
+
   function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
-    uint256 depositedAmount = amountStaked + address(this).balance;
+    uint256 totalAmount = getDepositedAmount();
     IStrategy.Rewards memory result = IStrategy.Rewards(
       lastClaimedAmount,
-      depositedAmount,
+      totalAmount,
       block.timestamp
     );
     return result;
@@ -136,6 +142,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
         "Stake does not have enough of a balance to undelegate"
       );
       undelegate(targetValidator, amountToUnstake);
+      pendingUndelegation = amountToUnstake;
       amountStaked -= amountToUnstake;
     }
     return true;
