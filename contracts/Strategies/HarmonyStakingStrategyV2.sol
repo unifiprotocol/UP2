@@ -157,6 +157,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     (bool successTransfer, ) = address(msg.sender).call{value: claimedRewards}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     epochOfLastRebalance = currentEpoch;
+    pendingUndelegation = 0;
     emit gatherCalled();
   }
 
