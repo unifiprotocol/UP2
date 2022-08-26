@@ -59,9 +59,8 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   ///the function should calculate the return for selling 2 TokenA, and add to the 5 Native Tokens.
   ///If we assume that each TokenA is worth 4 native tokens, then the unclaimedEarnings value should return a value of 13, adjusted for percision.
 
-  function checkAllocation() public view virtual returns (uint256 allocationOthers) {
-    uint256 allocations = rebalancer.allocationLP() + rebalancer.allocationRedeem();
-    return allocations;
+  function checkAllocation() public view virtual returns (uint256) {
+    return rebalancer.allocationLP() + rebalancer.allocationRedeem();
   }
 
   function rewardsAmount() public view returns (uint256) {
