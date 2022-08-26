@@ -116,6 +116,10 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
     uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) /
       100;
+    require(
+      targetAmountToStake > 100000000000000000000,
+      "Harmony Delegate and Undelegate must be greater than 100 ONE"
+    );
     if (targetAmountToStake > amountStaked) {
       uint256 amountToStake = targetAmountToStake - amountStaked;
       require(
@@ -159,7 +163,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   function gather() public virtual override onlyRebalancer whenNotPaused {
     uint256 currentEpoch = epoch();
     require(
-      currentEpoch > epochOfLastRebalance + 7,
+      currentEpoch > epochOfLastRebalance + 8,
       "Seven epoches have not passed since last rebalance"
     );
     uint256 balanceBefore = address(this).balance;
