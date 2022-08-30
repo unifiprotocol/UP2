@@ -31,7 +31,7 @@ abstract contract StakingPrecompilesSelectors {
 }
 
 interface IStakingPrecompiles {
-  function delegate(address validatorAddress) external payable returns (uint256 result);
+  function delegate(address validatorAddress, uint256 amount) external returns (uint256 result);
 
   function undelegate(address validatorAddress, uint256 amount) external returns (uint256 result);
 
@@ -39,7 +39,7 @@ interface IStakingPrecompiles {
 
   function epoch() external view returns (uint256);
 
-  function withdrawUndelegatedFunds() external returns (uint256);
+  function transferFunds(uint256 amount, address to) external returns (uint256);
 }
 
 contract StakingPrecompiles is IStakingPrecompiles, AccessControl, Safe {
@@ -73,7 +73,7 @@ contract StakingPrecompiles is IStakingPrecompiles, AccessControl, Safe {
 
   address strategy;
 
-  function delegate(address validatorAddress)
+  function delegate(address validatorAddress, uint256 amount)
     public
     payable
     virtual
@@ -85,7 +85,7 @@ contract StakingPrecompiles is IStakingPrecompiles, AccessControl, Safe {
       StakingPrecompilesSelectors.Delegate.selector,
       address(this),
       validatorAddress,
-      msg.value
+      amount
     );
     assembly {
       // we estimate a gas consumption of 25k per precompile
@@ -145,7 +145,6 @@ contract StakingPrecompiles is IStakingPrecompiles, AccessControl, Safe {
         0x20
       )
     }
-    (bool success, ) = msg.sender.call{value: result}("");
     require(success, "StakingPrecompiles: FAIL_SENDING_NATIVE");
   }
 
@@ -162,10 +161,9 @@ contract StakingPrecompiles is IStakingPrecompiles, AccessControl, Safe {
     return uint256(epochNumber);
   }
 
-  function withdrawUndelegatedFunds() external override onlyStrategy returns (uint256) {
-    uint256 amount = address(this).balance;
+  function transferFunds(uint256 amount, address to) external onlyStrategy returns (uint256) {
+    require(amount <= address(this).balance, "StakingPrecompiles: NOT_ENOUGH_BALANCE")
     (bool success, ) = msg.sender.call{value: amount}("");
     require(success, "StakingPrecompiles: FAIL_SENDING_NATIVE");
-    return amount;
   }
 }

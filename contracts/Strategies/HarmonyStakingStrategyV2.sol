@@ -102,10 +102,10 @@ contract HarmonyStakingStrategy is Strategy {
         "HarmonyStakingStrategy: Harmony Delegate must be greater than 100 ONE"
       );
       require(
-        amountToStake < address(this).balance,
+        amountToStake < address(stakingPrecompiles).balance,
         "HarmonyStakingStrategy: Strategy does not have enough native tokens to add to stake"
       );
-      stakingPrecompiles.delegate{value: amountToStake}(targetValidator);
+      stakingPrecompiles.delegate(targetValidator);
       amountStaked += amountToStake;
     }
     if (targetAmountToStake < amountStaked) {
@@ -122,7 +122,7 @@ contract HarmonyStakingStrategy is Strategy {
       pendingUndelegation = amountToUnstake;
       amountStaked -= amountToUnstake;
     }
-    amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
+    amountDeposited = amountStaked + address(stakingPrecompiles).balance + pendingUndelegation;
     return true;
   }
 
@@ -139,11 +139,22 @@ contract HarmonyStakingStrategy is Strategy {
       amountStaked = 0;
       return false;
     }
-    stakingPrecompiles.withdrawUndelegatedFunds();
-    uint256 amountSent = address(this).balance;
-    (bool successTransfer, ) = address(upController).call{value: amountSent}("");
-    require(successTransfer, "HarmonyStakingStrategy: FAIL_SENDING_NATIVE");
-    amountDeposited - amountSent;
+    uint256 amountSent = address(stakingPrecompiles).balance;
+    transferUnderlyingFunds(amountSent, upController);
+    return true;
+  }
+
+  function deposit(uint256 depositValue)
+    public
+    payable
+    override
+    onlyRebalancer
+    whenNotPaused
+    returns (bool)
+  {
+    super.deposit(depositValue);
+    (bool success,) = address(stakingPrecompiles).call{value: depositValue}("")
+    require(success, "HarmonyStakingStrategy: FAIL_SENDING_NATIVE");
     return true;
   }
 
@@ -155,10 +166,14 @@ contract HarmonyStakingStrategy is Strategy {
     whenNotPaused
     returns (bool)
   {
-    require(amount <= address(this).balance, "HarmonyStakingStrategy: NOT_ENOUGH_BALANCE");
-    uint256 withdrawnFunds = stakingPrecompiles.withdrawUndelegatedFunds();
-    pendingUndelegation -= withdrawnFunds;
-    return super.withdraw(amount);
+    require(amount <= amountDeposited, "HarmonyStakingStrategy: INVALID_WITHDRAWAL_AMOUNT");
+    transferUnderlyingFunds(amount, msg.sender);
+    return true;
+  }
+
+  function transferUnderlyingFunds(uint256 amount, address to) internal {
+    stakingPrecompiles.transferFunds(amount, to);
+    amountDeposited -= amount;
   }
 
   ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
@@ -172,7 +187,7 @@ contract HarmonyStakingStrategy is Strategy {
       "HarmonyStakingStrategy: Seven epoches have not passed since last rebalance"
     );
     uint256 balanceBefore = address(this).balance;
-    stakingPrecompiles.collectRewards();
+    uint256 claimedRewards = stakingPrecompiles.collectRewards();
     uint256 balanceAfter = address(this).balance;
     uint256 claimedRewards = balanceAfter - balanceBefore;
     lastClaimedAmount = claimedRewards;
