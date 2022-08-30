@@ -206,9 +206,9 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable, StakingPrecompile
     public
     override
     onlyAdmin
-    returns (uint256 result)
+    returns (uint256)
   {
-    super.delegate(validatorAddress, amount);
+    return super.delegate(validatorAddress, amount);
   }
 
   receive() external payable virtual {}

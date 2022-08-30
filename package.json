@@ -20,6 +20,7 @@
   },
   "scripts": {
     "test": "hardhat test",
+    "test:staking:harmony": "yarn test test/Strategy/Harmony/* --network hardhat",
     "compile": "hardhat compile",
     "docgen": "hardhat docgen"
   },

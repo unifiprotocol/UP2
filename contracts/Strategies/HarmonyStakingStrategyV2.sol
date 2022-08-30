@@ -9,13 +9,14 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 import "../UPController.sol";
 import "../Rebalancer.sol";
 import "../Helpers/StakingPrecompiles.sol";
+import "hardhat/console.sol";
 
 // Contract Strategy must use our customized Safe.sol and OpenZeppelin's AccessControl and Pauseable Contracts.
 // Safe.sol is utilized so the DAO can retrieve any lost assets within the Strategy Contract.
 // AccessControl.sol is utilized so only the Rebalancer can interact with the strategy, and only the DAO can update the Rebalancer Contract.
 // Pausable.sol is utilized so that DAO can pause the strategy in an emergency.
 
-contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
+contract HarmonyStakingStrategy is Strategy {
   bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
 
   /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
@@ -28,9 +29,10 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
 
   UPController public upController;
   Rebalancer public rebalancer;
+  IStakingPrecompiles stakingPrecompiles;
 
   modifier onlyMonitor() {
-    require(hasRole(MONITOR_ROLE, msg.sender), "ONLY_MONITOR");
+    require(hasRole(MONITOR_ROLE, msg.sender), "HarmonyStakingStrategy: ONLY_MONITOR");
     _;
   }
 
@@ -42,7 +44,8 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     address _fundsTarget,
     address _targetValidator,
     address _upController,
-    address _rebalancer
+    address _rebalancer,
+    address _stakingPrecompiles
   ) Strategy(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
@@ -50,6 +53,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     targetValidator = _targetValidator;
     upController = UPController(payable(_upController));
     rebalancer = Rebalancer(payable(_rebalancer));
+    stakingPrecompiles = IStakingPrecompiles(_stakingPrecompiles);
   }
 
   // Read Functions
@@ -64,10 +68,10 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   }
 
   function rewardsAmount() public view returns (uint256) {
-    (bool success, bytes memory response) = address(this).staticcall(
+    (bool success, bytes memory response) = address(stakingPrecompiles).staticcall(
       abi.encodeWithSignature("collectRewards()")
     );
-    require(success, "Failed to Fetch Pending Rewards Amount");
+    require(success, "HarmonyStakingStrategy: Failed to Fetch Pending Rewards Amount");
     uint256 result = abi.decode(response, (uint256));
     return result;
   }
@@ -85,33 +89,36 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
 
   function adjustDelegation() public onlyMonitor whenNotPaused returns (bool) {
     uint256 currentAllocation = checkAllocation() * 2;
-    require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
+    require(
+      currentAllocation <= 100,
+      "HarmonyStakingStrategy: Allocation for LP and Redeem exceeds 50%"
+    );
     uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) /
       100;
     if (targetAmountToStake > amountStaked) {
       uint256 amountToStake = targetAmountToStake - amountStaked;
       require(
-        amountToStake > 100000000000000000000,
-        "Harmony Delegate must be greater than 100 ONE"
+        amountToStake > 100 ether,
+        "HarmonyStakingStrategy: Harmony Delegate must be greater than 100 ONE"
       );
       require(
         amountToStake < address(this).balance,
-        "Strategy does not have enough native tokens to add to stake"
+        "HarmonyStakingStrategy: Strategy does not have enough native tokens to add to stake"
       );
-      delegate(targetValidator, amountToStake);
+      stakingPrecompiles.delegate{value: amountToStake}(targetValidator);
       amountStaked += amountToStake;
     }
     if (targetAmountToStake < amountStaked) {
       uint256 amountToUnstake = targetAmountToStake - amountStaked;
       require(
-        amountToUnstake > 100000000000000000000,
-        "Harmony Undelegate must be greater than 100 ONE"
+        amountToUnstake > 100 ether,
+        "HarmonyStakingStrategy: Harmony Undelegate must be greater than 100 ONE"
       );
       require(
         amountToUnstake < amountStaked,
-        "Stake does not have enough of a balance to undelegate"
+        "HarmonyStakingStrategy: Stake does not have enough of a balance to undelegate"
       );
-      undelegate(targetValidator, amountToUnstake);
+      stakingPrecompiles.undelegate(targetValidator, amountToUnstake);
       pendingUndelegation = amountToUnstake;
       amountStaked -= amountToUnstake;
     }
@@ -120,20 +127,22 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   }
 
   ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the UP Controller.
+  ///@notice This function prevents the contract to keep dust since whenever the withdrawal process is triggered all this dust will be transferred to UPC
   ///@return bool value will be false if undelegation is required first and is successful, value will be true if there is there is nothing to undelegate. All balance will be sen
 
   function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
-    if (amountStaked > 10000000000000000000) {
-      undelegate(targetValidator, amountStaked);
-      uint256 currentEpoch = epoch();
+    if (amountStaked > 10 ether) {
+      stakingPrecompiles.undelegate(targetValidator, amountStaked);
+      uint256 currentEpoch = stakingPrecompiles.epoch();
       epochOfLastRebalance = currentEpoch;
       pendingUndelegation = amountStaked;
-      amountStaked == 0;
+      amountStaked = 0;
       return false;
     }
+    stakingPrecompiles.withdrawUndelegatedFunds();
     uint256 amountSent = address(this).balance;
     (bool successTransfer, ) = address(upController).call{value: amountSent}("");
-    require(successTransfer, "FAIL_SENDING_NATIVE");
+    require(successTransfer, "HarmonyStakingStrategy: FAIL_SENDING_NATIVE");
     amountDeposited - amountSent;
     return true;
   }
@@ -143,18 +152,18 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
 
   function gather() public virtual override onlyRebalancer whenNotPaused {
-    uint256 currentEpoch = epoch();
+    uint256 currentEpoch = stakingPrecompiles.epoch();
     require(
       currentEpoch > epochOfLastRebalance + 8,
-      "Seven epoches have not passed since last rebalance"
+      "HarmonyStakingStrategy: Seven epoches have not passed since last rebalance"
     );
     uint256 balanceBefore = address(this).balance;
-    collectRewards();
+    stakingPrecompiles.collectRewards();
     uint256 balanceAfter = address(this).balance;
     uint256 claimedRewards = balanceAfter - balanceBefore;
     lastClaimedAmount = claimedRewards;
     (bool successTransfer, ) = address(msg.sender).call{value: claimedRewards}("");
-    require(successTransfer, "FAIL_SENDING_NATIVE");
+    require(successTransfer, "HarmonyStakingStrategy: FAIL_SENDING_NATIVE");
     epochOfLastRebalance = currentEpoch;
     pendingUndelegation = 0;
     emit gatherCalled();

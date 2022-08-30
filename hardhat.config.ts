@@ -1,5 +1,4 @@
 require("dotenv").config()
-import { task } from "hardhat/config"
 import "@nomiclabs/hardhat-waffle"
 import "@typechain/hardhat"
 import "@nomiclabs/hardhat-ethers"
@@ -42,8 +41,9 @@ export default {
       accounts: bsctestnetpk ? [bsctestnetpk] : []
     },
     hardhat: {
+      chainId: 1666600000,
       forking: {
-        url: "https://proxy.unifiprotocol.com/rpc-internal/binance"
+        url: "https://api.harmony.one"
       }
     }
   },

@@ -13,7 +13,7 @@ import {
   UPMintDarbi,
   Vanilla
 } from "../typechain-types"
-import contracts from "./Contracts"
+import bscTestnetContracts from "./Contracts/BscContracts"
 import { getUniswapRouter } from "./Helper"
 
 const MEANINGLESS_AMOUNT = "10000"
@@ -108,7 +108,7 @@ describe("Rebalancer", function () {
       const [a1] = await ethers.getSigners()
       addr1 = a1
 
-      router = await getUniswapRouter(contracts["Router"])
+      router = await getUniswapRouter(bscTestnetContracts["Router"])
 
       UP_TOKEN = await ethers
         .getContractFactory("UP")
@@ -129,8 +129,11 @@ describe("Rebalancer", function () {
         { value: ethers.utils.parseEther("5") }
       )
 
-      const factory = await ethers.getContractAt("IUniswapV2Factory", contracts["Factory"])
-      const pairAddress = await factory.getPair(UP_TOKEN.address, contracts["WETH"])
+      const factory = await ethers.getContractAt(
+        "IUniswapV2Factory",
+        bscTestnetContracts["Factory"]
+      )
+      const pairAddress = await factory.getPair(UP_TOKEN.address, bscTestnetContracts["WETH"])
       liquidityPool = await ethers.getContractAt("IUnifiPair", pairAddress)
 
       UP_CONTROLLER = await ethers
@@ -159,9 +162,9 @@ describe("Rebalancer", function () {
         })
         .then((factory) =>
           factory.deploy(
-            contracts["Factory"],
-            contracts["Router"],
-            contracts["WETH"],
+            bscTestnetContracts["Factory"],
+            bscTestnetContracts["Router"],
+            bscTestnetContracts["WETH"],
             addr1.address,
             UP_CONTROLLER.address,
             UP_MINT_DARBI.address,
@@ -182,12 +185,12 @@ describe("Rebalancer", function () {
         })
         .then((cf) =>
           cf.deploy(
-            contracts["WETH"],
+            bscTestnetContracts["WETH"],
             UP_TOKEN.address,
             UP_CONTROLLER.address,
             ethers.constants.AddressZero,
-            contracts["Router"],
-            contracts["Factory"],
+            bscTestnetContracts["Router"],
+            bscTestnetContracts["Factory"],
             pairAddress,
             DARBI.address,
             addr1.address
@@ -198,9 +201,9 @@ describe("Rebalancer", function () {
     it("Should return the correct amount of reserves for LP holder", async () => {
       await liquidityPool.transfer(rebalancer.address, await liquidityPool.balanceOf(addr1.address))
       const reserves = await uniswapHelper.getReserves(
-        contracts["Factory"],
+        bscTestnetContracts["Factory"],
         UP_TOKEN.address,
-        contracts["WETH"]
+        bscTestnetContracts["WETH"]
       )
       const [reserves0, reserves1] = await rebalancer.getLiquidityPoolBalance(
         reserves.reserveA,
@@ -213,9 +216,9 @@ describe("Rebalancer", function () {
 
     it("Should return (0,0) because no LP in Rebalance", async () => {
       const reserves = await uniswapHelper.getReserves(
-        contracts["Factory"],
+        bscTestnetContracts["Factory"],
         UP_TOKEN.address,
-        contracts["WETH"]
+        bscTestnetContracts["WETH"]
       )
       const [reserves0, reserves1] = await rebalancer.getLiquidityPoolBalance(
         reserves.reserveA,
@@ -236,7 +239,7 @@ describe("Rebalancer", function () {
         const [a1] = await ethers.getSigners()
         addr1 = a1
 
-        router = await getUniswapRouter(contracts["Router"])
+        router = await getUniswapRouter(bscTestnetContracts["Router"])
 
         UP_TOKEN = await ethers
           .getContractFactory("UP")
@@ -257,8 +260,11 @@ describe("Rebalancer", function () {
           { value: ethers.utils.parseEther("5") }
         )
 
-        const factory = await ethers.getContractAt("IUniswapV2Factory", contracts["Factory"])
-        const pairAddress = await factory.getPair(UP_TOKEN.address, contracts["WETH"])
+        const factory = await ethers.getContractAt(
+          "IUniswapV2Factory",
+          bscTestnetContracts["Factory"]
+        )
+        const pairAddress = await factory.getPair(UP_TOKEN.address, bscTestnetContracts["WETH"])
         liquidityPool = await ethers.getContractAt("IUnifiPair", pairAddress)
 
         UP_CONTROLLER = await ethers
@@ -286,9 +292,9 @@ describe("Rebalancer", function () {
           })
           .then((factory) =>
             factory.deploy(
-              contracts["Factory"],
-              contracts["Router"],
-              contracts["WETH"],
+              bscTestnetContracts["Factory"],
+              bscTestnetContracts["Router"],
+              bscTestnetContracts["WETH"],
               addr1.address,
               UP_CONTROLLER.address,
               UP_MINT_DARBI.address,
@@ -306,12 +312,12 @@ describe("Rebalancer", function () {
           })
           .then((cf) =>
             cf.deploy(
-              contracts["WETH"],
+              bscTestnetContracts["WETH"],
               UP_TOKEN.address,
               UP_CONTROLLER.address,
               ethers.constants.AddressZero,
-              contracts["Router"],
-              contracts["Factory"],
+              bscTestnetContracts["Router"],
+              bscTestnetContracts["Factory"],
               pairAddress,
               DARBI.address,
               addr1.address
@@ -333,8 +339,8 @@ describe("Rebalancer", function () {
         await rebalancer.rebalance()
 
         const [r0, r1] = await uniswapHelper.getReserves(
-          contracts["Factory"],
-          contracts["WETH"],
+          bscTestnetContracts["Factory"],
+          bscTestnetContracts["WETH"],
           UP_TOKEN.address
         )
         const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
@@ -372,8 +378,8 @@ describe("Rebalancer", function () {
         const finalLp = await liquidityPool.balanceOf(rebalancer.address)
 
         const [r0, r1] = await uniswapHelper.getReserves(
-          contracts["Factory"],
-          contracts["WETH"],
+          bscTestnetContracts["Factory"],
+          bscTestnetContracts["WETH"],
           UP_TOKEN.address
         )
         const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
@@ -407,8 +413,8 @@ describe("Rebalancer", function () {
         const finalLp = await liquidityPool.balanceOf(rebalancer.address)
 
         const [r0, r1] = await uniswapHelper.getReserves(
-          contracts["Factory"],
-          contracts["WETH"],
+          bscTestnetContracts["Factory"],
+          bscTestnetContracts["WETH"],
           UP_TOKEN.address
         )
         const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
@@ -438,7 +444,7 @@ describe("Rebalancer", function () {
         const [a1] = await ethers.getSigners()
         addr1 = a1
 
-        router = await getUniswapRouter(contracts["Router"])
+        router = await getUniswapRouter(bscTestnetContracts["Router"])
 
         VANILLA = await ethers
           .getContractFactory("Vanilla")
@@ -464,8 +470,11 @@ describe("Rebalancer", function () {
           { value: ethers.utils.parseEther("5") }
         )
 
-        const factory = await ethers.getContractAt("IUniswapV2Factory", contracts["Factory"])
-        const pairAddress = await factory.getPair(UP_TOKEN.address, contracts["WETH"])
+        const factory = await ethers.getContractAt(
+          "IUniswapV2Factory",
+          bscTestnetContracts["Factory"]
+        )
+        const pairAddress = await factory.getPair(UP_TOKEN.address, bscTestnetContracts["WETH"])
         liquidityPool = await ethers.getContractAt("IUnifiPair", pairAddress)
 
         UP_CONTROLLER = await ethers
@@ -493,9 +502,9 @@ describe("Rebalancer", function () {
           })
           .then((factory) =>
             factory.deploy(
-              contracts["Factory"],
-              contracts["Router"],
-              contracts["WETH"],
+              bscTestnetContracts["Factory"],
+              bscTestnetContracts["Router"],
+              bscTestnetContracts["WETH"],
               addr1.address,
               UP_CONTROLLER.address,
               UP_MINT_DARBI.address,
@@ -513,12 +522,12 @@ describe("Rebalancer", function () {
           })
           .then((cf) =>
             cf.deploy(
-              contracts["WETH"],
+              bscTestnetContracts["WETH"],
               UP_TOKEN.address,
               UP_CONTROLLER.address,
               VANILLA.address,
-              contracts["Router"],
-              contracts["Factory"],
+              bscTestnetContracts["Router"],
+              bscTestnetContracts["Factory"],
               pairAddress,
               DARBI.address,
               addr1.address
@@ -544,8 +553,8 @@ describe("Rebalancer", function () {
         const { depositedAmount } = await VANILLA.checkRewards()
 
         const [r0, r1] = await uniswapHelper.getReserves(
-          contracts["Factory"],
-          contracts["WETH"],
+          bscTestnetContracts["Factory"],
+          bscTestnetContracts["WETH"],
           UP_TOKEN.address
         )
         const [reservesETH] = await rebalancer.getLiquidityPoolBalance(r0, r1)
@@ -575,8 +584,8 @@ describe("Rebalancer", function () {
         await rebalancer.rebalance()
 
         const [r0, r1] = await uniswapHelper.getReserves(
-          contracts["Factory"],
-          contracts["WETH"],
+          bscTestnetContracts["Factory"],
+          bscTestnetContracts["WETH"],
           UP_TOKEN.address
         )
 
@@ -611,8 +620,8 @@ describe("Rebalancer", function () {
         await rebalancer.rebalance()
 
         const [r0, r1] = await uniswapHelper.getReserves(
-          contracts["Factory"],
-          contracts["WETH"],
+          bscTestnetContracts["Factory"],
+          bscTestnetContracts["WETH"],
           UP_TOKEN.address
         )
 
@@ -668,8 +677,8 @@ describe("Rebalancer", function () {
         const rebalancerLpBalance = await liquidityPool.balanceOf(rebalancer.address)
 
         const [r0, r1] = await uniswapHelper.getReserves(
-          contracts["Factory"],
-          contracts["WETH"],
+          bscTestnetContracts["Factory"],
+          bscTestnetContracts["WETH"],
           UP_TOKEN.address
         )
 

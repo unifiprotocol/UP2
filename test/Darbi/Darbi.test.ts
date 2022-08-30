@@ -10,7 +10,7 @@ import {
 } from "../../typechain-types"
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import contracts from "../Contracts"
+import bscTestnetContracts from "../Contracts/BscContracts"
 import { getUniswapRouter } from "../Helper"
 import { BN } from "@unifiprotocol/utils"
 
@@ -63,9 +63,9 @@ describe("Darbi", async () => {
     })
 
     darbiContract = await DarbiFactory.deploy(
-      contracts["Factory"],
-      contracts["Router"],
-      contracts["WETH"],
+      bscTestnetContracts["Factory"],
+      bscTestnetContracts["Router"],
+      bscTestnetContracts["WETH"],
       admin.address,
       UP_CONTROLLER.address,
       UP_MINT_DARBI.address,
@@ -129,7 +129,7 @@ describe("Darbi", async () => {
     let router: IUniswapV2Router02
     beforeEach(async () => {
       // Create pool
-      router = await getUniswapRouter(contracts["Router"])
+      router = await getUniswapRouter(bscTestnetContracts["Router"])
       await UP_TOKEN.approve(router.address, ethers.utils.parseEther("10000"))
       await router.addLiquidityETH(
         UP_TOKEN.address,
@@ -148,9 +148,9 @@ describe("Darbi", async () => {
       })
 
       darbiContract = await DarbiFactory.deploy(
-        contracts["Factory"],
-        contracts["Router"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["Router"],
+        bscTestnetContracts["WETH"],
         admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
@@ -173,13 +173,13 @@ describe("Darbi", async () => {
       await router.swapExactTokensForETH(
         amountIn,
         0,
-        [UP_TOKEN.address, contracts["WETH"]],
+        [UP_TOKEN.address, bscTestnetContracts["WETH"]],
         admin.address,
         Date.now()
       )
       const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
-        contracts["Factory"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["WETH"],
         UP_TOKEN.address
       )
       const newPrice = BN(reserveA.toHexString())
@@ -202,14 +202,14 @@ describe("Darbi", async () => {
       const { aToB, amountIn } = await darbiContract.moveMarketBuyAmount()
       await router.swapExactETHForTokens(
         0,
-        [contracts["WETH"], UP_TOKEN.address],
+        [bscTestnetContracts["WETH"], UP_TOKEN.address],
         admin.address,
         Date.now(),
         { value: amountIn }
       )
       const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
-        contracts["Factory"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["WETH"],
         UP_TOKEN.address
       )
       const newPrice = BN(reserveA.toHexString())
@@ -225,7 +225,7 @@ describe("Darbi", async () => {
   describe("arbitrage", async () => {
     beforeEach(async () => {
       // Create pool
-      const router = await getUniswapRouter(contracts["Router"])
+      const router = await getUniswapRouter(bscTestnetContracts["Router"])
       await UP_TOKEN.approve(router.address, ethers.utils.parseEther("10000"))
       await router.addLiquidityETH(
         UP_TOKEN.address,
@@ -244,9 +244,9 @@ describe("Darbi", async () => {
       })
 
       darbiContract = await DarbiFactory.deploy(
-        contracts["Factory"],
-        contracts["Router"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["Router"],
+        bscTestnetContracts["WETH"],
         admin.address,
         UP_CONTROLLER.address,
         UP_MINT_DARBI.address,
@@ -293,8 +293,8 @@ describe("Darbi", async () => {
       )
       await darbiContract.arbitrage()
       const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
-        contracts["Factory"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["WETH"],
         UP_TOKEN.address
       )
       const newPrice = BN(reserveA.toHexString())
@@ -365,8 +365,8 @@ describe("Darbi", async () => {
       )
       await darbiContract.arbitrage()
       const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
-        contracts["Factory"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["WETH"],
         UP_TOKEN.address
       )
       const newPrice = BN(reserveA.toHexString())
@@ -388,8 +388,8 @@ describe("Darbi", async () => {
       await darbiContract.setDarbiFunds(ethers.utils.parseEther("32"))
 
       const { reserveA: priorReserveA, reserveB: priorReserveB } = await UNISWAP_HELPER.getReserves(
-        contracts["Factory"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["WETH"],
         UP_TOKEN.address
       )
       const priorPrice = BN(priorReserveA.toHexString())
@@ -401,8 +401,8 @@ describe("Darbi", async () => {
       )
       await darbiContract.arbitrage()
       const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
-        contracts["Factory"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["WETH"],
         UP_TOKEN.address
       )
       const newPrice = BN(reserveA.toHexString())
@@ -426,8 +426,8 @@ describe("Darbi", async () => {
       await darbiContract.setDarbiFunds(ethers.utils.parseEther("10"))
 
       const { reserveA: priorReserveA, reserveB: priorReserveB } = await UNISWAP_HELPER.getReserves(
-        contracts["Factory"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["WETH"],
         UP_TOKEN.address
       )
       const priorPrice = BN(priorReserveA.toHexString())
@@ -439,8 +439,8 @@ describe("Darbi", async () => {
       )
       await darbiContract.arbitrage()
       const { reserveA, reserveB } = await UNISWAP_HELPER.getReserves(
-        contracts["Factory"],
-        contracts["WETH"],
+        bscTestnetContracts["Factory"],
+        bscTestnetContracts["WETH"],
         UP_TOKEN.address
       )
       const newPrice = BN(reserveA.toHexString())
