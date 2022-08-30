@@ -147,6 +147,20 @@ contract HarmonyStakingStrategy is Strategy {
     return true;
   }
 
+  function withdraw(uint256 amount)
+    public
+    virtual
+    override
+    onlyRebalancer
+    whenNotPaused
+    returns (bool)
+  {
+    require(amount <= address(this).balance, "HarmonyStakingStrategy: NOT_ENOUGH_BALANCE");
+    uint256 withdrawnFunds = stakingPrecompiles.withdrawUndelegatedFunds();
+    pendingUndelegation -= withdrawnFunds;
+    return super.withdraw(amount);
+  }
+
   ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
   ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
   ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
