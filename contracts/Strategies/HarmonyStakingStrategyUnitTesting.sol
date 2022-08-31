@@ -23,7 +23,6 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   uint256 public epochOfLastRebalance = 0;
   uint256 public lastClaimedAmount = 0;
   uint256 public pendingUndelegation = 0;
-  uint256 public balanceBefore = 0;
   uint256 public timestampOfLastClaim = 0;
   address public targetValidator;
   address public monitor;
@@ -86,42 +85,118 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   // Write Functions
 
   function adjustDelegation() public onlyMonitor whenNotPaused returns (bool) {
-    uint256 balanceAfter = address(this).balance;
-    uint256 claimedRewards = balanceAfter - balanceBefore;
-    lastClaimedAmount = claimedRewards;
-    uint256 currentAllocation = (checkAllocation() * 2) + 1;
-    require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 50%");
-    uint256 targetAmountToStake = (upController.getNativeBalance() * (100 - currentAllocation)) /
-      100;
+    uint256 targetAmountToStake = getTargetStakeAmount();
     if (targetAmountToStake > amountStaked) {
       uint256 amountToStake = targetAmountToStake - amountStaked;
       require(
         amountToStake > 100000000000000000000,
-        "Harmony Delegate must be greater than 100 ONE"
+        "Harmony Delegate must be greater than 100 ONE: STAKE_UNDER_100"
       );
       require(
         amountToStake < address(this).balance,
-        "Strategy does not have enough native tokens to add to stake"
+        "Strategy does not have enough native tokens to add to stake: NOT_ENOUGH_TO_STAKE"
       );
       delegate(targetValidator, amountToStake);
-      amountStaked += amountToStake;
+      _afterDelegate(amountToStake);
     }
     if (targetAmountToStake < amountStaked) {
       uint256 amountToUnstake = targetAmountToStake - amountStaked;
       require(
         amountToUnstake > 100000000000000000000,
-        "Harmony Undelegate must be greater than 100 ONE"
+        "Harmony Undelegate must be greater than 100 ONE: STAKE_UNDER_100"
       );
       require(
         amountToUnstake < amountStaked,
-        "Stake does not have enough of a balance to undelegate"
+        "Stake does not have enough of a balance to undelegate: NOT_ENOUGH_TO_STAKE"
       );
       undelegate(targetValidator, amountToUnstake);
-      pendingUndelegation = amountToUnstake;
-      amountStaked -= amountToUnstake;
+      _afterUndelegate(amountToUnstake);
     }
-    amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
+
     return true;
+  }
+
+  function _afterDelegate(uint256 amountToStake) internal {
+    amountStaked += amountToStake;
+    amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
+  }
+
+  function _afterUndelegate(uint256 amountToUnstake) internal {
+    pendingUndelegation = amountToUnstake;
+    amountStaked -= amountToUnstake;
+    amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
+  }
+  
+    function getTargetStakeAmount() internal returns(uint256) {
+        uint256 currentAllocation = (checkAllocation() * 2) + 1;
+        require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 49.5%: ALLOCATION_TOO_HIGH");
+        return (upController.getNativeBalance() * (100 - currentAllocation)) / 100;
+    }    
+
+
+
+  ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the UP Controller.
+  ///@return bool value will be false if undelegation is required first and is successful, value will be true if there is there is nothing to undelegate. All balance will be sen
+
+  function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
+    if (amountStaked > 10000000000000000000) {
+      undelegate(targetValidator, amountStaked);
+      uint256 currentEpoch = epoch();
+      _afterUndelegateAll(currentEpoch);
+      return false;
+    }
+    uint256 amountSent = address(this).balance;
+    (bool successTransfer, ) = address(upController).call{value: amountSent}("");
+    require(successTransfer, "FAIL_SENDING_NATIVE");
+    amountDeposited - amountSent;
+    return true;
+  }
+
+  function _afterUndelegateAll(uint256 currentEpoch) internal {
+    epochOfLastRebalance = currentEpoch;
+    pendingUndelegation = amountStaked;
+    amountStaked == 0;
+  }
+  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
+    
+    pendingUndelegation = amountStaked;
+    amountStaked == 0;
+  }
+
+  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
+  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
+  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
+    
+    pendingUndelegation = amountStaked;
+    amountStaked == 0;
+  }
+
+  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
+  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
+  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
+    
+    epochOfLastRebalance = currentEpoch;
+    pendingUndelegation = amountStaked;
+    amountStaked == 0;
+  }
+
+  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
+  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
+  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
+    
+    epochOfLastRebalance = currentEpoch;
+    pendingUndelegation = amountStaked;
+    amountStaked == 0;
+  }
+
+  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
+  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
+  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
+    
+
+    pendingUndelegation = amountToUnstake;
+    amountStaked -= amountToUnstake;
+    amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
   }
 
   ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the UP Controller.
@@ -131,9 +206,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     if (amountStaked > 10000000000000000000) {
       undelegate(targetValidator, amountStaked);
       uint256 currentEpoch = epoch();
-      epochOfLastRebalance = currentEpoch;
-      pendingUndelegation = amountStaked;
-      amountStaked == 0;
+      _afterUndelegateAll(currentEpoch);
       return false;
     }
     uint256 amountSent = address(this).balance;
@@ -141,6 +214,12 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     require(successTransfer, "FAIL_SENDING_NATIVE");
     amountDeposited - amountSent;
     return true;
+  }
+
+  function _afterUndelegateAll(uint256 currentEpoch) internal {
+    epochOfLastRebalance = currentEpoch;
+    pendingUndelegation = amountStaked;
+    amountStaked == 0;
   }
 
   ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
@@ -153,10 +232,13 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
       currentEpoch > epochOfLastRebalance + 8,
       "Seven epoches have not passed since last rebalance"
     );
-    balanceBefore = address(this).balance;
-    uint256 rewardsEarned = rewardsAmount();
+    lastClaimedAmount = rewardsAmount();
     collectRewards();
-    (bool successTransfer, ) = address(msg.sender).call{value: rewardsEarned}("");
+    _afterGather(currentEpoch);
+  }
+
+  function _afterGather(uint256 currentEpoch) internal {
+    (bool successTransfer, ) = address(msg.sender).call{value: lastClaimedAmount}("");
     timestampOfLastClaim = block.timestamp;
     require(successTransfer, "FAIL_SENDING_NATIVE");
     epochOfLastRebalance = currentEpoch;
