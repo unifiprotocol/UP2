@@ -127,11 +127,11 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
   }
   
-    function getTargetStakeAmount() internal returns(uint256) {
+  function getTargetStakeAmount() internal returns(uint256) {
         uint256 currentAllocation = (checkAllocation() * 2) + 1;
         require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 49.5%: ALLOCATION_TOO_HIGH");
         return (upController.getNativeBalance() * (100 - currentAllocation)) / 100;
-    }    
+  }    
 
 
 
@@ -148,14 +148,14 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     uint256 amountSent = address(this).balance;
     (bool successTransfer, ) = address(upController).call{value: amountSent}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
-    amountDeposited - amountSent;
+    amountDeposited -= amountSent;
     return true;
   }
 
   function _afterUndelegateAll(uint256 currentEpoch) internal {
     epochOfLastRebalance = currentEpoch;
     pendingUndelegation = amountStaked;
-    amountStaked == 0;
+    amountStaked = 0;
   }
   ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
     
