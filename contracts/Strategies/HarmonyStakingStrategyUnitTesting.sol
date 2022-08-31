@@ -126,14 +126,15 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     amountStaked -= amountToUnstake;
     amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
   }
-  
-  function getTargetStakeAmount() internal returns(uint256) {
-        uint256 currentAllocation = (checkAllocation() * 2) + 1;
-        require(currentAllocation <= 100, "Allocation for LP and Redeem exceeds 49.5%: ALLOCATION_TOO_HIGH");
-        return (upController.getNativeBalance() * (100 - currentAllocation)) / 100;
-  }    
 
-
+  function getTargetStakeAmount() internal view returns (uint256) {
+    uint256 currentAllocation = (checkAllocation() * 2) + 1;
+    require(
+      currentAllocation <= 100,
+      "Allocation for LP and Redeem exceeds 49.5%: ALLOCATION_TOO_HIGH"
+    );
+    return (upController.getNativeBalance() * (100 - currentAllocation)) / 100;
+  }
 
   ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the UP Controller.
   ///@return bool value will be false if undelegation is required first and is successful, value will be true if there is there is nothing to undelegate. All balance will be sen
@@ -145,10 +146,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
       _afterUndelegateAll(currentEpoch);
       return false;
     }
-    uint256 amountSent = address(this).balance;
-    (bool successTransfer, ) = address(upController).call{value: amountSent}("");
-    require(successTransfer, "FAIL_SENDING_NATIVE");
-    amountDeposited -= amountSent;
+    _drainStrategyBalance();
     return true;
   }
 
@@ -157,69 +155,12 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     pendingUndelegation = amountStaked;
     amountStaked = 0;
   }
-  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
-    
-    pendingUndelegation = amountStaked;
-    amountStaked == 0;
-  }
 
-  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
-  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
-  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
-    
-    pendingUndelegation = amountStaked;
-    amountStaked == 0;
-  }
-
-  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
-  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
-  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
-    
-    epochOfLastRebalance = currentEpoch;
-    pendingUndelegation = amountStaked;
-    amountStaked == 0;
-  }
-
-  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
-  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
-  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
-    
-    epochOfLastRebalance = currentEpoch;
-    pendingUndelegation = amountStaked;
-    amountStaked == 0;
-  }
-
-  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
-  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
-  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
-    
-
-    pendingUndelegation = amountToUnstake;
-    amountStaked -= amountToUnstake;
-    amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
-  }
-
-  ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the UP Controller.
-  ///@return bool value will be false if undelegation is required first and is successful, value will be true if there is there is nothing to undelegate. All balance will be sen
-
-  function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
-    if (amountStaked > 10000000000000000000) {
-      undelegate(targetValidator, amountStaked);
-      uint256 currentEpoch = epoch();
-      _afterUndelegateAll(currentEpoch);
-      return false;
-    }
+  function _drainStrategyBalance() internal {
     uint256 amountSent = address(this).balance;
     (bool successTransfer, ) = address(upController).call{value: amountSent}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
-    amountDeposited - amountSent;
-    return true;
-  }
-
-  function _afterUndelegateAll(uint256 currentEpoch) internal {
-    epochOfLastRebalance = currentEpoch;
-    pendingUndelegation = amountStaked;
-    amountStaked == 0;
+    amountDeposited -= amountSent;
   }
 
   ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
