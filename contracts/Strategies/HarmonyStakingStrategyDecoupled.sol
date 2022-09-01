@@ -89,7 +89,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     uint256 MINIMUM_AMOUNT_FOR_STAKING_OPS = 100 ether;
     if (targetAmountToStake > amountStaked) {
       uint256 amountToStake = targetAmountToStake - amountStaked;
-      if (amountToStake > MINIMUM_AMOUNT_FOR_STAKING_OPS) {
+      if (amountToStake >= MINIMUM_AMOUNT_FOR_STAKING_OPS) {
         require(
           amountToStake < address(this).balance,
           "Strategy does not have enough native tokens to add to stake: NOT_ENOUGH_TO_STAKE"
@@ -100,7 +100,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     }
     if (targetAmountToStake < amountStaked) {
       uint256 amountToUnstake = amountStaked - targetAmountToStake;
-      if (amountToUnstake > MINIMUM_AMOUNT_FOR_STAKING_OPS) {
+      if (amountToUnstake >= MINIMUM_AMOUNT_FOR_STAKING_OPS) {
         require(
           amountToUnstake < amountStaked,
           "Stake does not have enough of a balance to undelegate: NOT_ENOUGH_TO_STAKE"
