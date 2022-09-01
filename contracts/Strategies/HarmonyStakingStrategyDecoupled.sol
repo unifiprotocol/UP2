@@ -99,7 +99,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
       }
     }
     if (targetAmountToStake < amountStaked) {
-      uint256 amountToUnstake = targetAmountToStake - amountStaked;
+      uint256 amountToUnstake = amountStaked - targetAmountToStake;
       if (amountToUnstake > MINIMUM_AMOUNT_FOR_STAKING_OPS) {
         require(
           amountToUnstake < amountStaked,
