@@ -13,7 +13,7 @@ import {
   UPMintDarbi,
   Vanilla
 } from "../typechain-types"
-import contracts from "./Contracts"
+import contracts from "./Contracts/binance"
 import { getUniswapRouter } from "./Helper"
 
 const MEANINGLESS_AMOUNT = "10000"

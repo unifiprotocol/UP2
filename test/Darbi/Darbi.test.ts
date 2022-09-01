@@ -10,7 +10,7 @@ import {
 } from "../../typechain-types"
 import { expect } from "chai"
 import { ethers } from "hardhat"
-import contracts from "../Contracts"
+import contracts from "../Contracts/binance"
 import { getUniswapRouter } from "../Helper"
 import { BN } from "@unifiprotocol/utils"
 
