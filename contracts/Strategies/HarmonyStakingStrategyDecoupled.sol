@@ -86,33 +86,29 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
 
   function adjustDelegation() public onlyMonitor whenNotPaused returns (bool) {
     uint256 targetAmountToStake = getTargetStakeAmount();
+    uint256 MINIMUM_AMOUNT_FOR_STAKING_OPS = 100 ether;
     if (targetAmountToStake > amountStaked) {
       uint256 amountToStake = targetAmountToStake - amountStaked;
-      require(
-        amountToStake > 100000000000000000000,
-        "Harmony Delegate must be greater than 100 ONE: STAKE_UNDER_100"
-      );
-      require(
-        amountToStake < address(this).balance,
-        "Strategy does not have enough native tokens to add to stake: NOT_ENOUGH_TO_STAKE"
-      );
-      delegate(targetValidator, amountToStake);
-      _afterDelegate(amountToStake);
+      if (amountToStake > MINIMUM_AMOUNT_FOR_STAKING_OPS) {
+        require(
+          amountToStake < address(this).balance,
+          "Strategy does not have enough native tokens to add to stake: NOT_ENOUGH_TO_STAKE"
+        );
+        delegate(targetValidator, amountToStake);
+        _afterDelegate(amountToStake);
+      }
     }
     if (targetAmountToStake < amountStaked) {
       uint256 amountToUnstake = targetAmountToStake - amountStaked;
-      require(
-        amountToUnstake > 100000000000000000000,
-        "Harmony Undelegate must be greater than 100 ONE: STAKE_UNDER_100"
-      );
-      require(
-        amountToUnstake < amountStaked,
-        "Stake does not have enough of a balance to undelegate: NOT_ENOUGH_TO_STAKE"
-      );
-      undelegate(targetValidator, amountToUnstake);
-      _afterUndelegate(amountToUnstake);
+      if (amountToUnstake > MINIMUM_AMOUNT_FOR_STAKING_OPS) {
+        require(
+          amountToUnstake < amountStaked,
+          "Stake does not have enough of a balance to undelegate: NOT_ENOUGH_TO_STAKE"
+        );
+        undelegate(targetValidator, amountToUnstake);
+        _afterUndelegate(amountToUnstake);
+      }
     }
-
     return true;
   }
 
