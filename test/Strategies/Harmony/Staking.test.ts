@@ -1,20 +1,33 @@
-import { assert, expect } from "chai"
+import { BN } from "@unifiprotocol/utils"
 import { Signer } from "ethers"
 import { ethers } from "hardhat"
-import { TestingHarmonyStakingStrategy } from "../../../typechain-types"
+import {
+  MockedRebalancer,
+  MockedUpController,
+  TestingHarmonyStakingStrategy
+} from "../../../typechain-types"
 
 describe("TestingHarmonyStakingStrategy", function () {
   let signer: Signer
-  let stakingStrategy: TestingHarmonyStakingStrategy
+  let stakingContract: TestingHarmonyStakingStrategy
+  let mockedRebalancer: MockedRebalancer
+  let mockedController: MockedUpController
 
   beforeEach(async () => {
-    const [_signer, _upController] = await ethers.getSigners()
-    signer = _signer
+    const MockedRebalancerCF = await ethers.getContractFactory("MockedRebalancer")
+    const MockedUpControllerCF = await ethers.getContractFactory("MockedUpController")
+    const TestingHarmonyStakingStrategyCF = await ethers.getContractFactory(
+      "TestingHarmonyStakingStrategy"
+    )
     const signerAddress = await signer.getAddress()
-    stakingStrategy = await ethers
-      .getContractFactory("TestingHarmonyStakingStrategy")
-      .then((cf) => cf.deploy(signerAddress, signerAddress, signerAddress, signerAddress))
-  })
 
-  describe("gather", async function () {})
+    mockedRebalancer = await MockedRebalancerCF.deploy(5, 5)
+    mockedController = await MockedUpControllerCF.deploy(BN(10).pow(18).toString())
+    stakingContract = await TestingHarmonyStakingStrategyCF.deploy(
+      signerAddress,
+      signerAddress,
+      mockedController.address,
+      mockedRebalancer.address
+    )
+  })
 })
