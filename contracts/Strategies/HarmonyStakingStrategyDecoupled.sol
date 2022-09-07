@@ -156,6 +156,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     (bool successTransfer, ) = address(upController).call{value: amountSent}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
     amountDeposited -= amountSent;
+    emit Withdraw(amountSent);
   }
 
   ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.

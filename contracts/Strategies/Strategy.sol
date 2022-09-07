@@ -35,6 +35,8 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
   receive() external payable virtual {}
 
   event Gather();
+  event Deposit(uint256);
+  event Withdraw(uint256);
 
   // Read Functions
 
@@ -75,6 +77,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
     );
     //Work your magic here - Code the logic to earn yield!
     amountDeposited += depositValue;
+    emit Deposit(depositValue);
     return true;
   }
 
@@ -99,6 +102,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
     require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
     amountDeposited -= amount;
+    emit Withdraw(amount);
     return successTransfer;
   }
 
