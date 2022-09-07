@@ -25,7 +25,6 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   uint256 public pendingUndelegation = 0;
   uint256 public timestampOfLastClaim = 0;
   address public targetValidator;
-  address public monitor;
 
   UPController public upController;
   Rebalancer public rebalancer;
