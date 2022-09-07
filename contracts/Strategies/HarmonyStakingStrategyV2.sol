@@ -133,13 +133,13 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
       uint256 currentEpoch = epoch();
       epochOfLastRebalance = currentEpoch;
       pendingUndelegation = amountStaked;
-      amountStaked == 0;
+      amountStaked = 0;
       return false;
     }
     uint256 amountSent = address(this).balance;
     (bool successTransfer, ) = address(upController).call{value: amountSent}("");
     require(successTransfer, "FAIL_SENDING_NATIVE");
-    amountDeposited - amountSent;
+    amountDeposited -= amountSent;
     return true;
   }
 
