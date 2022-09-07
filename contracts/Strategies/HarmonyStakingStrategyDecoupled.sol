@@ -179,7 +179,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
     require(successTransfer, "FAIL_SENDING_NATIVE");
     epochOfLastRebalance = currentEpoch;
     pendingUndelegation = 0;
-    emit GatherCalled();
+    emit Gather();
   }
 
   function setUPController(address newAddress) public onlyAdmin {

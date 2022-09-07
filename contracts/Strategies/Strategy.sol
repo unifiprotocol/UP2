@@ -34,7 +34,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
 
   receive() external payable virtual {}
 
-  event GatherCalled();
+  event Gather();
 
   // Read Functions
 
@@ -122,7 +122,7 @@ contract Strategy is IStrategy, Safe, AccessControl, Pausable {
     uint256 nativeAmount = address(this).balance - amountDeposited;
     (bool successTransfer, ) = address(msg.sender).call{value: nativeAmount}("");
     require(successTransfer, "Strategy: FAIL_SENDING_NATIVE");
-    emit GatherCalled();
+    emit Gather();
   }
 
   function withdrawFunds() public onlyAdmin returns (bool) {
