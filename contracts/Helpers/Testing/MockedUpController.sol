@@ -10,4 +10,6 @@ contract MockedUpController {
   function getNativeBalance() public view returns (uint256) {
     return mockedBalance;
   }
+
+  receive() external payable {}
 }

@@ -3,6 +3,7 @@
 pragma solidity ^0.8.4;
 
 import "./HarmonyStakingStrategyDecoupled.sol";
+import "hardhat/console.sol";
 
 // Contract Strategy must use our customized Safe.sol and OpenZeppelin's AccessControl and Pauseable Contracts.
 // Safe.sol is utilized so the DAO can retrieve any lost assets within the Strategy Contract.
@@ -33,10 +34,15 @@ contract TestingHarmonyStakingStrategy is HarmonyStakingStrategy {
     _afterUndelegateAll(currentEpoch);
   }
 
+  function drainStrategyBalance() public {
+    _drainStrategyBalance();
+  }
+
   function setTestingConditions(
     uint256 targetBalance,
     uint256 targetAmountStaked,
-    uint256 targetPendingUndelegation
+    uint256 targetPendingUndelegation,
+    uint256 targetLastClaimedAmount
   ) public payable {
     uint256 currentBalance = address(this).balance;
     if (currentBalance > targetBalance) {
@@ -49,6 +55,7 @@ contract TestingHarmonyStakingStrategy is HarmonyStakingStrategy {
     );
     amountStaked = targetAmountStaked;
     pendingUndelegation = targetPendingUndelegation;
+    lastClaimedAmount = targetLastClaimedAmount;
     amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
   }
 }
