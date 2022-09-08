@@ -93,6 +93,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
           amountToStake < address(this).balance,
           "Strategy does not have enough native tokens to add to stake: NOT_ENOUGH_TO_STAKE"
         );
+        amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
         delegate(targetValidator, amountToStake);
         _afterDelegate(amountToStake);
       }
@@ -113,7 +114,6 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
 
   function _afterDelegate(uint256 amountToStake) internal {
     amountStaked += amountToStake;
-    amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
   }
 
   function _afterUndelegate(uint256 amountToUnstake) internal {
