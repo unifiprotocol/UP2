@@ -97,8 +97,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
         delegate(targetValidator, amountToStake);
         _afterDelegate(amountToStake);
       }
-    }
-    if (targetAmountToStake < amountStaked) {
+    } else if (targetAmountToStake < amountStaked) {
       uint256 amountToUnstake = amountStaked - targetAmountToStake;
       if (amountToUnstake >= MINIMUM_AMOUNT_FOR_STAKING_OPS) {
         require(
