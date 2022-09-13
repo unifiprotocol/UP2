@@ -22,6 +22,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   uint256 public amountStaked = 0;
   uint256 public epochOfLastRebalance = 0;
   uint256 public lastClaimedAmount = 0;
+  uint256 public lastAmountDeposited = 0;
   uint256 public pendingUndelegation = 0;
   uint256 public timestampOfLastClaim = 0;
   address public targetValidator;
@@ -64,18 +65,13 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   }
 
   function rewardsAmount() public view returns (uint256) {
-    (bool success, bytes memory response) = address(this).staticcall(
-      abi.encodeWithSignature("collectRewards()")
-    );
-    require(success, "Failed to Fetch Pending Rewards Amount");
-    uint256 result = abi.decode(response, (uint256));
-    return result;
+    return lastClaimedAmount;
   }
 
   function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
     IStrategy.Rewards memory result = IStrategy.Rewards(
       lastClaimedAmount,
-      amountDeposited,
+      lastAmountDeposited,
       timestampOfLastClaim
     );
     return result;
@@ -84,6 +80,9 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   // Write Functions
 
   function adjustDelegation() public onlyMonitor whenNotPaused returns (bool) {
+    lastClaimedAmount =
+      (amountStaked + address(this).balance + pendingUndelegation) -
+      amountDeposited;
     uint256 targetAmountToStake = getTargetStakeAmount();
     uint256 MINIMUM_AMOUNT_FOR_STAKING_OPS = 100 ether;
     if (targetAmountToStake > amountStaked) {
@@ -163,12 +162,12 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
 
   function gather() public virtual override onlyRebalancer whenNotPaused {
+    lastAmountDeposited = amountDeposited;
     uint256 currentEpoch = epoch();
     require(
       currentEpoch > epochOfLastRebalance + 8,
       "Seven epoches have not passed since last rebalance"
     );
-    lastClaimedAmount = rewardsAmount();
     collectRewards();
     _afterGather(currentEpoch);
   }
