@@ -40,55 +40,16 @@ describe("TestingHarmonyStakingStrategy", function () {
 
       await stakingContract.setTestingConditions(0, STAKED_AMOUNT, 0, 0)
 
-      const prevAmountDeposited = await stakingContract.amountDeposited()
-
       expect(await stakingContract.amountStaked()).to.be.equal(
         STAKED_AMOUNT,
         `staked amount should be ${STAKED_AMOUNT}`
       )
 
-      expect(prevAmountDeposited.toString()).to.be.equal(STAKED_AMOUNT)
-
       await stakingContract.afterDelegate(STAKED_AMOUNT)
-
-      const postAmountDeposited = await stakingContract.amountDeposited()
 
       const postStakedAmount = await stakingContract.amountStaked()
 
       expect(postStakedAmount).to.be.equal(BN(STAKED_AMOUNT).times(2).toString())
-
-      expect(postStakedAmount).to.be.equal(
-        postAmountDeposited.toString(),
-        "Deposited amount should be equal to staked amount"
-      )
-    })
-
-    it("should update attributes correctly", async () => {
-      const STAKED_AMOUNT = BN(10).pow(18).toString()
-
-      await stakingContract.setTestingConditions(0, STAKED_AMOUNT, 0, 0)
-
-      const prevAmountDeposited = await stakingContract.amountDeposited()
-
-      expect(await stakingContract.amountStaked()).to.be.equal(
-        STAKED_AMOUNT,
-        `staked amount should be ${STAKED_AMOUNT}`
-      )
-
-      expect(prevAmountDeposited.toString()).to.be.equal(STAKED_AMOUNT)
-
-      await stakingContract.afterDelegate(STAKED_AMOUNT)
-
-      const postAmountDeposited = await stakingContract.amountDeposited()
-
-      const postStakedAmount = await stakingContract.amountStaked()
-
-      expect(postStakedAmount).to.be.equal(BN(STAKED_AMOUNT).times(2).toString())
-
-      expect(postStakedAmount).to.be.equal(
-        postAmountDeposited.toString(),
-        "Deposited amount should be equal to staked amount"
-      )
     })
   })
 
