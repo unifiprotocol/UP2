@@ -93,7 +93,8 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
           "Strategy does not have enough native tokens to add to stake: NOT_ENOUGH_TO_STAKE"
         );
         amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
-        delegate(targetValidator, amountToStake);
+        uint256 delegatesuccess = delegate(targetValidator, amountToStake);
+        require(delegatesuccess != 0, "Fail to Delegate");
         _afterDelegate(amountToStake);
       }
     } else if (targetAmountToStake < amountStaked) {
@@ -103,7 +104,8 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
           amountToUnstake < amountStaked,
           "Stake does not have enough of a balance to undelegate: NOT_ENOUGH_TO_STAKE"
         );
-        undelegate(targetValidator, amountToUnstake);
+        uint256 undelegatesuccess = undelegate(targetValidator, amountToUnstake);
+        require(undelegatesuccess != 0, "Fail to Delegate");
         _afterUndelegate(amountToUnstake);
       }
     }
@@ -115,7 +117,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   }
 
   function _afterUndelegate(uint256 amountToUnstake) internal {
-    pendingUndelegation = amountToUnstake;
+    pendingUndelegation += amountToUnstake;
     amountStaked -= amountToUnstake;
     amountDeposited = amountStaked + address(this).balance + pendingUndelegation;
   }
@@ -162,13 +164,14 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
 
   function gather() public virtual override onlyRebalancer whenNotPaused {
-    lastAmountDeposited = amountDeposited;
     uint256 currentEpoch = epoch();
     require(
       currentEpoch > epochOfLastRebalance + 8,
       "Seven epoches have not passed since last rebalance"
     );
-    collectRewards();
+    lastAmountDeposited = amountDeposited;
+    uint256 collectRewardsSuccess = collectRewards();
+    require(collectRewardsSuccess != 0, "Fail to Collect Rewards");
     _afterGather(currentEpoch);
   }
 
