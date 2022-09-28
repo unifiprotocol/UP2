@@ -170,8 +170,7 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
       "Seven epoches have not passed since last rebalance"
     );
     lastAmountDeposited = amountDeposited;
-    uint256 collectRewardsSuccess = collectRewards();
-    require(collectRewardsSuccess != 0, "Fail to Collect Rewards");
+    collectRewards();
     _afterGather(currentEpoch);
   }
 
