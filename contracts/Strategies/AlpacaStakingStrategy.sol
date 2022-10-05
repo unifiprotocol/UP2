@@ -4,6 +4,7 @@ pragma solidity ^0.8.4;
 
 import "./Strategy.sol";
 import "./Interfaces/IVault.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 // Contract Strategy must use our customized Safe.sol and OpenZeppelin's AccessControl and Pauseable Contracts.
 // Safe.sol is utilized so the DAO can retrieve any lost assets within the Strategy Contract.
@@ -13,24 +14,22 @@ import "./Interfaces/IVault.sol";
 contract AlpacaBNBStrategy is Strategy {
   ///@notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
 
+  using SafeMath for uint256;
+
   address public alpacaVault;
-  address public upController;
   address public rebalancer;
+  uint256 public one = 1000000000000000000;
 
   event UpdateRebalancer(address rebalancer);
-  event UpdateUPController(address upController);
   event UpdateAlpacaVault(address alpacaVault);
-  event UpdateibBNB(address ibBNB);
 
   constructor(
     address _fundsTarget,
-    address _upController,
     address _rebalancer,
     address _alpacaVault
   ) Strategy(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
-    upController = payable(_upController);
     rebalancer = payable(_rebalancer);
     alpacaVault = payable(_alpacaVault);
   }
@@ -52,26 +51,41 @@ contract AlpacaBNBStrategy is Strategy {
     return result;
   }
 
-  ///@notice Returns Redeem Value of 1 ibBNB
-  function ibBNBRedeemPrice() public view returns (uint256 redeem) {
-    uint256 totalIBBNBToken = IVault(alpacaVault).totalToken();
-    uint256 totalBNB = IERC20(alpacaVault).totalSupply();
-    uint256 ibTokenPrice = totalBNB / totalIBBNBToken;
-    return ibTokenPrice;
+  function getTotalSupplyBNB() public view returns (uint256 bNBSupply) {
+    uint256 totalBNBSupply = IVault(alpacaVault).totalToken();
+    return totalBNBSupply;
+  }
+
+  function getTotalSupplyIBNB() public view returns (uint256 ibBNBSupply) {
+    uint256 totalIBBNBSupply = IERC20(alpacaVault).totalSupply();
+    return totalIBBNBSupply;
+  }
+
+  function getIBBNBToBNB(uint256 ibBNBValue) public view returns (uint256 balance) {
+    uint256 bnbSupply = getTotalSupplyBNB();
+    uint256 ibBNBSupply = getTotalSupplyIBNB();
+    uint256 ibbnbToBNB = (ibBNBValue.mul(bnbSupply)).div(ibBNBSupply);
+    return ibbnbToBNB;
+  }
+
+  function getBNBToIBBNB(uint256 bnbValue) public view returns (uint256 balance) {
+    uint256 bnbSupply = getTotalSupplyBNB();
+    uint256 ibBNBSupply = getTotalSupplyIBNB();
+    uint256 bnbToIBNB = (bnbValue.mul(ibBNBSupply)).div(bnbSupply);
+    return bnbToIBNB;
   }
 
   ///@notice Returns Alpaca Balance in BNB
   function getAlpacaBalance() public view returns (uint256 balance) {
     uint256 ibBNBBalance = IERC20(alpacaVault).balanceOf(address(this));
-    uint256 redeem = ibBNBRedeemPrice();
-    uint256 balanceInAlpaca = ibBNBBalance * redeem;
+    uint256 balanceInAlpaca = getIBBNBToBNB(ibBNBBalance);
     return balanceInAlpaca;
   }
 
-  function rewardsAmount() public view returns (uint256) {
+  function rewardsAmount() public view returns (uint256 rewards) {
     uint256 redeemValue = getAlpacaBalance();
-    uint256 toWithdraw = redeemValue - amountDeposited;
-    return toWithdraw;
+    uint256 pendingRewards = redeemValue.sub(amountDeposited);
+    return pendingRewards;
   }
 
   // Write Functions
@@ -84,8 +98,8 @@ contract AlpacaBNBStrategy is Strategy {
 
   function gather() public virtual override onlyRebalancer whenNotPaused {
     uint256 toWithdraw = rewardsAmount();
-    uint256 ibBNBToRedeem = toWithdraw / (ibBNBRedeemPrice());
-    IVault(alpacaVault).withdraw(ibBNBToRedeem);
+    uint256 amountOfIBBNBToWithdraw = getBNBToIBBNB(toWithdraw);
+    IVault(alpacaVault).withdraw(amountOfIBBNBToWithdraw);
     (bool successTransfer, ) = address(msg.sender).call{value: toWithdraw}("");
     require(successTransfer, "Alpaca Strategy: Fail sending funds to Rebalancer");
   }
@@ -113,7 +127,7 @@ contract AlpacaBNBStrategy is Strategy {
       amount <= amountDeposited,
       "Alpaca Strategy: Amount Requested to Withdraw is Greater Than Amount Deposited"
     );
-    uint256 amountIBBNBWithdraw = amount / (ibBNBRedeemPrice());
+    uint256 amountIBBNBWithdraw = getBNBToIBBNB(amount);
     IERC20(alpacaVault).approve(alpacaVault, amountIBBNBWithdraw);
     IVault(alpacaVault).withdraw(amountIBBNBWithdraw);
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
@@ -123,11 +137,11 @@ contract AlpacaBNBStrategy is Strategy {
   }
 
   function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
-    uint256 ibBNBBalances = IERC20(alpacaVault).balanceOf(address(this));
-    IVault(alpacaVault).withdraw(ibBNBBalances);
+    uint256 ibBNBBalance = IERC20(alpacaVault).balanceOf(address(this));
+    IVault(alpacaVault).withdraw(ibBNBBalance);
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "Alpaca Strategy: Fail to Withdraw All from Alpaca");
-    amountDeposited == 0;
+    amountDeposited = 0;
     return successTransfer;
   }
 
