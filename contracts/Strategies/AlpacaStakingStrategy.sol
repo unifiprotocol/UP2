@@ -18,7 +18,6 @@ contract AlpacaBNBStrategy is Strategy {
 
   address public alpacaVault;
   address public rebalancer;
-  uint256 public one = 1000000000000000000;
 
   event UpdateRebalancer(address rebalancer);
   event UpdateAlpacaVault(address alpacaVault);
