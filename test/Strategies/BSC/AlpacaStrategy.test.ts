@@ -2,31 +2,32 @@ import { BN } from "@unifiprotocol/utils"
 import { expect } from "chai"
 import { Signer } from "ethers"
 import { ethers } from "hardhat"
-import { AlpacaBNBStrategy } from "../../../typechain-types"
+import { AlpacaBNBStrategy, IVault } from "../../../typechain-types"
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers"
 
 describe("AlpacaBNBStrategy", function () {
   let signer: Signer
   let addr1: Signer
-  let alpacaVault: Signer
+  let addr2: Signer
   let alpacaStrategy: AlpacaBNBStrategy
+  let alpacaVault: IVault
   console.log("Variable Got")
 
   beforeEach(async () => {
-    ;[signer, addr1, alpacaVault] = await ethers.getSigners()
-    const signerAddress = await signer.getAddress()
+    ;[signer, addr1, addr2] = await ethers.getSigners()
     const addr1Address = await addr1.getAddress()
-    const alpacaVaultAddress = await alpacaVault.getAddress()
+    const addr2Address = await addr2.getAddress()
+    const alpacaVaultAddress = "0xd7D069493685A581d27824Fc46EdA46B7EfC0063"
     const alpacaFactory = await ethers.getContractFactory("AlpacaBNBStrategy")
     alpacaStrategy = await alpacaFactory.deploy(addr1Address, addr1Address, alpacaVaultAddress)
   })
 
   it("Should read correct values on deploy", async () => {
     const addr1Address = await addr1.getAddress()
-    const alpacaVaultAddress = await alpacaVault.getAddress()
     const amountDeposited = await alpacaStrategy.amountDeposited()
     const addr1deploy = await alpacaStrategy.rebalancer()
     const alpacaVaultDeploy = await alpacaStrategy.alpacaVault()
+    const alpacaVaultAddress = "0xd7D069493685A581d27824Fc46EdA46B7EfC0063"
     expect(amountDeposited).equal(0)
     console.log("Amount Deposited is 0 at deploy")
     expect(addr1deploy).equal(addr1Address)
@@ -42,14 +43,27 @@ describe("AlpacaBNBStrategy", function () {
   })
   it("setUPController should fail from an unpermissioned account", async () => {
     const signerAddress = await signer.getAddress()
-    const addr1alpacaStrategy = alpacaStrategy.connect(addr1)
-    await expect(addr1alpacaStrategy.setAlpacaVault(signerAddress)).revertedWith("ONLY_ADMIN")
+    const addr2signer = alpacaStrategy.connect(addr2)
+    await expect(addr2signer.setAlpacaVault(signerAddress)).revertedWith("ONLY_ADMIN")
+  })
+
+  it("should deposit", async () => {
+    const addr1Signer = alpacaStrategy.connect(addr1)
+    const alpacaVaultAddress = "0xd7D069493685A581d27824Fc46EdA46B7EfC0063"
+    const alpacaVault = await ethers.getContractAt("IVault", alpacaVaultAddress)
+    await expect(
+      addr1Signer.deposit(ethers.utils.parseEther("2"), {
+        value: ethers.utils.parseEther("2")
+      })
+    )
+    const IBBNBbalance = await alpacaVault.balanceOf(alpacaStrategy.address)
+    console.log(IBBNBbalance)
   })
 
   it("deposit function should revert unless it is from Rebalancer", async () => {
-    const addr2alpacaStrategy = alpacaStrategy.connect(alpacaVault)
+    const addr2Signer = alpacaStrategy.connect(addr2)
     await expect(
-      addr2alpacaStrategy.deposit(ethers.utils.parseEther("2"), {
+      addr2Signer.deposit(ethers.utils.parseEther("2"), {
         value: ethers.utils.parseEther("2")
       })
     ).revertedWith("ONLY_REBALANCER")
