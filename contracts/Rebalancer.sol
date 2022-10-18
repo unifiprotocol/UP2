@@ -166,14 +166,19 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       }
     } else if (ethLpBalance < targetLpAmount) {
       uint256 amountToWithdrawFromRedeem = targetLpAmount - ethLpBalance;
+      if (amountToWithdrawFromRedeem == 0) return;
       UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
+      // Gets amount borrowed + anything else in wallet (but the balance should always be 0?)
       uint256 ETHAmountToDeposit = address(this).balance;
-
+      // Calculates equivlent amount of synthetic UP based on market value
       uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / marketValue;
-      if (ETHAmountToDeposit == 0 || UPtoAddtoLP == 0) return;
-
+      // If amount of UP to add 0, returns. This should be covered on the amountToWithdrawFromRedeem check
+      if (UPtoAddtoLP == 0) return;
+      // Mints Synthetic UP
       UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
+      // ERC20 Approval
       UPToken.approve(address(unifiRouter), UPtoAddtoLP);
+      // Adds liquidity
       unifiRouter.addLiquidityETH{value: ETHAmountToDeposit}(
         address(UPToken),
         UPtoAddtoLP,
@@ -183,7 +188,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         block.timestamp + 150
       );
     }
-
     darbi.refund();
   }
 
@@ -235,29 +239,33 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         UP_CONTROLLER.repay{value: amountETH}(amountToken);
       }
       // IF current RedeemPrice(95%) > LpPrice(95%)
+      // If current LP is below allocation
     } else if (ethLpBalance < actualEthLpAllocation) {
+      // Calculates the amount to withdraw from controller
       uint256 amountToWithdrawFromRedeem = actualEthLpAllocation - ethLpBalance;
+      if (amountToWithdrawFromRedeem == 0) return;
+      // Borrows from Controller
       UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
+      // Gets amount borrowed + anything else in wallet (but the balance should always be 0?)
+      uint256 ETHAmountToDeposit = address(this).balance;
+      // Calculates equivlent amount of synthetic UP based on market value
+      uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / marketValue;
+      // If amount of UP to add 0, returns. This should be covered on the amountToWithdrawFromRedeem check
+      if (UPtoAddtoLP == 0) return;
+      // Mints Synthetic UP
+      UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
+      // ERC20 Approval
+      UPToken.approve(address(unifiRouter), UPtoAddtoLP);
+      // Adds liquidity
+      unifiRouter.addLiquidityETH{value: ETHAmountToDeposit}(
+        address(UPToken),
+        UPtoAddtoLP,
+        0,
+        0,
+        address(this),
+        block.timestamp + 150
+      );
     }
-
-    uint256 ETHAmountToDeposit = address(this).balance;
-
-    if (ETHAmountToDeposit == 0) return;
-
-    uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / marketValue;
-
-    require(UPtoAddtoLP > 0, "ALREADY_REBALANCED");
-
-    UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
-    UPToken.approve(address(unifiRouter), UPtoAddtoLP);
-    unifiRouter.addLiquidityETH{value: ETHAmountToDeposit}(
-      address(UPToken),
-      UPtoAddtoLP,
-      0,
-      0,
-      address(this),
-      block.timestamp + 150
-    );
 
     darbi.refund();
   }
