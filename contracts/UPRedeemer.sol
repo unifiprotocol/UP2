@@ -16,6 +16,7 @@ contract UPRedeemer is AccessControl, Safe, Pausable {
   bytes32 public constant OWNER_ROLE = keccak256("OWNER_ROLE");
 
   event UpdateUPController(address upController);
+  event Redeem(address from, uint256 upAmount, uint256 redeemAmount);
 
   constructor(
     address _UP_TOKEN,
@@ -39,8 +40,10 @@ contract UPRedeemer is AccessControl, Safe, Pausable {
     uint256 postBalance = address(this).balance;
 
     require(postBalance > prevBalance, "UPRedeemer: NOT_ENOUGH_UP_REDEEMED");
-    (bool success, ) = msg.sender.call{value: postBalance - prevBalance}("");
+    uint256 redeemAmount = postBalance - prevBalance;
+    (bool success, ) = msg.sender.call{value: redeemAmount}("");
     require(success, "UPRedeemer: FAIL_SENDING_NATIVE");
+    emit Redeem(msg.sender, upAmount, redeemAmount);
   }
 
   function updateUPController(address _UP_CONTROLLER) public onlyRole(OWNER_ROLE) {

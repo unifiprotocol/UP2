@@ -230,7 +230,10 @@ describe("UPRedeemer", function () {
       const previousBalance = await ethers.provider.getBalance(signerAddress)
 
       const trxFees = await UPRedeemer.redeem(upRedeemAmount)
-        .then((trx) => trx.wait())
+        .then((trx) => {
+          expect(trx).to.have.emit(UPRedeemer.address, "Redeem")
+          return trx.wait()
+        })
         .then((receipt) => receipt.gasUsed.mul(receipt.effectiveGasPrice))
 
       const postBalance = await ethers.provider.getBalance(signerAddress)
@@ -255,7 +258,10 @@ describe("UPRedeemer", function () {
       const previousBalance = await ethers.provider.getBalance(signerAddress)
 
       const trxFees = await UPRedeemer.redeem(upRedeemAmount)
-        .then((trx) => trx.wait())
+        .then((trx) => {
+          expect(trx).to.have.emit(UPRedeemer.address, "Redeem")
+          return trx.wait()
+        })
         .then((receipt) => receipt.gasUsed.mul(receipt.effectiveGasPrice))
 
       const postBalance = await ethers.provider.getBalance(signerAddress)
@@ -280,7 +286,10 @@ describe("UPRedeemer", function () {
       const previousBalance = await ethers.provider.getBalance(signerAddress)
 
       const trxFees = await UPRedeemer.redeem(upRedeemAmount)
-        .then((trx) => trx.wait())
+        .then((trx) => {
+          expect(trx).to.have.emit(UPRedeemer.address, "Redeem")
+          return trx.wait()
+        })
         .then((receipt) => receipt.gasUsed.mul(receipt.effectiveGasPrice))
 
       const postBalance = await ethers.provider.getBalance(signerAddress)
