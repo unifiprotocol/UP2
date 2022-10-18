@@ -353,11 +353,6 @@ describe("Rebalancer", function () {
         )
       })
 
-      it("Shouldn't rebalance again because the LP is already balanced", async () => {
-        await rebalancer.rebalance()
-        await expect(rebalancer.rebalance()).revertedWith("ALREADY_REBALANCED")
-      })
-
       it("Should rebalance the LP because the UPController redeem value went down", async () => {
         await rebalancer.rebalance()
         const initialNativeBorrow = await UP_CONTROLLER.nativeBorrowed()
