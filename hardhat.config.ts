@@ -43,8 +43,8 @@ export default {
     },
     hardhat: {
       forking: {
-        url: "https://proxy.unifiprotocol.com/rpc-internal/binance",
-        blockNumber: 22107392
+        url: "https://proxy.unifiprotocol.com/rpc-internal/binance"
+        // blockNumber: 22175000
       }
     }
   },

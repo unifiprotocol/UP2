@@ -167,23 +167,22 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     } else if (ethLpBalance < targetLpAmount) {
       uint256 amountToWithdrawFromRedeem = targetLpAmount - ethLpBalance;
       UP_CONTROLLER.borrowNative(amountToWithdrawFromRedeem, address(this));
+      uint256 ETHAmountToDeposit = address(this).balance;
+
+      uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / marketValue;
+      if (ETHAmountToDeposit == 0 || UPtoAddtoLP == 0) return;
+
+      UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
+      UPToken.approve(address(unifiRouter), UPtoAddtoLP);
+      unifiRouter.addLiquidityETH{value: ETHAmountToDeposit}(
+        address(UPToken),
+        UPtoAddtoLP,
+        0,
+        0,
+        address(this),
+        block.timestamp + 150
+      );
     }
-
-    uint256 ETHAmountToDeposit = address(this).balance;
-
-    uint256 UPtoAddtoLP = (ETHAmountToDeposit * 1e18) / marketValue;
-    if (ETHAmountToDeposit == 0 || UPtoAddtoLP == 0) return;
-
-    UP_CONTROLLER.borrowUP(UPtoAddtoLP, address(this));
-    UPToken.approve(address(unifiRouter), UPtoAddtoLP);
-    unifiRouter.addLiquidityETH{value: ETHAmountToDeposit}(
-      address(UPToken),
-      UPtoAddtoLP,
-      0,
-      0,
-      address(this),
-      block.timestamp + 150
-    );
 
     darbi.refund();
   }
