@@ -100,7 +100,7 @@ contract AlpacaBNBStrategy is Strategy {
     uint256 amountOfIBBNBToWithdraw = getBNBToIBBNB(toWithdraw);
     IERC20(alpacaVault).approve(alpacaVault, amountOfIBBNBToWithdraw);
     IVault(alpacaVault).withdraw(amountOfIBBNBToWithdraw);
-    (bool successTransfer, ) = address(msg.sender).call{value: toWithdraw}("");
+    (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "Alpaca Strategy: Fail sending funds to Rebalancer");
   }
 
@@ -130,7 +130,7 @@ contract AlpacaBNBStrategy is Strategy {
     uint256 amountIBBNBWithdraw = getBNBToIBBNB(amount);
     IERC20(alpacaVault).approve(alpacaVault, amountIBBNBWithdraw);
     IVault(alpacaVault).withdraw(amountIBBNBWithdraw);
-    (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
+    (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "Alpaca Strategy: Fail Sending Native to Rebalancer");
     amountDeposited -= amount;
     return true;
