@@ -63,14 +63,14 @@ contract AlpacaBNBStrategy is Strategy {
   function getIBBNBToBNB(uint256 ibBNBValue) public view returns (uint256 balance) {
     uint256 bnbSupply = getTotalSupplyBNB();
     uint256 ibBNBSupply = getTotalSupplyIBNB();
-    uint256 ibbnbToBNB = (ibBNBValue.mul(bnbSupply)).div(ibBNBSupply);
+    uint256 ibbnbToBNB = (ibBNBValue * bnbSupply) / ibBNBSupply;
     return ibbnbToBNB;
   }
 
   function getBNBToIBBNB(uint256 bnbValue) public view returns (uint256 balance) {
     uint256 bnbSupply = getTotalSupplyBNB();
     uint256 ibBNBSupply = getTotalSupplyIBNB();
-    uint256 bnbToIBNB = (bnbValue.mul(ibBNBSupply)).div(bnbSupply);
+    uint256 bnbToIBNB = (bnbValue * ibBNBSupply) / bnbSupply;
     return bnbToIBNB;
   }
 
@@ -83,7 +83,7 @@ contract AlpacaBNBStrategy is Strategy {
 
   function rewardsAmount() public view returns (uint256 rewards) {
     uint256 redeemValue = getAlpacaBalance();
-    uint256 pendingRewards = redeemValue.sub(amountDeposited);
+    uint256 pendingRewards = redeemValue - amountDeposited;
     return pendingRewards;
   }
 
