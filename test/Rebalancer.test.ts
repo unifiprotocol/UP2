@@ -644,7 +644,6 @@ describe("Rebalancer", function () {
         await rebalancer.rebalance()
         await UP_TOKEN.burn(ethers.utils.parseEther("1"))
 
-        const priorRebalancerLpBalance = await liquidityPool.balanceOf(rebalancer.address)
         const rewards0 = await rebalancer.getReward(0)
 
         // Feed the Strategy
@@ -660,8 +659,6 @@ describe("Rebalancer", function () {
         assert(rewards1.depositedAmount.gt(rewards0.depositedAmount))
         assert(rewards1.rewardsAmount.gt(rewards0.rewardsAmount))
         expect(new Date(rewards0.timestamp.toNumber())).lt(new Date(rewards1.timestamp.toNumber()))
-
-        const rebalancerLpBalance = await liquidityPool.balanceOf(rebalancer.address)
 
         const [r0, r1] = await uniswapHelper.getReserves(
           contracts["Factory"],
@@ -686,11 +683,6 @@ describe("Rebalancer", function () {
         const _upcTotalBalances = BN(upcTotalBalances.toHexString())
           .div(ethers.constants.WeiPerEther.toHexString())
           .toNumber()
-
-        expect(rebalancerLpBalance).to.be.equals(
-          priorRebalancerLpBalance,
-          "REBALANCER LP BALANCE HAS CHANGED"
-        )
 
         expect(_sumRebalance).closeTo(
           _upcTotalBalances,

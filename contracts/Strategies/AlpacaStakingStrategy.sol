@@ -98,6 +98,7 @@ contract AlpacaBNBStrategy is Strategy {
   function gather() public virtual override onlyRebalancer whenNotPaused {
     uint256 toWithdraw = rewardsAmount();
     uint256 amountOfIBBNBToWithdraw = getBNBToIBBNB(toWithdraw);
+    IERC20(alpacaVault).approve(alpacaVault, amountOfIBBNBToWithdraw);
     IVault(alpacaVault).withdraw(amountOfIBBNBToWithdraw);
     (bool successTransfer, ) = address(msg.sender).call{value: toWithdraw}("");
     require(successTransfer, "Alpaca Strategy: Fail sending funds to Rebalancer");
@@ -137,6 +138,7 @@ contract AlpacaBNBStrategy is Strategy {
 
   function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
     uint256 ibBNBBalance = IERC20(alpacaVault).balanceOf(address(this));
+    IERC20(alpacaVault).approve(alpacaVault, ibBNBBalance);
     IVault(alpacaVault).withdraw(ibBNBBalance);
     (bool successTransfer, ) = address(msg.sender).call{value: address(this).balance}("");
     require(successTransfer, "Alpaca Strategy: Fail to Withdraw All from Alpaca");
