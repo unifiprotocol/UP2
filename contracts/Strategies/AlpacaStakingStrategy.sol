@@ -15,19 +15,13 @@ contract AlpacaBNBStrategy is Strategy {
   using SafeMath for uint256;
 
   address public alpacaVault;
-  address public rebalancer;
 
   event UpdateRebalancer(address rebalancer);
   event UpdateAlpacaVault(address alpacaVault);
 
-  constructor(
-    address _fundsTarget,
-    address _rebalancer,
-    address _alpacaVault
-  ) Strategy(_fundsTarget) {
+  constructor(address _fundsTarget, address _alpacaVault) Strategy(_fundsTarget) {
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
     _setupRole(REBALANCER_ROLE, msg.sender);
-    rebalancer = payable(_rebalancer);
     alpacaVault = payable(_alpacaVault);
   }
 
