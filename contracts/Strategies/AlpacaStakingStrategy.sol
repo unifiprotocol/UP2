@@ -12,8 +12,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 // Pausable.sol is utilized so that DAO can pause the strategy in an emergency.
 
 contract AlpacaBNBStrategy is Strategy {
-  ///@notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
-
   using SafeMath for uint256;
 
   address public alpacaVault;
@@ -35,10 +33,7 @@ contract AlpacaBNBStrategy is Strategy {
 
   // Read Functions
 
-  ///@notice The public checkRewards function MUST return a struct with the amount of pending rewards valued in native tokens, the total amount deposited, and the block timestamp.
-  ///For example, if 500 NativeTokens are deposited, and the strategy has earned 5 Native Tokens and 2 of TokenA,
-  ///the function should calculate the return for selling 2 TokenA, and add to the 5 Native Tokens.
-  ///If we assume that each TokenA is worth 4 native tokens, then the unclaimedEarnings value should return a value of 13, adjusted for percision.
+  ///@notice Returns the current amount of pending rewards, the amount of BNB deposited into the Alpaca contract, and the current timestamp.
 
   function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
     uint256 pendingRewards = rewardsAmount();
@@ -50,15 +45,21 @@ contract AlpacaBNBStrategy is Strategy {
     return result;
   }
 
+  ///@notice Gets total amount of BNB held by Alpaca globally. Used to determine redemption value of ibBNB.
+
   function getTotalSupplyBNB() public view returns (uint256 bNBSupply) {
     uint256 totalBNBSupply = IVault(alpacaVault).totalToken();
     return totalBNBSupply;
   }
 
+  ///@notice Gets total amount of ibBNB in existance. Used to determine redemption value of ibBNB.
+
   function getTotalSupplyIBNB() public view returns (uint256 ibBNBSupply) {
     uint256 totalIBBNBSupply = IERC20(alpacaVault).totalSupply();
     return totalIBBNBSupply;
   }
+
+  ///@notice Takes an amount of ibBNB and calculates the amount of BNB it can be redeemed for.
 
   function getIBBNBToBNB(uint256 ibBNBValue) public view returns (uint256 balance) {
     uint256 bnbSupply = getTotalSupplyBNB();
@@ -67,6 +68,8 @@ contract AlpacaBNBStrategy is Strategy {
     return ibbnbToBNB;
   }
 
+  ///@notice Takes an amount of BNB and calculates the amount of ibBNB it can converted to.
+
   function getBNBToIBBNB(uint256 bnbValue) public view returns (uint256 balance) {
     uint256 bnbSupply = getTotalSupplyBNB();
     uint256 ibBNBSupply = getTotalSupplyIBNB();
@@ -74,13 +77,14 @@ contract AlpacaBNBStrategy is Strategy {
     return bnbToIBNB;
   }
 
-  ///@notice Returns Alpaca Balance in BNB
+  ///@notice Returns the strategy's current amount of BNB, including rewards, earning yield on Alpaca.
   function getAlpacaBalance() public view returns (uint256 balance) {
     uint256 ibBNBBalance = IERC20(alpacaVault).balanceOf(address(this));
     uint256 balanceInAlpaca = getIBBNBToBNB(ibBNBBalance);
     return balanceInAlpaca;
   }
 
+  ///@notice Returns the strategy's current amount of pending rewards in Alpaca.
   function rewardsAmount() public view returns (uint256 rewards) {
     uint256 redeemValue = getAlpacaBalance();
     uint256 pendingRewards = redeemValue - amountDeposited;
@@ -88,12 +92,7 @@ contract AlpacaBNBStrategy is Strategy {
   }
 
   // Write Functions
-  ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the UP Controller.
-  ///@return bool value will be false if undelegation is required first and is successful, value will be true if there is there is nothing to undelegate. All balance will be sen
-
-  ///@notice The gather function should claim all yield earned from the native tokens while leaving the amount deposited intact.
-  ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
-  ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
+  ///@notice Calculates the amount of rewards pending, and redeems the approporiate amount of ibBNB to receive those rewards in BNB. Then, sends the amount of BNB in the strategy's wallet to the rebalancer.
 
   function gather() public virtual override onlyRebalancer whenNotPaused {
     uint256 toWithdraw = rewardsAmount();
@@ -104,6 +103,7 @@ contract AlpacaBNBStrategy is Strategy {
     require(successTransfer, "Alpaca Strategy: Fail sending funds to Rebalancer");
   }
 
+  ///@notice Deposits funds sent from the rebalancer into Alpaca
   function deposit(uint256 depositValue)
     public
     payable
@@ -122,6 +122,7 @@ contract AlpacaBNBStrategy is Strategy {
     return true;
   }
 
+  ///@notice Withdraws funds Alpaca to send to the rebalancer
   function withdraw(uint256 amount) public override onlyRebalancer whenNotPaused returns (bool) {
     require(
       amount <= amountDeposited,
@@ -136,6 +137,7 @@ contract AlpacaBNBStrategy is Strategy {
     return true;
   }
 
+  ///@notice Withdraws ALL funds Alpaca to send to the rebalancer
   function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
     uint256 ibBNBBalance = IERC20(alpacaVault).balanceOf(address(this));
     IERC20(alpacaVault).approve(alpacaVault, ibBNBBalance);
@@ -146,6 +148,7 @@ contract AlpacaBNBStrategy is Strategy {
     return successTransfer;
   }
 
+  ///@notice Changes the address of the Alpaca Vault
   function setAlpacaVault(address newAddress) public onlyAdmin {
     alpacaVault = newAddress;
     emit UpdateAlpacaVault(newAddress);
