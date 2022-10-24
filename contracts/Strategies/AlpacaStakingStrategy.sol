@@ -34,7 +34,6 @@ contract AlpacaBNBStrategy is Strategy {
   // Read Functions
 
   ///@notice Returns the current amount of pending rewards, the amount of BNB deposited into the Alpaca contract, and the current timestamp.
-
   function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
     uint256 pendingRewards = rewardsAmount();
     IStrategy.Rewards memory result = IStrategy.Rewards(
@@ -46,21 +45,18 @@ contract AlpacaBNBStrategy is Strategy {
   }
 
   ///@notice Gets total amount of BNB held by Alpaca globally. Used to determine redemption value of ibBNB.
-
   function getTotalSupplyBNB() public view returns (uint256 bNBSupply) {
     uint256 totalBNBSupply = IVault(alpacaVault).totalToken();
     return totalBNBSupply;
   }
 
   ///@notice Gets total amount of ibBNB in existance. Used to determine redemption value of ibBNB.
-
   function getTotalSupplyIBNB() public view returns (uint256 ibBNBSupply) {
     uint256 totalIBBNBSupply = IERC20(alpacaVault).totalSupply();
     return totalIBBNBSupply;
   }
 
   ///@notice Takes an amount of ibBNB and calculates the amount of BNB it can be redeemed for.
-
   function getIBBNBToBNB(uint256 ibBNBValue) public view returns (uint256 balance) {
     uint256 bnbSupply = getTotalSupplyBNB();
     uint256 ibBNBSupply = getTotalSupplyIBNB();
@@ -69,7 +65,6 @@ contract AlpacaBNBStrategy is Strategy {
   }
 
   ///@notice Takes an amount of BNB and calculates the amount of ibBNB it can converted to.
-
   function getBNBToIBBNB(uint256 bnbValue) public view returns (uint256 balance) {
     uint256 bnbSupply = getTotalSupplyBNB();
     uint256 ibBNBSupply = getTotalSupplyIBNB();
@@ -92,8 +87,8 @@ contract AlpacaBNBStrategy is Strategy {
   }
 
   // Write Functions
-  ///@notice Calculates the amount of rewards pending, and redeems the approporiate amount of ibBNB to receive those rewards in BNB. Then, sends the amount of BNB in the strategy's wallet to the rebalancer.
 
+  ///@notice Calculates the amount of rewards pending, and redeems the approporiate amount of ibBNB to receive those rewards in BNB. Then, sends the amount of BNB in the strategy's wallet to the rebalancer.
   function gather() public virtual override onlyRebalancer whenNotPaused {
     uint256 toWithdraw = rewardsAmount();
     uint256 amountOfIBBNBToWithdraw = getBNBToIBBNB(toWithdraw);
