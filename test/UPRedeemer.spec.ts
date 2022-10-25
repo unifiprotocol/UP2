@@ -203,6 +203,21 @@ describe("UPRedeemer", function () {
       )
     })
 
+    it("should fail if send native to user fails", async () => {
+      const REDEEMER_ROLE = await UPController.REDEEMER_ROLE()
+
+      await UPController.grantRole(REDEEMER_ROLE, UPRedeemer.address)
+
+      const nonPayableContract = await ethers
+        .getContractFactory("NonPayableContract")
+        .then((cf) => cf.deploy(UP.address, UPRedeemer.address))
+      await UP.transfer(nonPayableContract.address, upBalance)
+
+      await expect(nonPayableContract.redeem()).to.be.revertedWith(
+        "UPRedeemer: FAIL_SENDING_NATIVE"
+      )
+    })
+
     it("should fail redeeming more than actual balance", async () => {
       await UP.approve(UPRedeemer.address, upBalance.mul(2))
       const REDEEMER_ROLE = await UPController.REDEEMER_ROLE()
