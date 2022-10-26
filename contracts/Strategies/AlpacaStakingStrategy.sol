@@ -4,7 +4,6 @@ pragma solidity ^0.8.4;
 
 import "./Strategy.sol";
 import "./Interfaces/IVault.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 // Contract Strategy must use our customized Safe.sol and OpenZeppelin's AccessControl and Pauseable Contracts.
 // Safe.sol is utilized so the DAO can retrieve any lost assets within the Strategy Contract.
@@ -12,8 +11,6 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 // Pausable.sol is utilized so that DAO can pause the strategy in an emergency.
 
 contract AlpacaBNBStrategy is Strategy {
-  using SafeMath for uint256;
-
   address public alpacaVault;
 
   event UpdateRebalancer(address rebalancer);
