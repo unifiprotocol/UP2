@@ -13,7 +13,6 @@ import "./Interfaces/IVault.sol";
 contract AlpacaBNBStrategy is Strategy {
   address public alpacaVault;
 
-  event UpdateRebalancer(address rebalancer);
   event UpdateAlpacaVault(address alpacaVault);
 
   constructor(address _fundsTarget, address _alpacaVault) Strategy(_fundsTarget) {
