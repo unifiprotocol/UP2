@@ -193,7 +193,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function _rebalanceWithoutStrategy() internal {
-    claimAndBurn();
+    // claimAndBurn();
 
     // Run arbitrage
     darbi.forceArbitrage();
