@@ -81,10 +81,7 @@ contract AAVEStrategy is Strategy {
 
   ///@notice Withdraws an amount from Token Deposits from AAVE
   function withdraw(uint256 amount) public override whenNotPaused onlyRebalancer returns (bool) {
-    require(
-      amount <= amountDeposited,
-      "AAVEStrategy: Amount Requested to Withdraw is Greater Than Amount Deposited"
-    );
+    require(amount <= amountDeposited, "AAVEStrategy: WITHDRAW_GREATER_THAN_AMOUNT_DEPOSITED");
     IERC20(aaveDepositToken).approve(wethGateway, amount);
     IWETHGateway(wethGateway).withdrawETH(aavePool, amount, address(this));
     (bool successTransfer, ) = address(msg.sender).call{value: amount}("");
@@ -114,10 +111,7 @@ contract AAVEStrategy is Strategy {
     onlyRebalancer
     returns (bool)
   {
-    require(
-      depositValue == msg.value,
-      "AAVEStrategy: Deposit Value Parameter does not equal payable amount"
-    );
+    require(depositValue == msg.value, "AAVEStrategy: DEPOSIT_VALUE_DOES_NOT_EQUAL_PAYABLE_AMOUNT");
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
     amountDeposited += depositValue;
     return true;
