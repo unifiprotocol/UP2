@@ -3,7 +3,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 pragma experimental ABIEncoderV2;
 
-interface Rebalancer {
+interface IRebalancer {
   event Paused(address account);
   event RoleAdminChanged(
     bytes32 indexed role,

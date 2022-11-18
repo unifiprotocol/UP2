@@ -12,6 +12,7 @@ import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
 import "./UPMintDarbi.sol";
+import "../Interfaces/IRebalancer.sol";
 
 contract Darbi is AccessControl, Pausable, Safe {
   using SafeERC20 for IERC20;
@@ -21,10 +22,15 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   address public factory;
   address public WETH;
+  address public rebalancer;
   address public gasRefundAddress;
+  // address public strategy; Not necessary to make variable in Darbi, as strategy address is held in Rebalancer. Makes upgrade easier.
   uint256 public arbitrageThreshold = 100000;
   uint256 public gasRefund = 3500000000000000;
-  uint256 public darbiDepositBalance = 0.5 ether;
+  bool public fundingFromStrategy; // if True, Darbi funding comes from Strategy. If false, Darbi funding comes from Controller.
+  // Add Function to Change Value
+  bool public strategyLockup; // if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
+  // Add Function to Change Value
   IERC20 public UP_TOKEN;
   IUniswapV2Router02 public router;
   UPController public UP_CONTROLLER;
@@ -58,6 +64,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   constructor(
     address _factory,
     address _router,
+    address _rebalancer,
     address _WETH,
     address _gasRefundAddress,
     address _UP_CONTROLLER,
@@ -66,6 +73,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   ) Safe(_fundsTarget) {
     factory = _factory;
     router = IUniswapV2Router02(_router);
+    rebalancer = _rebalancer;
     WETH = _WETH;
     gasRefundAddress = _gasRefundAddress;
     UP_CONTROLLER = UPController(payable(_UP_CONTROLLER));
@@ -76,6 +84,47 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   receive() external payable {}
 
+  function _checkAvailableFunds() internal view returns (uint256 fundsAvailable) {
+    if (fundingFromStrategy == true) {
+      address strategyAddress = IRebalancer(rebalancer).strategy();
+      if (strategyLockup == true) {
+        fundsAvailable = address(strategyAddress).balance;
+      } else {
+        fundsAvailable = IStrategy(address(strategyAddress)).amountDeposited();
+      }
+    } else {
+      fundsAvailable = (address(UP_CONTROLLER).balance / 3);
+    }
+    return fundsAvailable;
+  }
+
+  //   /// Notes - Could just save all this logic by having a stored variable with the address of the funding source, seems easier, both using borrowNative function (GOING TO DO THIS)
+  //   /// 1) Check if Funding from Strategy
+  //   /// 1a) If not funding from strategy, it is funding from controller. Available funds equal 20% of controller balance. This will allow Darbi to function in ALMOST ALL situations.
+  //   /// 2) Check if Strategy Involves Lock Up
+  //   /// 2a) If involves lock up, check balance of strategy wallet
+  //   /// 2b) If does involve lock up, check total amount deposited.
+  //   ///
+  //   if (address strategy = IRebalancer(rebalancer).strategy(); // Checks Address of Strategy
+  //   uint256 fundsAvailableInController = (address(UP_CONTROLLER).balance / 3); // Checks balance of UP Controller, divides by 3 as there must be enough balance for UP to be redeemed
+  //   if (strategy != address(0)) {
+  //     uint256 fundsAvailableInStrategy = address(strategy).balance; // Check balance of for Harmony, or any chain where assets CAN NOT be immediately accessed.
+  //     // fundsAvailable = IStrategy(address(strategy)).amountDeposited(); // for Polygon, or any chain where assets CAN be immediately accessed.
+  //     // fundsAvailable = IStrategy(address(strategy)).amountDeposited(); // for BSC
+  //     if (fundsAvailableInController < fundsAvailableInStrategy) {
+  //       fundsAvailable = fundsAvailableInStrategy;
+  //       fundingSource = strategy;
+  //     } else {
+  //       fundsAvailable = fundsAvailableInController;
+  //       fundingSource = UP_CONTROLLER;
+  //     }
+  //   } else {
+  //     fundsAvailable = fundsAvailableInController;
+  //     fundingSource = UP_CONTROLLER;
+  //   }
+  //   return (fundsAvailable, fundingSource);
+  // }
+
   function arbitrage() public whenNotPaused onlyMonitor {
     (
       bool aToB,
@@ -84,6 +133,8 @@ contract Darbi is AccessControl, Pausable, Safe {
       uint256 reserves1,
       uint256 backedValue
     ) = moveMarketBuyAmount();
+
+    // Take moveMarketBuyAmount() number. If moveMarketBuyAmount > fundsAvailable, repeat arbitrage, subtract amount of funds available until moveMarketBuyAmount < fundsAvailable.
 
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
@@ -188,7 +239,9 @@ contract Darbi is AccessControl, Pausable, Safe {
     (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
     require(success1, "Darbi: FAIL_SENDING_GAS_REFUND_TO_MONITOR");
     uint256 newBalances1 = newBalances0 - gasRefund;
-    uint256 diffBalances = newBalances1 > darbiDepositBalance ? newBalances1 - darbiDepositBalance : 0;
+    uint256 diffBalances = newBalances1 > darbiDepositBalance
+      ? newBalances1 - darbiDepositBalance
+      : 0;
     if (diffBalances > 0) {
       (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
       require(success2, "Darbi: FAIL_SENDING_BALANCES_TO_CONTROLLER");
@@ -200,7 +253,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     view
     returns (
       bool aToB,
-      uint256 amountIn,
+      uint256 amountInAfterFee,
       uint256 reservesUP,
       uint256 reservesETH,
       uint256 upPrice
@@ -212,18 +265,18 @@ contract Darbi is AccessControl, Pausable, Safe {
       address(WETH)
     );
     upPrice = UP_CONTROLLER.getVirtualPrice();
+    uint256 amountIn;
     (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
       1000000000000000000, // Ratio = 1:UPVirtualPrice
       upPrice,
       reservesUP,
       reservesETH
     );
-    return (aToB, amountIn, reservesUP, reservesETH, upPrice);
-  }
-
-  function addDarbiFunds() public payable {
-    uint256 depositAmount = msg.value;
-    darbiDepositBalance += depositAmount;
+    // uint256 amountInWithFee = amountIn.mul(997);
+    // uint256 numerator = amountInWithFee.mul(reserveOut);
+    // uint256 denominator = reserveIn.mul(1000).add(amountInWithFee);
+    // amountOut = numerator / denominator
+    return (aToB, amountInWithFee, reservesUP, reservesETH, upPrice);
   }
 
   function redeemUP() internal {
@@ -233,10 +286,6 @@ contract Darbi is AccessControl, Pausable, Safe {
   function setController(address _controller) public onlyAdmin {
     require(_controller != address(0));
     UP_CONTROLLER = UPController(payable(_controller));
-  }
-
-  function setDarbiFunds(uint256 setAmount) public onlyAdmin {
-    darbiDepositBalance = setAmount;
   }
 
   function setArbitrageThreshold(uint256 _threshold) public onlyAdmin {

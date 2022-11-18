@@ -19,8 +19,6 @@ contract AAVEStrategy is Strategy {
   address public aaveDataProvider;
   address public aaveDepositToken;
 
-  event UpdateRebalancer(address _rebalancer);
-
   ///@param _wrappedTokenAddress The Wrapped Native Asset, for example, WONE if deploying on Harmony.
   ///@param _aavePool AAVE's Pool - typically 0x794a61358D6845594F94dc1DB02A252b5b4814aD on all chains.
   ///@param _wethGateway AAVE's Wrapped Native Token Gateway - varies by chain.
@@ -52,8 +50,7 @@ contract AAVEStrategy is Strategy {
       wrappedTokenAddress,
       address(this)
     );
-    aaveBalance = aaveBalanceData;
-    return aaveBalance;
+    return aaveBalanceData;
   }
 
   ///@notice Checks the amount of interest earned by the lending pool
