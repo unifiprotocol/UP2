@@ -125,7 +125,11 @@ contract Darbi is AccessControl, Pausable, Safe {
   //   return (fundsAvailable, fundingSource);
   // }
 
-  function arbitrage() public whenNotPaused onlyMonitor {
+  function _calculateArbitrage() internal whenNotPaused {
+
+  }
+
+  function arbitrage() public whenNotPaused {
     (
       bool aToB,
       uint256 amountIn,
@@ -138,11 +142,17 @@ contract Darbi is AccessControl, Pausable, Safe {
 
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
-    uint256 balances = address(this).balance;
+    uint256 fundsAvailable = _checkAvailableFunds();
+    if (amountIn > fundsAvailable) {
+      uint256 tradeSize = fundsAvailable;
+      amountIn -= tradesize;
+    } else {
+      uint256 tradeSize = amountIn;
+    };
     // If Buying UP
     if (!aToB) {
-      require(amountIn > gasRefund, "Darbi: Trade will not be profitable");
-      if (amountIn < arbitrageThreshold) return;
+      require(amountIn > gasRefund, "Darbi: Trade will not be profitable"); // This is the wrong variable, this is amountIn, not profit.
+      if (amountIn < arbitrageThreshold) return; // This is also wrong. I'm not sure what this check is and what it does.
       _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
     } else {
       uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
@@ -150,7 +160,7 @@ contract Darbi is AccessControl, Pausable, Safe {
       if (amountInETHTerms < arbitrageThreshold) return;
       _arbitrageSell(balances, amountIn, backedValue);
     }
-    refund();
+    _refund();
   }
 
   function forceArbitrage() public whenNotPaused onlyRebalancer {
@@ -233,15 +243,15 @@ contract Darbi is AccessControl, Pausable, Safe {
     emit Arbitrage(true, up2Balance);
   }
 
-  function refund() public whenNotPaused onlyRebalancerOrMonitor {
-    uint256 newBalances0 = address(this).balance;
-    if ((newBalances0 + gasRefund) < darbiDepositBalance) return;
-    (bool success1, ) = gasRefundAddress.call{value: gasRefund}("");
-    require(success1, "Darbi: FAIL_SENDING_GAS_REFUND_TO_MONITOR");
-    uint256 newBalances1 = newBalances0 - gasRefund;
-    uint256 diffBalances = newBalances1 > darbiDepositBalance
-      ? newBalances1 - darbiDepositBalance
-      : 0;
+  function _refund() public whenNotPaused {
+    uint256 proceeds = address(this).balance;
+    (bool success1, ) = address(UP_CONTROLLER).call{value: amountIn}("");
+    require(success1, "Darbi: FAIL_SENDING_BALANCES_TO_CONTROLLER");
+    (bool success2, ) = msg.sender.call{value: gasRefund}("");
+    require(success2, "Darbi: FAIL_SENDING_GAS_REFUND_TO_CALLER");
+
+    uint256 profits = address(this).balance;
+
     if (diffBalances > 0) {
       (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
       require(success2, "Darbi: FAIL_SENDING_BALANCES_TO_CONTROLLER");
