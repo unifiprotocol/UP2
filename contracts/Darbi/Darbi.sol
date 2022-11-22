@@ -152,13 +152,15 @@ contract Darbi is AccessControl, Pausable, Safe {
           actualAmountIn == 0;
         }
         if (fundingFromStrategy == true) {
-          Rebalancer(rebalancer).withdraw(tradeSize);
+          address strategyAddress = Rebalancer(address(rebalancer)).strategy();
+          IStrategy(address(strategyAddress)).withdraw(tradeSize);
         } else {
           UPController.borrowNative(tradeSize, address(this));
         }
         _arbitrageBuy(tradeSize, amountIn, backedValue, reserves0, reserves1);
         if (fundingFromStrategy == true) {
-          Rebalancer(rebalancer).deposit(tradeSize);
+          address strategyAddress = Rebalancer(address(rebalancer)).strategy();
+          IStrategy(address(strategyAddress)).deposit(tradeSize);
         } else {
           UPController.repay{value: tradeSize}("");
         }
@@ -173,13 +175,15 @@ contract Darbi is AccessControl, Pausable, Safe {
           actualAmountIn == 0;
         }
         if (fundingFromStrategy == true) {
-          Rebalancer(rebalancer).withdraw(tradeSize);
+          address strategyAddress = Rebalancer(address(rebalancer)).strategy();
+          IStrategy(address(strategyAddress)).withdraw(tradeSize);
         } else {
           UPController.borrowNative(tradeSize, address(this));
         }
         _arbitrageSell(tradeSize, amountIn, backedValue);
         if (fundingFromStrategy == true) {
-          Rebalancer(rebalancer).deposit(tradeSize);
+          address strategyAddress = Rebalancer(address(rebalancer)).strategy();
+          IStrategy(address(strategyAddress)).deposit(tradeSize);
         } else {
           UPController.repay{value: tradeSize}("");
         }
