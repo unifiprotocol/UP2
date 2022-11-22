@@ -12,7 +12,7 @@ import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
 import "./UPMintDarbi.sol";
-import "../Interfaces/IRebalancer.sol";
+import "../Rebalancer.sol";
 
 contract Darbi is AccessControl, Pausable, Safe {
   using SafeERC20 for IERC20;
@@ -86,7 +86,7 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   function _checkAvailableFunds() internal view returns (uint256 fundsAvailable) {
     if (fundingFromStrategy == true) {
-      address strategyAddress = IRebalancer(rebalancer).strategy();
+      address strategyAddress = Rebalancer(address(rebalancer)).strategy();
       if (strategyLockup == true) {
         fundsAvailable = address(strategyAddress).balance;
       } else {
@@ -125,9 +125,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   //   return (fundsAvailable, fundingSource);
   // }
 
-  function _calculateArbitrage() internal whenNotPaused {
-
-  }
+  function _calculateArbitrage() internal whenNotPaused {}
 
   function arbitrage() public whenNotPaused {
     (
@@ -138,62 +136,70 @@ contract Darbi is AccessControl, Pausable, Safe {
       uint256 backedValue
     ) = moveMarketBuyAmount();
 
-    // Take moveMarketBuyAmount() number. If moveMarketBuyAmount > fundsAvailable, repeat arbitrage, subtract amount of funds available until moveMarketBuyAmount < fundsAvailable.
-
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
     uint256 fundsAvailable = _checkAvailableFunds();
-    if (amountIn > fundsAvailable) {
-      uint256 tradeSize = fundsAvailable;
-      amountIn -= tradesize;
-    } else {
-      uint256 tradeSize = amountIn;
-    };
+    uint256 actualAmountIn = (amountIn * 1000) / 997;
+    uint256 tradeSize;
     // If Buying UP
     if (!aToB) {
-      require(amountIn > gasRefund, "Darbi: Trade will not be profitable"); // This is the wrong variable, this is amountIn, not profit.
-      if (amountIn < arbitrageThreshold) return; // This is also wrong. I'm not sure what this check is and what it does.
-      _arbitrageBuy(balances, amountIn, backedValue, reserves0, reserves1);
+      while (actualAmountIn > 0) {
+        if (actualAmountIn > fundsAvailable) {
+          tradeSize = fundsAvailable;
+          actualAmountIn -= tradeSize;
+        } else {
+          tradeSize = actualAmountIn;
+          actualAmountIn == 0;
+        }
+        if (fundingFromStrategy == true) {
+          Rebalancer(rebalancer).withdraw(tradeSize);
+        } else {
+          UPController.borrowNative(tradeSize, address(this));
+        }
+        _arbitrageBuy(tradeSize, amountIn, backedValue, reserves0, reserves1);
+        if (fundingFromStrategy == true) {
+          Rebalancer(rebalancer).deposit(tradeSize);
+        } else {
+          UPController.repay{value: tradeSize}("");
+        }
+      }
     } else {
-      uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
-      require(amountInETHTerms > gasRefund, "Darbi: Trade will not be profitable");
-      if (amountInETHTerms < arbitrageThreshold) return;
-      _arbitrageSell(balances, amountIn, backedValue);
+      while (actualAmountIn > 0) {
+        if (actualAmountIn > fundsAvailable) {
+          tradeSize = fundsAvailable;
+          actualAmountIn -= tradeSize;
+        } else {
+          tradeSize = actualAmountIn;
+          actualAmountIn == 0;
+        }
+        if (fundingFromStrategy == true) {
+          Rebalancer(rebalancer).withdraw(tradeSize);
+        } else {
+          UPController.borrowNative(tradeSize, address(this));
+        }
+        _arbitrageSell(tradeSize, amountIn, backedValue);
+        if (fundingFromStrategy == true) {
+          Rebalancer(rebalancer).deposit(tradeSize);
+        } else {
+          UPController.repay{value: tradeSize}("");
+        }
+      }
     }
     _refund();
   }
 
   function forceArbitrage() public whenNotPaused onlyRebalancer {
-    (
-      bool aToB,
-      uint256 amountIn,
-      uint256 reservesUP,
-      uint256 reservesETH,
-      uint256 backedValue
-    ) = moveMarketBuyAmount();
-
-    // aToB == true == Buys UP
-    // aToB == fals == Sells UP
-    uint256 balances = address(this).balance;
-    // If Buying UP
-    if (!aToB) {
-      if (amountIn < arbitrageThreshold) return;
-      _arbitrageBuy(balances, amountIn, backedValue, reservesUP, reservesETH);
-    } else {
-      uint256 amountInETHTerms = (amountIn * backedValue) / 1e18;
-      if (amountInETHTerms < arbitrageThreshold) return;
-      _arbitrageSell(balances, amountIn, backedValue);
-    }
+    arbitrage();
   }
 
   function _arbitrageBuy(
-    uint256 balances,
+    uint256 tradeSize,
     uint256 amountIn,
     uint256 backedValue,
     uint256 reservesUP,
     uint256 reservesETH
   ) internal {
-    uint256 actualAmountIn = amountIn <= balances ? amountIn : balances; //Value is going to native
+    uint256 actualAmountIn = amountIn <= tradeSize ? amountIn : tradeSize; //Value is going to native
     uint256 expectedReturn = UniswapHelper.getAmountOut(actualAmountIn, reservesETH, reservesUP); // Amount of UP expected from Buy
     uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
     uint256 upControllerBalance = address(UP_CONTROLLER).balance;
@@ -220,12 +226,12 @@ contract Darbi is AccessControl, Pausable, Safe {
   }
 
   function _arbitrageSell(
-    uint256 balances,
+    uint256 tradeSize,
     uint256 amountIn,
     uint256 backedValue
   ) internal {
     // If selling UP
-    uint256 darbiBalanceMaximumUpToMint = (balances * 1e18) / backedValue; // Amount of UP that we can mint with current balances
+    uint256 darbiBalanceMaximumUpToMint = (tradeSize * 1e18) / backedValue; // Amount of UP that we can mint with current balances
     uint256 actualAmountIn = amountIn <= darbiBalanceMaximumUpToMint
       ? amountIn
       : darbiBalanceMaximumUpToMint; // Value in UP
@@ -243,19 +249,10 @@ contract Darbi is AccessControl, Pausable, Safe {
     emit Arbitrage(true, up2Balance);
   }
 
-  function _refund() public whenNotPaused {
+  function _refund() internal whenNotPaused {
     uint256 proceeds = address(this).balance;
-    (bool success1, ) = address(UP_CONTROLLER).call{value: amountIn}("");
-    require(success1, "Darbi: FAIL_SENDING_BALANCES_TO_CONTROLLER");
-    (bool success2, ) = msg.sender.call{value: gasRefund}("");
-    require(success2, "Darbi: FAIL_SENDING_GAS_REFUND_TO_CALLER");
-
-    uint256 profits = address(this).balance;
-
-    if (diffBalances > 0) {
-      (bool success2, ) = address(UP_CONTROLLER).call{value: diffBalances}("");
-      require(success2, "Darbi: FAIL_SENDING_BALANCES_TO_CONTROLLER");
-    }
+    (bool success1, ) = (msg.sender).call{value: proceeds}("");
+    require(success1, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
   }
 
   function moveMarketBuyAmount()
@@ -263,7 +260,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     view
     returns (
       bool aToB,
-      uint256 amountInAfterFee,
+      uint256 amountIn,
       uint256 reservesUP,
       uint256 reservesETH,
       uint256 upPrice
@@ -275,18 +272,14 @@ contract Darbi is AccessControl, Pausable, Safe {
       address(WETH)
     );
     upPrice = UP_CONTROLLER.getVirtualPrice();
-    uint256 amountIn;
+
     (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
       1000000000000000000, // Ratio = 1:UPVirtualPrice
       upPrice,
       reservesUP,
       reservesETH
     );
-    // uint256 amountInWithFee = amountIn.mul(997);
-    // uint256 numerator = amountInWithFee.mul(reserveOut);
-    // uint256 denominator = reserveIn.mul(1000).add(amountInWithFee);
-    // amountOut = numerator / denominator
-    return (aToB, amountInWithFee, reservesUP, reservesETH, upPrice);
+    return (aToB, amountIn, reservesUP, reservesETH, upPrice);
   }
 
   function redeemUP() internal {
@@ -319,7 +312,6 @@ contract Darbi is AccessControl, Pausable, Safe {
   }
 
   function withdrawFunds() public onlyAdmin returns (bool) {
-    darbiDepositBalance == 0;
     return _withdrawFunds();
   }
 
