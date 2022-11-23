@@ -139,11 +139,10 @@ contract Darbi is AccessControl, Pausable, Safe {
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
     uint256 fundsAvailable = _checkAvailableFunds();
-    uint256 actualAmountIn = (amountIn * 1000) / 997;
-    uint256 tradeSize;
     // If Buying UP
     if (!aToB) {
-      while (actualAmountIn > 0) {
+      while (amountIn > 0) {
+        uint256 actualAmountIn = (amountIn * 1000) / 997;
         if (actualAmountIn > fundsAvailable) {
           tradeSize = fundsAvailable;
           actualAmountIn -= tradeSize;
@@ -166,27 +165,9 @@ contract Darbi is AccessControl, Pausable, Safe {
         }
       }
     } else {
-      while (actualAmountIn > 0) {
-        if (actualAmountIn > fundsAvailable) {
-          tradeSize = fundsAvailable;
-          actualAmountIn -= tradeSize;
-        } else {
-          tradeSize = actualAmountIn;
-          actualAmountIn == 0;
-        }
-        if (fundingFromStrategy == true) {
-          address strategyAddress = Rebalancer(address(rebalancer)).strategy();
-          IStrategy(address(strategyAddress)).withdraw(tradeSize);
-        } else {
-          UPController.borrowNative(tradeSize, address(this));
-        }
+      // If Selling Up
+      while (amountIn > 0) {
         _arbitrageSell(tradeSize, amountIn, backedValue);
-        if (fundingFromStrategy == true) {
-          address strategyAddress = Rebalancer(address(rebalancer)).strategy();
-          IStrategy(address(strategyAddress)).deposit(tradeSize);
-        } else {
-          UPController.repay{value: tradeSize}("");
-        }
       }
     }
     _refund();
