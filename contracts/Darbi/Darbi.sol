@@ -12,7 +12,7 @@ import "../Libraries/UniswapHelper.sol";
 import "../Helpers/Safe.sol";
 import "../UPController.sol";
 import "./UPMintDarbi.sol";
-import "../Rebalancer.sol";
+import "../Strategies/Strategy.sol";
 
 contract Darbi is AccessControl, Pausable, Safe {
   using SafeERC20 for IERC20;
@@ -22,19 +22,13 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   address public factory;
   address public WETH;
-  address public rebalancer;
-  address public gasRefundAddress;
-  // address public strategy; Not necessary to make variable in Darbi, as strategy address is held in Rebalancer. Makes upgrade easier.
-  uint256 public arbitrageThreshold = 100000;
-  uint256 public gasRefund = 3500000000000000;
   bool public fundingFromStrategy; // if True, Darbi funding comes from Strategy. If false, Darbi funding comes from Controller.
-  // Add Function to Change Value
   bool public strategyLockup; // if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
-  // Add Function to Change Value
   IERC20 public UP_TOKEN;
   IUniswapV2Router02 public router;
   UPController public UP_CONTROLLER;
   UPMintDarbi public DARBI_MINTER;
+  Strategy public STRATEGY;
 
   event Arbitrage(bool isSellingUp, uint256 actualAmountIn);
 
@@ -64,18 +58,16 @@ contract Darbi is AccessControl, Pausable, Safe {
   constructor(
     address _factory,
     address _router,
-    address _rebalancer,
+    address _strategy,
     address _WETH,
-    address _gasRefundAddress,
     address _UP_CONTROLLER,
     address _darbiMinter,
     address _fundsTarget
   ) Safe(_fundsTarget) {
     factory = _factory;
     router = IUniswapV2Router02(_router);
-    rebalancer = _rebalancer;
+    STRATEGY = Strategy(payable(_strategy));
     WETH = _WETH;
-    gasRefundAddress = _gasRefundAddress;
     UP_CONTROLLER = UPController(payable(_UP_CONTROLLER));
     DARBI_MINTER = UPMintDarbi(payable(_darbiMinter));
     UP_TOKEN = IERC20(payable(UP_CONTROLLER.UP_TOKEN()));
@@ -86,11 +78,10 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   function _checkAvailableFunds() internal view returns (uint256 fundsAvailable) {
     if (fundingFromStrategy == true) {
-      address strategyAddress = Rebalancer(address(rebalancer)).strategy();
       if (strategyLockup == true) {
-        fundsAvailable = address(strategyAddress).balance;
+        fundsAvailable = address(STRATEGY).balance;
       } else {
-        fundsAvailable = IStrategy(address(strategyAddress)).amountDeposited();
+        fundsAvailable = Strategy(STRATEGY).amountDeposited();
       }
     } else {
       fundsAvailable = (address(UP_CONTROLLER).balance / 3);
@@ -98,39 +89,10 @@ contract Darbi is AccessControl, Pausable, Safe {
     return fundsAvailable;
   }
 
-  //   /// Notes - Could just save all this logic by having a stored variable with the address of the funding source, seems easier, both using borrowNative function (GOING TO DO THIS)
-  //   /// 1) Check if Funding from Strategy
-  //   /// 1a) If not funding from strategy, it is funding from controller. Available funds equal 20% of controller balance. This will allow Darbi to function in ALMOST ALL situations.
-  //   /// 2) Check if Strategy Involves Lock Up
-  //   /// 2a) If involves lock up, check balance of strategy wallet
-  //   /// 2b) If does involve lock up, check total amount deposited.
-  //   ///
-  //   if (address strategy = IRebalancer(rebalancer).strategy(); // Checks Address of Strategy
-  //   uint256 fundsAvailableInController = (address(UP_CONTROLLER).balance / 3); // Checks balance of UP Controller, divides by 3 as there must be enough balance for UP to be redeemed
-  //   if (strategy != address(0)) {
-  //     uint256 fundsAvailableInStrategy = address(strategy).balance; // Check balance of for Harmony, or any chain where assets CAN NOT be immediately accessed.
-  //     // fundsAvailable = IStrategy(address(strategy)).amountDeposited(); // for Polygon, or any chain where assets CAN be immediately accessed.
-  //     // fundsAvailable = IStrategy(address(strategy)).amountDeposited(); // for BSC
-  //     if (fundsAvailableInController < fundsAvailableInStrategy) {
-  //       fundsAvailable = fundsAvailableInStrategy;
-  //       fundingSource = strategy;
-  //     } else {
-  //       fundsAvailable = fundsAvailableInController;
-  //       fundingSource = UP_CONTROLLER;
-  //     }
-  //   } else {
-  //     fundsAvailable = fundsAvailableInController;
-  //     fundingSource = UP_CONTROLLER;
-  //   }
-  //   return (fundsAvailable, fundingSource);
-  // }
-
-  function _calculateArbitrage() internal whenNotPaused {}
-
-  function arbitrage() public whenNotPaused {
+  function arbitrage() public whenNotPaused returns (uint256 profit) {
     (
       bool aToB,
-      uint256 amountIn,
+      uint256 amountIn, //if buying UP, number returned is in native value. If selling UP, number returned in UP value.
       uint256 reserves0,
       uint256 reserves1,
       uint256 backedValue
@@ -139,10 +101,12 @@ contract Darbi is AccessControl, Pausable, Safe {
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
     uint256 fundsAvailable = _checkAvailableFunds();
+    uint256 tradeSize;
+    uint256 actualAmountIn;
     // If Buying UP
     if (!aToB) {
-      while (amountIn > 0) {
-        uint256 actualAmountIn = (amountIn * 1000) / 997;
+      actualAmountIn == amountIn;
+      while (actualAmountIn > 0) {
         if (actualAmountIn > fundsAvailable) {
           tradeSize = fundsAvailable;
           actualAmountIn -= tradeSize;
@@ -151,26 +115,43 @@ contract Darbi is AccessControl, Pausable, Safe {
           actualAmountIn == 0;
         }
         if (fundingFromStrategy == true) {
-          address strategyAddress = Rebalancer(address(rebalancer)).strategy();
-          IStrategy(address(strategyAddress)).withdraw(tradeSize);
+          IStrategy(address(STRATEGY)).withdraw(tradeSize);
         } else {
-          UPController.borrowNative(tradeSize, address(this));
+          UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
         }
-        _arbitrageBuy(tradeSize, amountIn, backedValue, reserves0, reserves1);
+        _arbitrageBuy(tradeSize, backedValue, reserves0, reserves1);
         if (fundingFromStrategy == true) {
-          address strategyAddress = Rebalancer(address(rebalancer)).strategy();
-          IStrategy(address(strategyAddress)).deposit(tradeSize);
+          IStrategy(address(STRATEGY)).deposit(tradeSize);
         } else {
-          UPController.repay{value: tradeSize}("");
+          UPController(UP_CONTROLLER).repay{value: tradeSize}(0);
         }
       }
     } else {
       // If Selling Up
       while (amountIn > 0) {
+        actualAmountIn = amountIn *= backedValue;
+        if (actualAmountIn > fundsAvailable) {
+          tradeSize = fundsAvailable;
+          actualAmountIn -= tradeSize;
+        } else {
+          tradeSize = actualAmountIn;
+          actualAmountIn == 0;
+        }
+        if (fundingFromStrategy == true) {
+          IStrategy(address(STRATEGY)).withdraw(tradeSize);
+        } else {
+          UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
+        }
         _arbitrageSell(tradeSize, amountIn, backedValue);
+        if (fundingFromStrategy == true) {
+          IStrategy(address(STRATEGY)).deposit(tradeSize);
+        } else {
+          UPController(UP_CONTROLLER).repay{value: tradeSize}(0);
+        }
       }
     }
-    _refund();
+    profit = _refund();
+    return profit;
   }
 
   function forceArbitrage() public whenNotPaused onlyRebalancer {
@@ -178,26 +159,24 @@ contract Darbi is AccessControl, Pausable, Safe {
   }
 
   function _arbitrageBuy(
-    uint256 tradeSize,
     uint256 amountIn,
     uint256 backedValue,
     uint256 reservesUP,
     uint256 reservesETH
   ) internal {
-    uint256 actualAmountIn = amountIn <= tradeSize ? amountIn : tradeSize; //Value is going to native
-    uint256 expectedReturn = UniswapHelper.getAmountOut(actualAmountIn, reservesETH, reservesUP); // Amount of UP expected from Buy
+    uint256 expectedReturn = UniswapHelper.getAmountOut(amountIn, reservesETH, reservesUP); // Amount of UP expected from Buy
     uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
     uint256 upControllerBalance = address(UP_CONTROLLER).balance;
     if (upControllerBalance < expectedNativeReturn) {
       uint256 upOutput = (upControllerBalance * 1e18) / backedValue; //Value in UP Token
-      actualAmountIn = UniswapHelper.getAmountIn(upOutput, reservesETH, reservesUP); // Amount of UP expected from Buy
+      amountIn = UniswapHelper.getAmountIn(upOutput, reservesETH, reservesUP); // Amount of UP expected from Buy
     }
 
     address[] memory path = new address[](2);
     path[0] = WETH;
     path[1] = address(UP_TOKEN);
 
-    uint256[] memory amounts = router.swapExactETHForTokens{value: actualAmountIn}(
+    uint256[] memory amounts = router.swapExactETHForTokens{value: amountIn}(
       0,
       path,
       address(this),
@@ -207,7 +186,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_TOKEN.approve(address(UP_CONTROLLER), amounts[1]);
     UP_CONTROLLER.redeem(amounts[1]);
 
-    emit Arbitrage(false, actualAmountIn);
+    emit Arbitrage(false, amountIn);
   }
 
   function _arbitrageSell(
@@ -234,10 +213,11 @@ contract Darbi is AccessControl, Pausable, Safe {
     emit Arbitrage(true, up2Balance);
   }
 
-  function _refund() internal whenNotPaused {
-    uint256 proceeds = address(this).balance;
+  function _refund() internal whenNotPaused returns (uint256 proceeds) {
+    proceeds = address(this).balance;
     (bool success1, ) = (msg.sender).call{value: proceeds}("");
     require(success1, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
+    return proceeds;
   }
 
   function moveMarketBuyAmount()
@@ -276,24 +256,17 @@ contract Darbi is AccessControl, Pausable, Safe {
     UP_CONTROLLER = UPController(payable(_controller));
   }
 
-  function setArbitrageThreshold(uint256 _threshold) public onlyAdmin {
-    require(_threshold > 0);
-    arbitrageThreshold = _threshold;
-  }
-
-  function setGasRefund(uint256 _gasRefund) public onlyAdmin {
-    require(_gasRefund > 0);
-    gasRefund = _gasRefund;
-  }
-
-  function setGasRefundAddress(address _gasRefundAddress) public onlyAdmin {
-    require(_gasRefundAddress != address(0));
-    gasRefundAddress = _gasRefundAddress;
-  }
-
   function setDarbiMinter(address _newMinter) public onlyAdmin {
     require(_newMinter != address(0));
     DARBI_MINTER = UPMintDarbi(payable(_newMinter));
+  }
+
+  function setFundingFromStrategy(bool isTrue) public onlyAdmin {
+    fundingFromStrategy = isTrue;
+  }
+
+  function setStrategyLockup(bool isTrue) public onlyAdmin {
+    strategyLockup = isTrue;
   }
 
   function withdrawFunds() public onlyAdmin returns (bool) {
