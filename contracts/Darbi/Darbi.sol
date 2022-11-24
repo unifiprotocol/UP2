@@ -17,11 +17,11 @@ import "../Strategies/Strategy.sol";
 contract Darbi is AccessControl, Pausable, Safe {
   using SafeERC20 for IERC20;
 
-  bytes32 public constant MONITOR_ROLE = keccak256("MONITOR_ROLE");
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
 
   address public factory;
   address public WETH;
+  address public rebalancer;
   bool public fundingFromStrategy; // if True, Darbi funding comes from Strategy. If false, Darbi funding comes from Controller.
   bool public strategyLockup; // if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
   IERC20 public UP_TOKEN;
@@ -37,21 +37,8 @@ contract Darbi is AccessControl, Pausable, Safe {
     _;
   }
 
-  modifier onlyMonitor() {
-    require(hasRole(MONITOR_ROLE, msg.sender), "Darbi: ONLY_MONITOR");
-    _;
-  }
-
   modifier onlyRebalancer() {
     require(hasRole(REBALANCER_ROLE, msg.sender), "Darbi: ONLY_REBALANCER");
-    _;
-  }
-
-  modifier onlyRebalancerOrMonitor() {
-    require(
-      hasRole(REBALANCER_ROLE, msg.sender) || hasRole(MONITOR_ROLE, msg.sender),
-      "Darbi: ONLY_REBALANCER_OR_MONITOR"
-    );
     _;
   }
 
@@ -60,6 +47,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     address _router,
     address _strategy,
     address _WETH,
+    address _rebalancer,
     address _UP_CONTROLLER,
     address _darbiMinter,
     address _fundsTarget
@@ -68,6 +56,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     router = IUniswapV2Router02(_router);
     STRATEGY = Strategy(payable(_strategy));
     WETH = _WETH;
+    rebalancer = payable(_rebalancer);
     UP_CONTROLLER = UPController(payable(_UP_CONTROLLER));
     DARBI_MINTER = UPMintDarbi(payable(_darbiMinter));
     UP_TOKEN = IERC20(payable(UP_CONTROLLER.UP_TOKEN()));
@@ -142,7 +131,7 @@ contract Darbi is AccessControl, Pausable, Safe {
         } else {
           UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
         }
-        _arbitrageSell(tradeSize, amountIn, backedValue);
+        _arbitrageSell(tradeSize);
         if (fundingFromStrategy == true) {
           IStrategy(address(STRATEGY)).deposit(tradeSize);
         } else {
@@ -150,13 +139,13 @@ contract Darbi is AccessControl, Pausable, Safe {
         }
       }
     }
-    profit = _refund();
+    profit == refund();
     return profit;
   }
 
   function forceArbitrage() public whenNotPaused onlyRebalancer {
     arbitrage();
-  }
+  } //Function preserved for Rebalancer
 
   function _arbitrageBuy(
     uint256 amountIn,
@@ -166,7 +155,12 @@ contract Darbi is AccessControl, Pausable, Safe {
   ) internal {
     uint256 expectedReturn = UniswapHelper.getAmountOut(amountIn, reservesETH, reservesUP); // Amount of UP expected from Buy
     uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
-    uint256 upControllerBalance = address(UP_CONTROLLER).balance;
+    uint256 upControllerBalance;
+    if (fundingFromStrategy == false) {
+      upControllerBalance = address(UP_CONTROLLER).balance - amountIn;
+    } else {
+      upControllerBalance = address(UP_CONTROLLER).balance;
+    }
     if (upControllerBalance < expectedNativeReturn) {
       uint256 upOutput = (upControllerBalance * 1e18) / backedValue; //Value in UP Token
       amountIn = UniswapHelper.getAmountIn(upOutput, reservesETH, reservesUP); // Amount of UP expected from Buy
@@ -189,18 +183,9 @@ contract Darbi is AccessControl, Pausable, Safe {
     emit Arbitrage(false, amountIn);
   }
 
-  function _arbitrageSell(
-    uint256 tradeSize,
-    uint256 amountIn,
-    uint256 backedValue
-  ) internal {
+  function _arbitrageSell(uint256 tradeSize) internal {
     // If selling UP
-    uint256 darbiBalanceMaximumUpToMint = (tradeSize * 1e18) / backedValue; // Amount of UP that we can mint with current balances
-    uint256 actualAmountIn = amountIn <= darbiBalanceMaximumUpToMint
-      ? amountIn
-      : darbiBalanceMaximumUpToMint; // Value in UP
-    uint256 nativeToMint = (actualAmountIn * backedValue) / 1e18;
-    DARBI_MINTER.mintUP{value: nativeToMint}();
+    DARBI_MINTER.mintUP{value: tradeSize}();
 
     address[] memory path = new address[](2);
     path[0] = address(UP_TOKEN);
@@ -213,10 +198,14 @@ contract Darbi is AccessControl, Pausable, Safe {
     emit Arbitrage(true, up2Balance);
   }
 
-  function _refund() internal whenNotPaused returns (uint256 proceeds) {
+  function refund() public whenNotPaused returns (uint256 proceeds) {
     proceeds = address(this).balance;
-    (bool success1, ) = (msg.sender).call{value: proceeds}("");
-    require(success1, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
+    if (msg.sender == rebalancer) {
+      UPController(UP_CONTROLLER).repay{value: proceeds}(0);
+    } else {
+      (bool success2, ) = (msg.sender).call{value: proceeds}("");
+      require(success2, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
+    }
     return proceeds;
   }
 
