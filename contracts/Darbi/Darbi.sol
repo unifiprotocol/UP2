@@ -103,12 +103,23 @@ contract Darbi is AccessControl, Pausable, Safe {
           tradeSize = actualAmountIn;
           actualAmountIn == 0;
         }
+
+        uint256 expectedReturn = UniswapHelper.getAmountOut(tradeSize, reserves1, reserves0); // Amount of UP expected from Buy
+        uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
+        uint256 upControllerBalance = address(UP_CONTROLLER).balance;
+
+        if (upControllerBalance < expectedNativeReturn) {
+          uint256 upOutput = (upControllerBalance * 1e18) / backedValue; //Value in UP Token
+          tradeSize = UniswapHelper.getAmountIn(upOutput, reserves1, reserves0);
+          actualAmountIn += (tradeSize - upOutput); // Amount of UP expected from Buy
+        }
+
         if (fundingFromStrategy == true) {
           IStrategy(address(STRATEGY)).withdraw(tradeSize);
         } else {
           UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
         }
-        _arbitrageBuy(tradeSize, backedValue, reserves0, reserves1);
+        _arbitrageBuy(tradeSize);
         if (fundingFromStrategy == true) {
           IStrategy(address(STRATEGY)).deposit(tradeSize);
         } else {
@@ -117,7 +128,9 @@ contract Darbi is AccessControl, Pausable, Safe {
       }
     } else {
       // If Selling Up
-      while (amountIn > 0) {
+      while (
+        amountIn > 100 //allows for dust + rounding of 100 gwei of UP
+      ) {
         actualAmountIn = amountIn *= backedValue;
         if (actualAmountIn > fundsAvailable) {
           tradeSize = fundsAvailable;
@@ -131,7 +144,8 @@ contract Darbi is AccessControl, Pausable, Safe {
         } else {
           UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
         }
-        _arbitrageSell(tradeSize);
+        uint256 upSold = _arbitrageSell(tradeSize);
+        amountIn -= upSold;
         if (fundingFromStrategy == true) {
           IStrategy(address(STRATEGY)).deposit(tradeSize);
         } else {
@@ -147,25 +161,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     arbitrage();
   } //Function preserved for Rebalancer
 
-  function _arbitrageBuy(
-    uint256 amountIn,
-    uint256 backedValue,
-    uint256 reservesUP,
-    uint256 reservesETH
-  ) internal {
-    uint256 expectedReturn = UniswapHelper.getAmountOut(amountIn, reservesETH, reservesUP); // Amount of UP expected from Buy
-    uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
-    uint256 upControllerBalance;
-    if (fundingFromStrategy == false) {
-      upControllerBalance = address(UP_CONTROLLER).balance - amountIn;
-    } else {
-      upControllerBalance = address(UP_CONTROLLER).balance;
-    }
-    if (upControllerBalance < expectedNativeReturn) {
-      uint256 upOutput = (upControllerBalance * 1e18) / backedValue; //Value in UP Token
-      amountIn = UniswapHelper.getAmountIn(upOutput, reservesETH, reservesUP); // Amount of UP expected from Buy
-    }
-
+  function _arbitrageBuy(uint256 amountIn) internal {
     address[] memory path = new address[](2);
     path[0] = WETH;
     path[1] = address(UP_TOKEN);
@@ -183,7 +179,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     emit Arbitrage(false, amountIn);
   }
 
-  function _arbitrageSell(uint256 tradeSize) internal {
+  function _arbitrageSell(uint256 tradeSize) internal returns (uint256 up2Balance) {
     // If selling UP
     DARBI_MINTER.mintUP{value: tradeSize}();
 
@@ -191,7 +187,7 @@ contract Darbi is AccessControl, Pausable, Safe {
     path[0] = address(UP_TOKEN);
     path[1] = WETH;
 
-    uint256 up2Balance = UP_TOKEN.balanceOf(address(this));
+    up2Balance = UP_TOKEN.balanceOf(address(this));
     UP_TOKEN.approve(address(router), up2Balance);
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
 
