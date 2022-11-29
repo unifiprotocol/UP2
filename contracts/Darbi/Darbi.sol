@@ -19,6 +19,7 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
 
+  uint256 public callerReward = 10; //The percentage the caller of the rebalancer receives as a 'reward' for triggering transaction
   address public factory;
   address public WETH;
   address public rebalancer;
@@ -29,6 +30,9 @@ contract Darbi is AccessControl, Pausable, Safe {
   UPController public UP_CONTROLLER;
   UPMintDarbi public DARBI_MINTER;
   Strategy public STRATEGY;
+
+  // DAO Parameters:
+  // callerReward - the percentage of profits a public caller of the arbitrage receives
 
   event Arbitrage(bool isSellingUp, uint256 actualAmountIn);
 
@@ -78,28 +82,40 @@ contract Darbi is AccessControl, Pausable, Safe {
     return fundsAvailable;
   }
 
-  function arbitrage() public whenNotPaused returns (uint256 profit) {
+  function arbitrage() public whenNotPaused returns (uint256 profit, uint256 callerBonus) {
     (
-      bool aToB,
+      bool aToB, // The direction of the arbitrage. If true, Darbi is buying UP from the LP. If false, Darbi is selling UP to the LP.
       uint256 amountIn, //if buying UP, number returned is in native value. If selling UP, number returned in UP value.
       uint256 reserves0,
       uint256 reserves1,
-      uint256 backedValue
+      uint256 backedValue // The current backed Value of
     ) = moveMarketBuyAmount();
 
     // aToB == true == Buys UP
     // aToB == fals == Sells UP
     uint256 fundsAvailable = _checkAvailableFunds();
+    // Checks amount Native Tokens available for Darbi, either from the Controller or the Strategy
     uint256 tradeSize;
+    // Declaring variable in advance. Represents the amount of token input per transaction, determined based on the actual trade size, or the maximum size available - whichever is lower.
+    // For example, if buying UP, and if 100 BNB is required to move the market so that backed value = market value, and 120 BNB is available - then the tradeSize is 100 BNB.
+    // However, if buying UP, and if 100 BNB is requred to move the market so that backed value = market value, and 50 BNB is available - then the tradeSize is 50 BNB.
     uint256 actualAmountIn;
+    // Declaring variable in advance. Represents the total amount of native token input required to move the market so backed value = market value.
+    // If buying UP, this value will be the same as the amountIn. If selling UP, this value will be the amountIn * backedValue.
+
     // If Buying UP
     if (!aToB) {
       actualAmountIn == amountIn;
       while (actualAmountIn > 0) {
+        // Sets a loop so that if the amount of native tokens required to move the market so that MV = BV is larger than the funds available, the transaction will repeat until the prices match.
         if (actualAmountIn > fundsAvailable) {
+          // Checks if amount of native required to move the market is greater than funds available in the strategy / controller
           tradeSize = fundsAvailable;
+          // Sets tradesize to amount of funds Darbi has access to.
           actualAmountIn -= tradeSize;
+          // Reduces the amount required to complete market movement.
         } else {
+          // If there is enough funds available to move the market so that MV = BV, the tradeSize will equal the amount required, and will not repeat.
           tradeSize = actualAmountIn;
           actualAmountIn == 0;
         }
@@ -109,43 +125,59 @@ contract Darbi is AccessControl, Pausable, Safe {
         uint256 upControllerBalance = address(UP_CONTROLLER).balance;
 
         if (upControllerBalance < expectedNativeReturn) {
-          uint256 upOutput = (upControllerBalance * 1e18) / backedValue; //Value in UP Token
+          // Checks if there is enough native tokens in the UP Controller to redeem the UP purchased
+          uint256 upOutput = (upControllerBalance * 1e18) / backedValue;
+          // Gets the maximum amount of UP that can be redeemed.
           tradeSize = UniswapHelper.getAmountIn(upOutput, reserves1, reserves0);
-          actualAmountIn += (tradeSize - upOutput); // Amount of UP expected from Buy
+          // Calculates the amount of native tokens required to purchase the maxiumum of UP that can be redeemed.
+          actualAmountIn += (tradeSize - upOutput);
+          // Adjusts the total amount required to move market to account for the smaller trade size. Note this transaction will still end with MV=BV, just requires more loops.
         }
 
         if (fundingFromStrategy == true) {
+          // Checks if funding source is the strategy. If so, withdraws from strategy. This works with both lock up strategies and non-locked strategies.
           IStrategy(address(STRATEGY)).withdraw(tradeSize);
         } else {
+          // If funding source is not the strategy, withdraws from controller.
           UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
         }
         _arbitrageBuy(tradeSize);
         if (fundingFromStrategy == true) {
+          // Repays exact amount of funds borrowed from strategy.
           IStrategy(address(STRATEGY)).deposit(tradeSize);
         } else {
+          // Repays exact amount of funds borrowed from controller.
           UPController(UP_CONTROLLER).repay{value: tradeSize}(0);
         }
       }
     } else {
       // If Selling Up
       while (
-        amountIn > 100 //allows for dust + rounding of 100 gwei of UP
+        amountIn > 100 //As there may be a slight rounding in UP sales, a small amount of UP token dust may occur. This allows for dust + rounding of 100 gwei of UP
       ) {
         actualAmountIn = amountIn *= backedValue;
+        // Calculates the amount of native tokens required to mint the amount of UP to sell into the LP.
         if (actualAmountIn > fundsAvailable) {
+          // Checks if amount of native required to move the market is greater than funds available in the strategy / controller
           tradeSize = fundsAvailable;
+          // Sets tradesize to amount of funds Darbi has access to.
           actualAmountIn -= tradeSize;
+          // Reduces the amount required to complete market movement.
         } else {
+          // If there is enough funds available to move the market so that MV = BV, the tradeSize will equal the amount required, and will not repeat.
           tradeSize = actualAmountIn;
           actualAmountIn == 0;
         }
         if (fundingFromStrategy == true) {
+          // Checks if funding source is the strategy. If so, withdraws from strategy. This works with both lock up strategies and non-locked strategies.
           IStrategy(address(STRATEGY)).withdraw(tradeSize);
         } else {
+          // If funding source is not the strategy, withdraws from controller.
           UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
         }
         uint256 upSold = _arbitrageSell(tradeSize);
         amountIn -= upSold;
+        // Takes the amount of UP minted and sold in this transaction, and subtracts it from the total amount of UP required to move the market so that MV = BV
         if (fundingFromStrategy == true) {
           IStrategy(address(STRATEGY)).deposit(tradeSize);
         } else {
@@ -153,8 +185,10 @@ contract Darbi is AccessControl, Pausable, Safe {
         }
       }
     }
-    profit == refund();
-    return profit;
+    (profit, callerReward) = refund();
+    return (profit, callerReward);
+    // Returns the total profit in native tokens expected by the transaction.
+    // If this arbitrage is triggered by a public caller, returns the amount of 'reward' the caller will receive. If triggered by the rebalancer, returns 0.
   }
 
   function forceArbitrage() public whenNotPaused onlyRebalancer {
@@ -194,15 +228,21 @@ contract Darbi is AccessControl, Pausable, Safe {
     emit Arbitrage(true, up2Balance);
   }
 
-  function refund() public whenNotPaused returns (uint256 proceeds) {
+  function refund() public whenNotPaused returns (uint256 proceeds, uint256 callerBonus) {
     proceeds = address(this).balance;
+    // Any leftover funds in the Darbi contract is profit. Yay!
+    callerBonus = (proceeds * (callerReward / 100));
     if (msg.sender == rebalancer) {
+      // If the arbitrage is triggered with a rebalance, the profits to the controller.
       UPController(UP_CONTROLLER).repay{value: proceeds}(0);
+      callerBonus == 0;
     } else {
-      (bool success2, ) = (msg.sender).call{value: proceeds}("");
+      // If the arbitrage is triggered by a user, the user receives a percentage of profits for calling the transaction.
+      (bool success2, ) = (msg.sender).call{value: callerBonus}("");
       require(success2, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
+      UPController(UP_CONTROLLER).repay{value: address(this).balance}(0);
     }
-    return proceeds;
+    return (proceeds, callerBonus);
   }
 
   function moveMarketBuyAmount()
@@ -252,6 +292,11 @@ contract Darbi is AccessControl, Pausable, Safe {
 
   function setStrategyLockup(bool isTrue) public onlyAdmin {
     strategyLockup = isTrue;
+  }
+
+  function setCallerReward(uint256 percentCallerReward) public onlyAdmin {
+    require(percentCallerReward <= 100);
+    callerReward = percentCallerReward;
   }
 
   function withdrawFunds() public onlyAdmin returns (bool) {
