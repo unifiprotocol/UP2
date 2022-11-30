@@ -54,6 +54,7 @@ contract UPController is AccessControl, Safe, Pausable {
   }
 
   /// @notice Returns price of UP token based on its reserves minus amount sent to the contract
+  /// Note this is for legacy V1 uTrade transactions
   function getVirtualPrice(uint256 sentValue) public view returns (uint256) {
     if (getNativeBalance() == 0) return 0;
     uint256 nativeBalance = getNativeBalance() - sentValue;
@@ -70,24 +71,17 @@ contract UPController is AccessControl, Safe, Pausable {
     return UP(UP_TOKEN).totalSupply() - upBorrowed;
   }
 
-  /// @notice Borrows native token from the back up reserves
+  /// @notice Borrows native tokens from comntroller
   function borrowNative(uint256 _borrowAmount, address _to) public onlyRebalancer whenNotPaused {
     require(address(this).balance >= _borrowAmount, "UPController: NOT_ENOUGH_BALANCE");
     (bool success, ) = _to.call{value: _borrowAmount}("");
-    nativeBorrowed += _borrowAmount;
     require(success, "UPController: BORROW_NATIVE_FAILED");
     emit BorrowNative(_to, _borrowAmount, nativeBorrowed);
   }
 
   /// @notice Borrows UP token minting it
   function borrowUP(uint256 _borrowAmount, address _to) public onlyRebalancer whenNotPaused {
-    upBorrowed += _borrowAmount;
     UP(UP_TOKEN).mint(_to, _borrowAmount);
-    emit SyntheticMint(msg.sender, _borrowAmount, upBorrowed);
-  }
-
-  function mintSyntheticUP(uint256 _mintAmount, address _to) public onlyRebalancer whenNotPaused {
-    borrowUP(_mintAmount, _to);
   }
 
   /// @notice Mints UP based on virtual price - UPv1 logic
@@ -100,9 +94,15 @@ contract UPController is AccessControl, Safe, Pausable {
   /// @notice Allows to return back borrowed amounts to the controller
   function repay(uint256 upAmount) public payable onlyRebalancer whenNotPaused {
     UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
-    upBorrowed -= upAmount <= upBorrowed ? upAmount : upBorrowed;
-    nativeBorrowed -= msg.value <= nativeBorrowed ? msg.value : nativeBorrowed;
-    emit Repay(msg.value, upAmount);
+  }
+
+  function setBorrowedAmounts(uint256 upAmount, uint256 nativeAmount)
+    public
+    onlyRebalancer
+    whenNotPaused
+  {
+    upBorrowed = upAmount;
+    nativeBorrowed = nativeAmount;
   }
 
   /// @notice Swaps UP token by native token

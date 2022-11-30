@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 // AccessControl.sol is utilized so only the Rebalancer can interact with the strategy, and only the DAO can update the Rebalancer Contract.
 // Pausable.sol is utilized so that DAO can pause the strategy in an emergency.
 
-contract Strategy is IStrategy, Safe, AccessControl, Pausable {
+contract Strategy is Safe, AccessControl, Pausable {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
 
   /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.

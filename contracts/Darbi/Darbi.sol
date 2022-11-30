@@ -83,6 +83,7 @@ contract Darbi is AccessControl, Pausable, Safe {
   }
 
   function arbitrage() public whenNotPaused returns (uint256 profit, uint256 callerBonus) {
+    /// Remove liquidity, 0 upBorrowed, send native tokens to UP Controller.
     (
       bool aToB, // The direction of the arbitrage. If true, Darbi is buying UP from the LP. If false, Darbi is selling UP to the LP.
       uint256 amountIn, //if buying UP, number returned is in native value. If selling UP, number returned in UP value.
@@ -125,6 +126,7 @@ contract Darbi is AccessControl, Pausable, Safe {
         uint256 upControllerBalance = address(UP_CONTROLLER).balance;
 
         if (upControllerBalance < expectedNativeReturn) {
+          // If upControllerBalance below amountOut of UP required, then triggers rebalance.
           // Checks if there is enough native tokens in the UP Controller to redeem the UP purchased
           uint256 upOutput = (upControllerBalance * 1e18) / backedValue;
           // Gets the maximum amount of UP that can be redeemed.

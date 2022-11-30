@@ -22,4 +22,7 @@ interface IStrategy {
 
   /// @notice Returns the amount staked plus the earnings
   function checkRewards() external view returns (Rewards memory);
+
+  ///@notice Returns the amount deposited
+  function amountDeposited() external view returns (uint256);
 }
