@@ -186,7 +186,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return (proceeds, callerProfit);
   }
 
-  function _arbitrage() internal whenNotPaused returns (uint256 profit, uint256 callerBonus) {
+  function _arbitrage() internal whenNotPaused {
     //
     (
       bool aToB, // The direction of the arbitrage. If true, Darbi is buying UP from the LP. If false, Darbi is selling UP to the LP.

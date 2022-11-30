@@ -45,7 +45,7 @@ contract Strategy is Safe, AccessControl, Pausable {
   ///the function should calculate the return for selling 2 TokenA, and add to the 5 Native Tokens.
   ///If we assume that each TokenA is worth 4 native tokens, then the unclaimedEarnings value should return a value of 13, adjusted for percision.
 
-  function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
+  function checkRewards() public view virtual returns (IStrategy.Rewards memory) {
     uint256 rewards = address(this).balance - amountDeposited;
     IStrategy.Rewards memory result = IStrategy.Rewards(
       rewards,
@@ -66,7 +66,6 @@ contract Strategy is Safe, AccessControl, Pausable {
     public
     payable
     virtual
-    override
     onlyRebalancer
     whenNotPaused
     returns (bool)
@@ -86,14 +85,7 @@ contract Strategy is Safe, AccessControl, Pausable {
   ///In addition, the depositValue should be updated to reflect the tokens withdrawn into your strategy. UP requires all tokens returned to the balancer be in native token format.
   ///@param amount This is the amount of native tokens that is to be withdrawn from the strategy.
 
-  function withdraw(uint256 amount)
-    public
-    virtual
-    override
-    onlyRebalancer
-    whenNotPaused
-    returns (bool)
-  {
+  function withdraw(uint256 amount) public virtual onlyRebalancer whenNotPaused returns (bool) {
     require(
       amount <= amountDeposited,
       "Strategy: Amount Requested to Withdraw is Greater Than Amount Deposited"
@@ -108,7 +100,7 @@ contract Strategy is Safe, AccessControl, Pausable {
 
   ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the rebalancer.
 
-  function withdrawAll() external virtual override onlyRebalancer whenNotPaused returns (bool) {
+  function withdrawAll() external virtual onlyRebalancer whenNotPaused returns (bool) {
     //Get all those tokens here - code the logic to withdraw all here!
     uint256 balance = address(this).balance;
     (bool successTransfer, ) = address(msg.sender).call{value: balance}("");
@@ -121,7 +113,7 @@ contract Strategy is Safe, AccessControl, Pausable {
   ///Then, this function should send all earnings to the rebalancer contract. This function MUST only send native tokens to the rebalancer.
   ///For example, if the tokens are deposited in a lending protocol, it should the totalBalance minus the amountDeposited.
 
-  function gather() public virtual override onlyRebalancer whenNotPaused {
+  function gather() public virtual onlyRebalancer whenNotPaused {
     //Claim all those rewards here
     uint256 nativeAmount = address(this).balance - amountDeposited;
     (bool successTransfer, ) = address(msg.sender).call{value: nativeAmount}("");
