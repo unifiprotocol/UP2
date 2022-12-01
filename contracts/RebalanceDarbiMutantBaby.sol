@@ -127,15 +127,13 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     }
   }
 
-  function _rebalanceWithStrategy()
-    internal
-    whenNotPaused
-    returns (uint256 proceeds, uint256 callerProfit)
-  {
+  // Internal Functions
+
+  function _rebalanceWithStrategy() internal returns (uint256 proceeds, uint256 callerProfit) {
     // Store a snapshot of the rewards
     // Step 1
     IStrategy.Rewards memory strategyRewards = strategy.checkRewards();
-    saveReward(strategyRewards);
+    _saveReward(strategyRewards);
 
     // Withdraw the entire balance of the strategy
     // Step 2
@@ -190,11 +188,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return (proceeds, callerProfit);
   }
 
-  function _rebalanceWithoutStrategy()
-    internal
-    whenNotPaused
-    returns (uint256 proceeds, uint256 callerProfit)
-  {
+  function _rebalanceWithoutStrategy() internal returns (uint256 proceeds, uint256 callerProfit) {
     // Withdraw the entire balance of the LP
     // Step 1
     uint256 lpTokenBalance = IERC20(liquidityPool).balanceOf(address(this));
@@ -234,8 +228,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return (proceeds, callerProfit);
   }
 
-  function _arbitrage() internal whenNotPaused {
-    //
+  function _arbitrage() internal {
     (
       bool aToB, // The direction of the arbitrage. If true, Darbi is buying UP from the LP. If false, Darbi is selling UP to the LP.
       uint256 amountIn, //if buying UP, number returned is in native value. If selling UP, number returned in UP value.
@@ -350,7 +343,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
   }
 
-  function _refund() internal whenNotPaused returns (uint256 proceeds, uint256 callerBonus) {
+  function _refund() internal returns (uint256 proceeds, uint256 callerBonus) {
     proceeds = address(this).balance;
     // Any leftover funds in the contract is profit. Yay!
     callerBonus = ((proceeds * callerReward) / 100);
@@ -360,7 +353,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return (proceeds, callerBonus);
   }
 
-  function saveReward(IStrategy.Rewards memory reward) internal {
+  function _saveReward(IStrategy.Rewards memory reward) internal {
     if (getRewardsLength() == 10) {
       delete rewards[initRewardsPos];
       initRewardsPos += 1;
@@ -368,20 +361,21 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     rewards.push(reward);
   }
 
-  function setAllocationLP(uint256 _allocationLP) public onlyAdmin returns (bool) {
-    if (strategyLockup == true) {
-      require(
-        _allocationLP < maximumAllocationLPWithLockup,
-        "Rebalance: The strategy lockup requires an allocation below the maximum allocation LP variable"
-      );
-    }
-    allocationLP = _allocationLP;
-    return true;
+  // Setter Functions
+
+  function setDarbiMinter(address newAddress) public onlyAdmin {
+    require(newAddress != address(0));
+    DARBI_MINTER = UPMintDarbi(payable(newAddress));
   }
 
-  function setDarbiMinter(address _newMinter) public onlyAdmin {
-    require(_newMinter != address(0));
-    DARBI_MINTER = UPMintDarbi(payable(_newMinter));
+  function setStrategy(address newAddress) public onlyAdmin {
+    // Can be 0x00
+    strategy = Strategy(payable(newAddress));
+  }
+
+  function setUPController(address newAddress) public onlyAdmin {
+    require(newAddress != address(0));
+    UP_CONTROLLER = UPController(payable(newAddress));
   }
 
   function setStrategyLockup(bool isTrue) public onlyAdmin {
@@ -393,17 +387,31 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     callerReward = percentCallerReward;
   }
 
-  function setStrategy(address newAddress) public onlyAdmin {
-    strategy = Strategy(payable(newAddress));
+  function setAllocationLP(uint256 _allocationLP) public onlyAdmin returns (bool) {
+    if (strategyLockup == true) {
+      require(
+        _allocationLP < maximumAllocationLPWithLockup,
+        "Rebalancer: The strategy lockup requires an allocation below the maximum allocation LP variable"
+      );
+    }
+    allocationLP = _allocationLP;
+    return true;
   }
 
-  function setUPController(address newAddress) public onlyAdmin {
-    UP_CONTROLLER = UPController(payable(newAddress));
+  function setmaximumAllocationLPWithLockup(uint256 _maximumAllocationLPWithLockup)
+    public
+    onlyAdmin
+    returns (bool)
+  {
+    require(
+      _maximumAllocationLPWithLockup <= 100,
+      "Rebalancer: Maximum Allocation LP cannot be above 100%"
+    );
+    maximumAllocationLPWithLockup = _maximumAllocationLPWithLockup;
+    return true;
   }
 
-  // Darbi DNA Mutant Bones
-
-  //Make Internal Function, triggered by rebalance
+  // Admin Functions
 
   /// @notice Permissioned function to withdraw any native coins accidentally deposited to the Public Mint contract.
   function withdrawFunds() public onlyAdmin returns (bool) {
@@ -425,5 +433,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     _unpause();
   }
 
+  // Fallback Function
   receive() external payable {}
 }
