@@ -142,12 +142,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       strategy.gather();
       uint256 amountToWithdraw = address(strategy).balance;
       strategy.withdraw(amountToWithdraw);
-      (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
-      require(successUpcTransfer, "Rebalancer: FAIL_SENDING_BALANCE_TO_UPC");
+      (bool success1, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
+      require(success1, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
     } else {
       strategy.withdrawAll();
-      (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
-      require(successUpcTransfer, "Rebalancer: FAIL_SENDING_BALANCE_TO_UPC");
+      (bool success2, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
+      require(success2, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
     }
 
     // Withdraw the entire balance of the LP
@@ -397,10 +397,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   function setAllocationLP(uint256 _allocationLP) public onlyAdmin {
     if (strategyLockup == true) {
-      require(
-        _allocationLP < maximumAllocationLPWithLockup,
-        "Rebalancer: The strategy lockup requires an allocation below the maximum allocation LP variable"
-      );
+      require(_allocationLP < maximumAllocationLPWithLockup);
     }
     allocationLP = _allocationLP;
   }
@@ -409,10 +406,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     public
     onlyAdmin
   {
-    require(
-      _maximumAllocationLPWithLockup <= 100,
-      "Rebalancer: Maximum Allocation LP cannot be above 100%"
-    );
+    require(_maximumAllocationLPWithLockup <= 100);
     maximumAllocationLPWithLockup = _maximumAllocationLPWithLockup;
   }
 
