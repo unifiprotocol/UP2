@@ -141,7 +141,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     if (strategyLockup = true) {
       strategy.gather();
       uint256 amountToWithdraw = address(strategy).balance;
-      Strategy(strategy).withdraw(amountToWithdraw);
+      strategy.withdraw(amountToWithdraw);
       (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
       require(successUpcTransfer, "Rebalancer: FAIL_SENDING_BALANCE_TO_UPC");
     } else {
@@ -186,13 +186,13 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     );
     // Step 6 - Refill Strategy
     uint256 controllerBalance = address(UP_CONTROLLER).balance;
-    Strategy(strategy).deposit{value: controllerBalance}(controllerBalance);
+    strategy.deposit{value: controllerBalance}(controllerBalance);
     // Step 7 - Profit?
     (proceeds, callerProfit) = _refund();
     //EMIT EVENT HERE
     //Step 8 - Update UP Controller Variables
-    uint256 nativeRemoved = Strategy(strategy).amountDeposited() + targetLpAmount;
-    UPController(UP_CONTROLLER).setBorrowedAmounts(upToAdd, nativeRemoved);
+    uint256 nativeRemoved = strategy.amountDeposited() + targetLpAmount;
+    UP_CONTROLLER.setBorrowedAmounts(upToAdd, nativeRemoved);
 
     return (proceeds, callerProfit);
   }
@@ -210,7 +210,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       address(this),
       block.timestamp + 150
     );
-    UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
+    UP_CONTROLLER.repay{value: address(this).balance}(amountToken);
     // UP Controller now has all available funds
     // Step 2 - Arbitrage
     _arbitrage();
@@ -230,10 +230,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     );
     // Step 4 - Profit?
     (proceeds, callerProfit) = _refund();
-    //EMIT EVENT HERE
     //Step 5 - Update UP Controller Variables
     uint256 nativeRemoved = address(UP_CONTROLLER).balance + targetLpAmount;
-    UPController(UP_CONTROLLER).setBorrowedAmounts(upToAdd, nativeRemoved);
+    UP_CONTROLLER.setBorrowedAmounts(upToAdd, nativeRemoved);
     return (proceeds, callerProfit);
   }
 
@@ -290,9 +289,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           // Adjusts the total amount required to move market to account for the smaller trade size. Note this transaction will still end with MV=BV, just requires more loops.
         }
 
-        UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
+        UP_CONTROLLER.borrowNative(tradeSize, address(this));
         _arbitrageBuy(tradeSize);
-        UPController(UP_CONTROLLER).repay{value: tradeSize}(0);
+        UP_CONTROLLER.repay{value: tradeSize}(0);
       }
     } else {
       // If Selling Up
@@ -312,11 +311,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           tradeSize = actualAmountIn;
           actualAmountIn == 0;
         }
-        UPController(UP_CONTROLLER).borrowNative(tradeSize, address(this));
+        UP_CONTROLLER.borrowNative(tradeSize, address(this));
         uint256 upSold = _arbitrageSell(tradeSize);
         amountIn -= upSold;
         // Takes the amount of UP minted and sold in this transaction, and subtracts it from the total amount of UP required to move the market so that MV = BV
-        UPController(UP_CONTROLLER).repay{value: tradeSize}(0);
+        UP_CONTROLLER.repay{value: tradeSize}(0);
       }
     }
     // Returns the total profit in native tokens expected by the transaction.
@@ -358,7 +357,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     callerBonus = ((proceeds * callerReward) / 100);
     (bool success2, ) = (msg.sender).call{value: callerBonus}("");
     require(success2, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
-    UPController(UP_CONTROLLER).repay{value: address(this).balance}(0);
+    UP_CONTROLLER.repay{value: address(this).balance}(0);
     return (proceeds, callerBonus);
   }
 
