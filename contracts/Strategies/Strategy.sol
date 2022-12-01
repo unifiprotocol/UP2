@@ -2,7 +2,6 @@
 
 pragma solidity ^0.8.4;
 
-import "./IStrategy.sol";
 import "../Helpers/Safe.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
@@ -38,6 +37,12 @@ contract Strategy is Safe, AccessControl, Pausable {
   event Deposit(uint256);
   event Withdraw(uint256);
 
+  struct Rewards {
+    uint256 rewardsAmount;
+    uint256 depositedAmount;
+    uint256 timestamp;
+  }
+
   // Read Functions
 
   ///@notice The public checkRewards function MUST return a struct with the amount of pending rewards valued in native tokens, the total amount deposited, and the block timestamp.
@@ -45,13 +50,9 @@ contract Strategy is Safe, AccessControl, Pausable {
   ///the function should calculate the return for selling 2 TokenA, and add to the 5 Native Tokens.
   ///If we assume that each TokenA is worth 4 native tokens, then the unclaimedEarnings value should return a value of 13, adjusted for percision.
 
-  function checkRewards() public view virtual returns (IStrategy.Rewards memory) {
+  function checkRewards() public view virtual returns (Rewards memory) {
     uint256 rewards = address(this).balance - amountDeposited;
-    IStrategy.Rewards memory result = IStrategy.Rewards(
-      rewards,
-      amountDeposited,
-      block.timestamp * 1000
-    );
+    Rewards memory result = Rewards(rewards, amountDeposited, block.timestamp * 1000);
     return result;
   }
 

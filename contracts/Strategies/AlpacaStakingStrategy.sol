@@ -123,7 +123,7 @@ contract AlpacaBNBStrategy is Strategy {
   }
 
   ///@notice Withdraws ALL funds Alpaca to send to the rebalancer
-  function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
+  function withdrawAll() external virtual override onlyRebalancer whenNotPaused returns (bool) {
     uint256 ibBNBBalance = IERC20(alpacaVault).balanceOf(address(this));
     IERC20(alpacaVault).approve(alpacaVault, ibBNBBalance);
     IVault(alpacaVault).withdraw(ibBNBBalance);

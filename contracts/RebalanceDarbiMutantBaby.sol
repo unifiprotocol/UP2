@@ -30,11 +30,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   Strategy public strategy;
 
   uint256 private initRewardsPos = 0;
-  IStrategy.Rewards[] public rewards;
+  Strategy.Rewards[] public rewards;
 
   //DAO Parameters
 
   uint256 public allocationLP = 5; // Whole Number for Percent, i.e. 5 = 5%. If StrategyLockup = true, maximum amount is 100 - maximumAllocationLPWithLockup
+  //If there is no strategy, the allocationLP will default to 100%
   uint256 public callerReward = 10; // Whole Number for Percent, i.e. 5 = 5%. Represents the profit of rebalance that will go to the caller of the rebalance.
   uint256 public maximumAllocationLPWithLockup = 79; // Whole Number for Percent, i.e. 5 = 5%. MAKE UPGRADEABLE
 
@@ -113,7 +114,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return rewards.length - initRewardsPos;
   }
 
-  function getReward(uint256 position) public view returns (IStrategy.Rewards memory) {
+  function getReward(uint256 position) public view returns (Strategy.Rewards memory) {
     return rewards[initRewardsPos + position];
   }
 
@@ -132,7 +133,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   function _rebalanceWithStrategy() internal returns (uint256 proceeds, uint256 callerProfit) {
     // Store a snapshot of the rewards
     // Step 1
-    IStrategy.Rewards memory strategyRewards = strategy.checkRewards();
+    Strategy.Rewards memory strategyRewards = strategy.checkRewards();
     _saveReward(strategyRewards);
 
     // Withdraw the entire balance of the strategy
@@ -173,6 +174,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
     uint256 upToAdd = targetLpAmount / backedValue;
     UP_CONTROLLER.borrowUP(upToAdd, address(this));
+    UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
     // ERC20 Approval
     UPToken.approve(address(router), upToAdd);
     // Adds liquidity
@@ -186,6 +188,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     );
     // Step 6 - Refill Strategy
     uint256 controllerBalance = address(UP_CONTROLLER).balance;
+    UP_CONTROLLER.borrowNative(controllerBalance, address(this));
     strategy.deposit{value: controllerBalance}(controllerBalance);
     // Step 7 - Profit?
     (proceeds, callerProfit) = _refund();
@@ -218,6 +221,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 targetLpAmount = getControllerBalance();
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
     uint256 upToAdd = targetLpAmount / backedValue;
+    UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
     UP_CONTROLLER.borrowUP(upToAdd, address(this));
     UPToken.approve(address(router), upToAdd);
     router.addLiquidityETH{value: targetLpAmount}(
@@ -361,7 +365,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return (proceeds, callerBonus);
   }
 
-  function _saveReward(IStrategy.Rewards memory reward) internal {
+  function _saveReward(Strategy.Rewards memory reward) internal {
     if (getRewardsLength() == 10) {
       delete rewards[initRewardsPos];
       initRewardsPos += 1;
