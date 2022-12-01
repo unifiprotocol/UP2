@@ -35,7 +35,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   //DAO Parameters
 
   uint256 public allocationLP = 5; // Whole Number for Percent, i.e. 5 = 5%. If StrategyLockup = true, maximum amount is 100 - maximumAllocationLPWithLockup
-  uint256 public callerReward = 10; // Whole Number for Percent, i.e. 5 = 5%
+  uint256 public callerReward = 10; // Whole Number for Percent, i.e. 5 = 5%. Represents the profit of rebalance that will go to the caller of the rebalance.
   uint256 public maximumAllocationLPWithLockup = 79; // Whole Number for Percent, i.e. 5 = 5%. MAKE UPGRADEABLE
 
   bool public strategyLockup; // if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
@@ -65,11 +65,59 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     liquidityPool = IUnifiPair(payable(_liquidityPool));
   }
 
-  receive() external payable {}
+  // Read Functions
 
   function getControllerBalance() internal view returns (uint256) {
     return UP_CONTROLLER.getNativeBalance();
   }
+
+  function getLiquidityPoolBalance(uint256 reserves0, uint256 reserves1)
+    public
+    view
+    returns (uint256, uint256)
+  {
+    uint256 lpBalance = liquidityPool.balanceOf(address(this));
+    if (lpBalance == 0) {
+      return (0, 0);
+    }
+    uint256 totalSupply = liquidityPool.totalSupply();
+    uint256 amount0 = (lpBalance * reserves0) / totalSupply;
+    uint256 amount1 = (lpBalance * reserves1) / totalSupply;
+    return (amount0, amount1);
+  }
+
+  function moveMarketBuyAmount()
+    public
+    view
+    returns (
+      bool aToB,
+      uint256 amountIn,
+      uint256 reservesUP,
+      uint256 reservesETH,
+      uint256 upPrice
+    )
+  {
+    (reservesUP, reservesETH) = UniswapHelper.getReserves(factory, address(UPToken), address(WETH));
+    upPrice = UP_CONTROLLER.getVirtualPrice();
+
+    (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
+      1000000000000000000, // Ratio = 1:UPVirtualPrice
+      upPrice,
+      reservesUP,
+      reservesETH
+    );
+    return (aToB, amountIn, reservesUP, reservesETH, upPrice);
+  }
+
+  function getRewardsLength() public view returns (uint256) {
+    return rewards.length - initRewardsPos;
+  }
+
+  function getReward(uint256 position) public view returns (IStrategy.Rewards memory) {
+    return rewards[initRewardsPos + position];
+  }
+
+  // Write Functions
 
   function rebalance() public whenNotPaused returns (uint256 proceeds, uint256 callerProfit) {
     if (address(strategy) != address(0)) {
@@ -80,7 +128,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function _rebalanceWithStrategy()
-    public
+    internal
     whenNotPaused
     returns (uint256 proceeds, uint256 callerProfit)
   {
@@ -133,7 +181,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 controllerBalance = address(UP_CONTROLLER).balance;
     Strategy(strategy).deposit{value: controllerBalance}(controllerBalance);
     // Step 7 - Profit?
-    (proceeds, callerProfit) = refund();
+    (proceeds, callerProfit) = _refund();
     //EMIT EVENT HERE
     //Step 8 - Update UP Controller Variables
     uint256 nativeRemoved = Strategy(strategy).amountDeposited() + targetLpAmount;
@@ -143,7 +191,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function _rebalanceWithoutStrategy()
-    public
+    internal
     whenNotPaused
     returns (uint256 proceeds, uint256 callerProfit)
   {
@@ -178,7 +226,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       block.timestamp + 150
     );
     // Step 4 - Profit?
-    (proceeds, callerProfit) = refund();
+    (proceeds, callerProfit) = _refund();
     //EMIT EVENT HERE
     //Step 5 - Update UP Controller Variables
     uint256 nativeRemoved = address(UP_CONTROLLER).balance + targetLpAmount;
@@ -302,41 +350,14 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     router.swapExactTokensForETH(up2Balance, 0, path, address(this), block.timestamp + 150);
   }
 
-  function refund() public whenNotPaused returns (uint256 proceeds, uint256 callerBonus) {
+  function _refund() internal whenNotPaused returns (uint256 proceeds, uint256 callerBonus) {
     proceeds = address(this).balance;
     // Any leftover funds in the contract is profit. Yay!
-    callerBonus = (proceeds * (callerReward / 100));
+    callerBonus = ((proceeds * callerReward) / 100);
     (bool success2, ) = (msg.sender).call{value: callerBonus}("");
     require(success2, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
     UPController(UP_CONTROLLER).repay{value: address(this).balance}(0);
     return (proceeds, callerBonus);
-  }
-
-  function moveMarketBuyAmount()
-    public
-    view
-    returns (
-      bool aToB,
-      uint256 amountIn,
-      uint256 reservesUP,
-      uint256 reservesETH,
-      uint256 upPrice
-    )
-  {
-    (reservesUP, reservesETH) = UniswapHelper.getReserves(factory, address(UPToken), address(WETH));
-    upPrice = UP_CONTROLLER.getVirtualPrice();
-
-    (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
-      1000000000000000000, // Ratio = 1:UPVirtualPrice
-      upPrice,
-      reservesUP,
-      reservesETH
-    );
-    return (aToB, amountIn, reservesUP, reservesETH, upPrice);
-  }
-
-  function redeemUP() internal {
-    UP_CONTROLLER.redeem(IERC20(UP_CONTROLLER.UP_TOKEN()).balanceOf(address(this)));
   }
 
   function saveReward(IStrategy.Rewards memory reward) internal {
@@ -345,14 +366,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       initRewardsPos += 1;
     }
     rewards.push(reward);
-  }
-
-  function getRewardsLength() public view returns (uint256) {
-    return rewards.length - initRewardsPos;
-  }
-
-  function getReward(uint256 position) public view returns (IStrategy.Rewards memory) {
-    return rewards[initRewardsPos + position];
   }
 
   function setAllocationLP(uint256 _allocationLP) public onlyAdmin returns (bool) {
@@ -384,21 +397,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     strategy = Strategy(payable(newAddress));
   }
 
-  function getLiquidityPoolBalance(uint256 reserves0, uint256 reserves1)
-    public
-    view
-    returns (uint256, uint256)
-  {
-    uint256 lpBalance = liquidityPool.balanceOf(address(this));
-    if (lpBalance == 0) {
-      return (0, 0);
-    }
-    uint256 totalSupply = liquidityPool.totalSupply();
-    uint256 amount0 = (lpBalance * reserves0) / totalSupply;
-    uint256 amount1 = (lpBalance * reserves1) / totalSupply;
-    return (amount0, amount1);
-  }
-
   function setUPController(address newAddress) public onlyAdmin {
     UP_CONTROLLER = UPController(payable(newAddress));
   }
@@ -426,4 +424,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   function unpause() public onlyAdmin {
     _unpause();
   }
+
+  receive() external payable {}
 }
