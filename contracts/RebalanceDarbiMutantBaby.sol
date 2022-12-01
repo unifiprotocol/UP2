@@ -137,9 +137,18 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     // Withdraw the entire balance of the strategy
     // Step 2
-    strategy.withdrawAll();
-    (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
-    require(successUpcTransfer, "Rebalancer: FAIL_SENDING_BALANCE_TO_UPC");
+
+    if (strategyLockup = true) {
+      strategy.gather();
+      uint256 amountToWithdraw = address(strategy).balance;
+      Strategy(strategy).withdraw(amountToWithdraw);
+      (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
+      require(successUpcTransfer, "Rebalancer: FAIL_SENDING_BALANCE_TO_UPC");
+    } else {
+      strategy.withdrawAll();
+      (bool successUpcTransfer, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
+      require(successUpcTransfer, "Rebalancer: FAIL_SENDING_BALANCE_TO_UPC");
+    }
 
     // Withdraw the entire balance of the LP
     // Step 3
