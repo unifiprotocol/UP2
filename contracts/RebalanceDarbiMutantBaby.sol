@@ -387,7 +387,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     callerReward = percentCallerReward;
   }
 
-  function setAllocationLP(uint256 _allocationLP) public onlyAdmin returns (bool) {
+  function setAllocationLP(uint256 _allocationLP) public onlyAdmin {
     if (strategyLockup == true) {
       require(
         _allocationLP < maximumAllocationLPWithLockup,
@@ -395,20 +395,17 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       );
     }
     allocationLP = _allocationLP;
-    return true;
   }
 
   function setmaximumAllocationLPWithLockup(uint256 _maximumAllocationLPWithLockup)
     public
     onlyAdmin
-    returns (bool)
   {
     require(
       _maximumAllocationLPWithLockup <= 100,
       "Rebalancer: Maximum Allocation LP cannot be above 100%"
     );
     maximumAllocationLPWithLockup = _maximumAllocationLPWithLockup;
-    return true;
   }
 
   // Admin Functions
