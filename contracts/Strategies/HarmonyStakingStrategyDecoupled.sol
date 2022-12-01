@@ -60,16 +60,12 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   ///the function should calculate the return for selling 2 TokenA, and add to the 5 Native Tokens.
   ///If we assume that each TokenA is worth 4 native tokens, then the unclaimedEarnings value should return a value of 13, adjusted for percision.
 
-  function checkAllocation() public view virtual returns (uint256) {
-    return rebalancer.allocationLP() + rebalancer.allocationRedeem();
-  }
-
   function rewardsAmount() public view returns (uint256) {
     return lastClaimedAmount;
   }
 
-  function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
-    IStrategy.Rewards memory result = IStrategy.Rewards(
+  function checkRewards() public view virtual override returns (Strategy.Rewards memory) {
+    Strategy.Rewards memory result = Strategy.Rewards(
       lastClaimedAmount,
       lastAmountDeposited,
       timestampOfLastClaim
@@ -123,18 +119,15 @@ contract HarmonyStakingStrategy is Strategy, StakingPrecompiles {
   }
 
   function getTargetStakeAmount() internal view returns (uint256) {
-    uint256 currentAllocation = (checkAllocation() * 2) + 1;
-    require(
-      currentAllocation <= 100,
-      "Allocation for LP and Redeem exceeds 49.5%: ALLOCATION_TOO_HIGH"
-    );
+    uint256 currentAllocation = (rebalancer.allocationLP() * 2) + 1;
+    require(currentAllocation <= 100, "Allocation for LP exceeds 49.5%: ALLOCATION_TOO_HIGH");
     return (upController.getNativeBalance() * (100 - currentAllocation)) / 100;
   }
 
   ///@notice The withdrawAll function should withdraw all native tokens, including rewards as native tokens, and send them to the UP Controller.
   ///@return bool value will be false if undelegation is required first and is successful, value will be true if there is there is nothing to undelegate. All balance will be sen
 
-  function withdrawAll() external virtual override onlyAdmin whenNotPaused returns (bool) {
+  function withdrawAll() external virtual override onlyRebalancer whenNotPaused returns (bool) {
     if (amountStaked > 10000000000000000000) {
       undelegate(targetValidator, amountStaked);
       uint256 currentEpoch = epoch();

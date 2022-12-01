@@ -16,22 +16,30 @@ library UniswapHelper {
   function getAmountOut(
     uint256 amountIn,
     uint256 reserveIn,
-    uint256 reserveOut
+    uint256 reserveOut,
+    uint256 tradingFee
   ) internal pure returns (uint256 amountOut) {
+    uint256 tradingFeeFactor = 10000 - tradingFee;
     require(amountIn > 0, "UniswapV2Library: INSUFFICIENT_INPUT_AMOUNT");
     require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
-    uint256 amountInWithFee = amountIn * 997;
+    uint256 amountInWithFee = amountIn * tradingFeeFactor;
     uint256 numerator = amountInWithFee * reserveOut;
-    uint256 denominator = reserveIn * 1000 + amountInWithFee;
+    uint256 denominator = reserveIn * 10000 + amountInWithFee;
     amountOut = numerator / denominator;
   }
 
   // given an output amount of an asset and pair reserves, returns a required input amount of the other asset
-  function getAmountIn(uint amountOut, uint reserveIn, uint reserveOut) internal pure returns (uint amountIn) {
-    require(amountOut > 0, 'UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT');
-    require(reserveIn > 0 && reserveOut > 0, 'UniswapV2Library: INSUFFICIENT_LIQUIDITY');
-    uint numerator = reserveIn.mul(amountOut).mul(1000);
-    uint denominator = reserveOut.sub(amountOut).mul(997);
+  function getAmountIn(
+    uint256 amountOut,
+    uint256 reserveIn,
+    uint256 reserveOut,
+    uint256 tradingFee
+  ) internal pure returns (uint256 amountIn) {
+    uint256 tradingFeeFactor = 10000 - tradingFee;
+    require(amountOut > 0, "UniswapV2Library: INSUFFICIENT_OUTPUT_AMOUNT");
+    require(reserveIn > 0 && reserveOut > 0, "UniswapV2Library: INSUFFICIENT_LIQUIDITY");
+    uint256 numerator = reserveIn.mul(amountOut).mul(10000);
+    uint256 denominator = reserveOut.sub(amountOut).mul(tradingFeeFactor);
     amountIn = (numerator / denominator).add(1);
   }
 
@@ -62,20 +70,21 @@ library UniswapHelper {
     uint256 truePriceTokenA,
     uint256 truePriceTokenB,
     uint256 reserveA,
-    uint256 reserveB
+    uint256 reserveB,
+    uint256 tradingFee
   ) public pure returns (bool aToB, uint256 amountIn) {
     aToB = FullMath.mulDiv(reserveA, truePriceTokenB, reserveB) < truePriceTokenA;
 
     uint256 invariant = reserveA.mul(reserveB);
-
+    uint256 tradingFeeFactor = 10000 - tradingFee;
     uint256 leftSide = Babylonian.sqrt(
-        FullMath.mulDiv(
-            invariant.mul(1000),
-            aToB ? truePriceTokenA : truePriceTokenB,
-            (aToB ? truePriceTokenB : truePriceTokenA).mul(997)
-        )
+      FullMath.mulDiv(
+        invariant.mul(10000),
+        aToB ? truePriceTokenA : truePriceTokenB,
+        (aToB ? truePriceTokenB : truePriceTokenA).mul(tradingFeeFactor)
+      )
     );
-    uint256 rightSide = (aToB ? reserveA.mul(1000) : reserveB.mul(1000)) / 997;
+    uint256 rightSide = (aToB ? reserveA.mul(10000) : reserveB.mul(10000)) / tradingFeeFactor;
 
     if (leftSide < rightSide) return (false, 0);
 

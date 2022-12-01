@@ -61,9 +61,9 @@ contract AAVEStrategy is Strategy {
   }
 
   ///@notice Returns Amount of Native Tokens Earned since last rebalance
-  function checkRewards() public view override returns (IStrategy.Rewards memory) {
+  function checkRewards() public view override returns (Strategy.Rewards memory) {
     uint256 unclaimedEarnings = checkAAVEInterest();
-    return IStrategy.Rewards(unclaimedEarnings, amountDeposited, block.timestamp);
+    return Strategy.Rewards(unclaimedEarnings, amountDeposited, block.timestamp);
   }
 
   /// Write Functions

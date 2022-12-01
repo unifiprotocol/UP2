@@ -14,7 +14,7 @@ import "@openzeppelin/contracts/security/Pausable.sol";
 contract Strategy is Safe, AccessControl, Pausable {
   bytes32 public constant REBALANCER_ROLE = keccak256("REBALANCER_ROLE");
 
-  /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts. All deposits and withdraws so update this variable.
+  /// @notice The amountDeposited MUST reflect the amount of native tokens currently deposited into other contracts.
   uint256 public amountDeposited = 0;
 
   modifier onlyAdmin() {
