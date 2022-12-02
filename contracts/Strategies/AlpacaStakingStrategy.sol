@@ -24,9 +24,9 @@ contract AlpacaBNBStrategy is Strategy {
   // Read Functions
 
   ///@notice Returns the current amount of pending rewards, the amount of BNB deposited into the Alpaca contract, and the current timestamp.
-  function checkRewards() public view virtual override returns (IStrategy.Rewards memory) {
+  function checkRewards() public view virtual override returns (Strategy.Rewards memory) {
     uint256 pendingRewards = rewardsAmount();
-    IStrategy.Rewards memory result = IStrategy.Rewards(
+    Strategy.Rewards memory result = Strategy.Rewards(
       pendingRewards,
       amountDeposited,
       block.timestamp * 1000

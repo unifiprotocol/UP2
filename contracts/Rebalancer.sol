@@ -66,10 +66,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   // Read Functions
 
-  function getControllerBalance() internal view returns (uint256) {
-    return UP_CONTROLLER.getNativeBalance();
-  }
-
   function getLiquidityPoolBalance(uint256 reserves0, uint256 reserves1)
     public
     view
@@ -120,34 +116,26 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   // Write Functions
 
   function rebalance() public whenNotPaused returns (uint256 proceeds, uint256 callerProfit) {
-    if (address(strategy) != address(0)) {
-      (proceeds, callerProfit) = _rebalanceWithStrategy();
-    } else {
-      (proceeds, callerProfit) = _rebalanceWithoutStrategy();
-    }
-  }
-
-  // Internal Functions
-
-  function _rebalanceWithStrategy() internal returns (uint256 proceeds, uint256 callerProfit) {
     // Store a snapshot of the rewards
     // Step 1
-    Strategy.Rewards memory strategyRewards = strategy.checkRewards();
-    _saveReward(strategyRewards);
+    if (address(strategy) != address(0)) {
+      Strategy.Rewards memory strategyRewards = strategy.checkRewards();
+      _saveReward(strategyRewards);
 
-    // Withdraw the entire balance of the strategy
-    // Step 2
+      // Withdraw the entire balance of the strategy
+      // Step 2
 
-    if (strategyLockup = true) {
-      strategy.gather();
-      uint256 amountToWithdraw = address(strategy).balance;
-      strategy.withdraw(amountToWithdraw);
-      (bool success1, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
-      require(success1, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
-    } else {
-      strategy.withdrawAll();
-      (bool success2, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
-      require(success2, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
+      if (strategyLockup = true) {
+        strategy.gather();
+        uint256 amountToWithdraw = address(strategy).balance;
+        strategy.withdraw(amountToWithdraw);
+        (bool success1, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
+        require(success1, "Rebalancer: FAIL_WITHDRAWING_FROM_STRATEGY");
+      } else {
+        strategy.withdrawAll();
+        (bool success2, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
+        require(success2, "Rebalancer: FAIL_WITHDRAWING_FROM_STRATEGY");
+      }
     }
 
     // Withdraw the entire balance of the LP
@@ -168,7 +156,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     _arbitrage();
     // Calculate Allocations
     // Step 5 - Refill LP
-    uint256 totalETH = getControllerBalance(); //Accounts for locked strategies
+    uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies
     uint256 targetLpAmount = (totalETH * allocationLP) / 100;
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
     uint256 upToAdd = targetLpAmount / backedValue;
@@ -186,9 +174,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       block.timestamp + 150
     );
     // Step 6 - Refill Strategy
-    uint256 controllerBalance = address(UP_CONTROLLER).balance;
-    UP_CONTROLLER.borrowNative(controllerBalance, address(this));
-    strategy.deposit{value: controllerBalance}(controllerBalance);
+    if (address(strategy) != address(0)) {
+      uint256 controllerBalance = address(UP_CONTROLLER).balance;
+      UP_CONTROLLER.borrowNative(controllerBalance, address(this));
+      strategy.deposit{value: controllerBalance}(controllerBalance);
+    }
     // Step 7 - Profit?
     (proceeds, callerProfit) = _refund();
     //EMIT EVENT HERE
@@ -199,45 +189,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     return (proceeds, callerProfit);
   }
 
-  function _rebalanceWithoutStrategy() internal returns (uint256 proceeds, uint256 callerProfit) {
-    // Withdraw the entire balance of the LP
-    // Step 1
-    uint256 lpTokenBalance = IERC20(liquidityPool).balanceOf(address(this));
-    liquidityPool.approve(address(router), lpTokenBalance);
-    (uint256 amountToken, ) = router.removeLiquidityETH(
-      address(UPToken),
-      lpTokenBalance,
-      0,
-      0,
-      address(this),
-      block.timestamp + 150
-    );
-    UP_CONTROLLER.repay{value: address(this).balance}(amountToken);
-    // UP Controller now has all available funds
-    // Step 2 - Arbitrage
-    _arbitrage();
-    // Step 3 - Refill LP
-    uint256 targetLpAmount = getControllerBalance();
-    uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
-    uint256 upToAdd = targetLpAmount / backedValue;
-    UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
-    UP_CONTROLLER.borrowUP(upToAdd, address(this));
-    UPToken.approve(address(router), upToAdd);
-    router.addLiquidityETH{value: targetLpAmount}(
-      address(UPToken),
-      upToAdd,
-      0,
-      0,
-      address(this),
-      block.timestamp + 150
-    );
-    // Step 4 - Profit?
-    (proceeds, callerProfit) = _refund();
-    //Step 5 - Update UP Controller Variables
-    uint256 nativeRemoved = address(UP_CONTROLLER).balance + targetLpAmount;
-    UP_CONTROLLER.setBorrowedAmounts(upToAdd, nativeRemoved);
-    return (proceeds, callerProfit);
-  }
+  // Internal Functions
 
   function _arbitrage() internal {
     (
@@ -343,7 +295,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     );
 
     UPToken.approve(address(UP_CONTROLLER), amounts[1]);
-    UP_CONTROLLER.redeem(amounts[1]);
+    _redeem(amounts[1]);
   }
 
   function _arbitrageSell(uint256 tradeSize, uint256 expectedNativeFromSale)
@@ -373,8 +325,17 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     if (currentPrice == 0) return;
     uint256 mintAmount = (tradeSize * 1e18) / currentPrice;
-    UP(UPToken).mint(msg.sender, mintAmount);
+    UPToken.mint(msg.sender, mintAmount);
     UP_CONTROLLER.repay{value: tradeSize}(0); /// GO BACK
+  }
+
+  /// @notice Allows Rebalancer to redeem the native tokens backing UP
+  function _redeem(uint256 upAmount) internal whenNotPaused {
+    UPToken.approve(address(UP_CONTROLLER), upAmount);
+    uint256 prevBalance = address(this).balance;
+    UP_CONTROLLER.redeem(upAmount);
+    uint256 postBalance = address(this).balance;
+    require(postBalance > prevBalance, "Rebalancer: FAIL_TO_REDEEM_ON_ARBITRAGE_SELL");
   }
 
   function _refund() internal returns (uint256 proceeds, uint256 callerBonus) {
@@ -382,7 +343,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Any leftover funds in the contract is profit. Yay!
     callerBonus = ((proceeds * callerReward) / 100);
     (bool success2, ) = (msg.sender).call{value: callerBonus}("");
-    require(success2, "Darbi: FAIL_SENDING_PROFITS_TO_CALLER");
+    require(success2, "Rebalancer: FAIL_SENDING_PROFITS_TO_CALLER");
     UP_CONTROLLER.repay{value: address(this).balance}(0);
     return (proceeds, callerBonus);
   }
