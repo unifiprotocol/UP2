@@ -125,7 +125,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       // Withdraw the entire balance of the strategy
       // Step 2
 
-      if (strategyLockup = true) {
+      if (strategyLockup == true) {
         strategy.gather();
         uint256 amountToWithdraw = address(strategy).balance;
         strategy.withdraw(amountToWithdraw);

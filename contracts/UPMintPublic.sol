@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.4;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "./UP.sol";
@@ -13,7 +13,7 @@ import "./Helpers/Safe.sol";
 /// @author dxffffff & A Fistful of Stray Cat Hair
 /// @notice This contract is for the public minting of UP token, allowing users to deposit native tokens and receive UP tokens.
 
-contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
+contract UPMintPublic is AccessControl, Pausable, ReentrancyGuard, Safe {
   uint256 public mintRate; // with 2 decimals - 150 = 1.50%
   address payable public UP_TOKEN = payable(address(0));
   address payable public UP_CONTROLLER = payable(address(0));
@@ -27,6 +27,11 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
     uint256 _value
   );
   event UpdateController(address _upController);
+
+  modifier onlyAdmin() {
+    require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "UPController: ONLY_ADMIN");
+    _;
+  }
 
   constructor(
     address _UP,
@@ -56,7 +61,7 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
 
   /// @notice Permissioned function that sets the public rint of UP.
   /// @param _mintRate - mint rate in percent terms, _mintRate = 5 = 5%.
-  function setMintRate(uint256 _mintRate) public onlyOwner {
+  function setMintRate(uint256 _mintRate) public onlyAdmin {
     require(_mintRate <= 10000, "UPMintPublic: MINT_RATE_GT_10000");
     require(_mintRate > 0, "UPMintPublic: MINT_RATE_EQ_0");
     mintRate = _mintRate;
@@ -65,29 +70,29 @@ contract UPMintPublic is Ownable, Pausable, ReentrancyGuard, Safe {
 
   /// @notice Permissioned function to update the address of the UP Controller
   /// @param _upController - the address of the new UP Controller
-  function updateController(address _upController) public onlyOwner {
+  function updateController(address _upController) public onlyAdmin {
     require(_upController != address(0), "UPMintPublic: INVALID_ADDRESS");
     UP_CONTROLLER = payable(_upController);
     emit UpdateController(_upController);
   }
 
   /// @notice Permissioned function to pause public minting
-  function pause() public onlyOwner {
+  function pause() public onlyAdmin {
     _pause();
   }
 
   /// @notice Permissioned function to unpause public minting
-  function unpause() public onlyOwner {
+  function unpause() public onlyAdmin {
     _unpause();
   }
 
   /// @notice Permissioned function to withdraw any native coins accidentally deposited to the Public Mint contract.
-  function withdrawFunds() public onlyOwner returns (bool) {
+  function withdrawFunds() public onlyAdmin returns (bool) {
     return _withdrawFunds();
   }
 
   /// @notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
-  function withdrawFundsERC20(address tokenAddress) public onlyOwner returns (bool) {
+  function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
     return _withdrawFundsERC20(tokenAddress);
   }
 }

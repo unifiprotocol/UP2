@@ -96,17 +96,16 @@ contract UPController is AccessControl, Safe, Pausable {
     UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
   }
 
-  function setBorrowedAmounts(uint256 upAmount, uint256 nativeAmount)
-    public
-    onlyRebalancer
-    whenNotPaused
-  {
+  function setBorrowedAmounts(
+    uint256 upAmount,
+    uint256 nativeAmount
+  ) public onlyRebalancer whenNotPaused {
     upBorrowed = upAmount;
     nativeBorrowed = nativeAmount;
   }
 
   /// @notice Swaps UP token by native token
-  function redeem(uint256 upAmount) public onlyRedeemer whenNotPaused {
+  function redeem(uint256 upAmount) public onlyRedeemer onlyRebalancer whenNotPaused {
     require(upAmount > 0, "UPController: AMOUNT_EQ_0");
     uint256 redeemAmount = (getVirtualPrice() * upAmount) / 1e18;
     UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
