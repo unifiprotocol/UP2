@@ -40,7 +40,7 @@ contract UPController is AccessControl, Safe, Pausable {
   }
 
   constructor(address _UP, address _fundsTarget) Safe(_fundsTarget) {
-    require(_UP != address(0), "UPController: Invalid UP address");
+    require(_UP != address(0), "UPController: INVALID_UP_ADDRESS");
     UP_TOKEN = payable(_UP);
     _setupRole(DEFAULT_ADMIN_ROLE, msg.sender);
   }
