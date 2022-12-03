@@ -89,15 +89,9 @@ contract AlpacaBNBStrategy is Strategy {
   }
 
   ///@notice Deposits funds sent from the rebalancer into Alpaca
-  function deposit(uint256 depositValue)
-    public
-    payable
-    virtual
-    override
-    onlyRebalancer
-    whenNotPaused
-    returns (bool)
-  {
+  function deposit(
+    uint256 depositValue
+  ) public payable virtual override onlyRebalancer whenNotPaused returns (bool) {
     require(
       depositValue == msg.value,
       "Alpaca Strategy: Deposit Value Parameter does not equal payable amount"

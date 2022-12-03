@@ -100,14 +100,9 @@ contract AAVEStrategy is Strategy {
   }
 
   ///@notice Deposits native tokens to AAVE.
-  function deposit(uint256 depositValue)
-    public
-    payable
-    override
-    whenNotPaused
-    onlyRebalancer
-    returns (bool)
-  {
+  function deposit(
+    uint256 depositValue
+  ) public payable override whenNotPaused onlyRebalancer returns (bool) {
     require(depositValue == msg.value, "AAVEStrategy: DEPOSIT_VALUE_DOES_NOT_EQUAL_PAYABLE_AMOUNT");
     IWETHGateway(wethGateway).depositETH{value: depositValue}(aavePool, address(this), 0);
     amountDeposited += depositValue;
