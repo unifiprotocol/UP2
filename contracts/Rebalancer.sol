@@ -21,6 +21,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   address public WETH;
   address public factory;
   uint256 public tradingFeeOfAMM = 30; //Calculated in basis points. i.e. 30 = 0.3%
+  uint256 public maximumAllocationLPWithLockup = 79; // Whole Number for Percent, i.e. 5 = 5%. MAKE UPGRADEABLE
+  bool public strategyLockup; // if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
 
   IUnifiPair public liquidityPool;
   IUniswapV2Router02 public router;
@@ -35,9 +37,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   uint256 public allocationLP = 5; // Whole Number for Percent, i.e. 5 = 5%. If StrategyLockup = true, maximum amount is 100 - maximumAllocationLPWithLockup
   //If there is no strategy, the allocationLP will default to 100%
   uint256 public callerReward = 10; // Whole Number for Percent, i.e. 5 = 5%. Represents the profit of rebalance that will go to the caller of the rebalance.
-  uint256 public maximumAllocationLPWithLockup = 79; // Whole Number for Percent, i.e. 5 = 5%. MAKE UPGRADEABLE
-
-  bool public strategyLockup; // if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
 
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Rebalancer: ONLY_ADMIN");
@@ -66,11 +65,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   // Read Functions
 
-  function getLiquidityPoolBalance(uint256 reserves0, uint256 reserves1)
-    public
-    view
-    returns (uint256, uint256)
-  {
+  function getLiquidityPoolBalance(
+    uint256 reserves0,
+    uint256 reserves1
+  ) public view returns (uint256, uint256) {
     uint256 lpBalance = liquidityPool.balanceOf(address(this));
     if (lpBalance == 0) {
       return (0, 0);
@@ -84,13 +82,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   function moveMarketBuyAmount()
     public
     view
-    returns (
-      bool aToB,
-      uint256 amountIn,
-      uint256 reservesUP,
-      uint256 reservesETH,
-      uint256 upPrice
-    )
+    returns (bool aToB, uint256 amountIn, uint256 reservesUP, uint256 reservesETH, uint256 upPrice)
   {
     (reservesUP, reservesETH) = UniswapHelper.getReserves(factory, address(UPToken), address(WETH));
     upPrice = UP_CONTROLLER.getVirtualPrice();
@@ -159,7 +151,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies
     uint256 targetLpAmount = (totalETH * allocationLP) / 100;
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
-    uint256 upToAdd = targetLpAmount / backedValue;
+    uint256 upToAdd = (targetLpAmount / backedValue) * 1e16;
     UP_CONTROLLER.borrowUP(upToAdd, address(this));
     UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
     // ERC20 Approval
@@ -298,10 +290,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     _redeem(amounts[1]);
   }
 
-  function _arbitrageSell(uint256 tradeSize, uint256 expectedNativeFromSale)
-    internal
-    returns (uint256 up2Balance)
-  {
+  function _arbitrageSell(
+    uint256 tradeSize,
+    uint256 expectedNativeFromSale
+  ) internal returns (uint256 up2Balance) {
     // If selling UP
     _mintUP(tradeSize);
 
@@ -384,10 +376,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     allocationLP = _allocationLP;
   }
 
-  function setmaximumAllocationLPWithLockup(uint256 _maximumAllocationLPWithLockup)
-    public
-    onlyAdmin
-  {
+  function setmaximumAllocationLPWithLockup(
+    uint256 _maximumAllocationLPWithLockup
+  ) public onlyAdmin {
     require(_maximumAllocationLPWithLockup <= 100);
     maximumAllocationLPWithLockup = _maximumAllocationLPWithLockup;
   }
