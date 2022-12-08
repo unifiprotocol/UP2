@@ -151,7 +151,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies
     uint256 targetLpAmount = (totalETH * allocationLP) / 100;
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
-    uint256 upToAdd = (targetLpAmount / backedValue) * 1e16;
+    uint256 upToAdd = (targetLpAmount / backedValue) * 1e18;
     UP_CONTROLLER.borrowUP(upToAdd, address(this));
     UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
     // ERC20 Approval
