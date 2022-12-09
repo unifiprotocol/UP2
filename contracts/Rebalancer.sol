@@ -380,6 +380,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     allocationLP = _allocationLP;
   }
 
+  function setAllocationRedeem(uint256 _allocationRedeem) public onlyAdmin {
+    require(_allocationRedeem <= 100);
+    allocationRedeem = _allocationRedeem;
+  }
+
   function setmaximumAllocationLPWithLockup(
     uint256 _maximumAllocationLPWithLockup
   ) public onlyAdmin {
