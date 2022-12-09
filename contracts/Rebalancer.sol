@@ -169,7 +169,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     if (address(strategy) != address(0)) {
       uint256 strategySend = address(UP_CONTROLLER).balance;
       if (allocationRedeem > 0) {
-        uint256 strategyAmount = (strategySend * 100) / allocationRedeem;
+        uint256 strategyAmount = (strategySend * allocationRedeem) / 100;
         strategySend = strategyAmount;
       }
       UP_CONTROLLER.borrowNative(strategySend, address(this));
