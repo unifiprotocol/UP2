@@ -37,7 +37,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   uint256 public allocationLP = 5; // Whole Number for Percent, i.e. 5 = 5%. If StrategyLockup = true, maximum amount is 100 - maximumAllocationLPWithLockup
   //If there is no strategy, the allocationLP will default to 100%
   uint256 public callerReward = 10; // Whole Number for Percent, i.e. 5 = 5%. Represents the profit of rebalance that will go to the caller of the rebalance.
-
+  uint256 public allocationRedeem = 0; //Whole Number for Percent, i.e 5 = 5%. If a balance is required for redeeming UP, simply set this variable to a percent.
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Rebalancer: ONLY_ADMIN");
     _;
@@ -148,7 +148,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     _arbitrage();
     // Calculate Allocations
     // Step 5 - Refill LP
-    uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies
+    uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies as well as rebalanced pool
     uint256 targetLpAmount = (totalETH * allocationLP) / 100;
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
     uint256 upToAdd = (targetLpAmount / backedValue) * 1e18;
@@ -167,9 +167,13 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     );
     // Step 6 - Refill Strategy
     if (address(strategy) != address(0)) {
-      uint256 controllerBalance = address(UP_CONTROLLER).balance;
-      UP_CONTROLLER.borrowNative(controllerBalance, address(this));
-      strategy.deposit{value: controllerBalance}(controllerBalance);
+      uint256 strategySend = address(UP_CONTROLLER).balance;
+      if (allocationRedeem > 0) {
+        uint256 strategyAmount = (strategySend * 100) / allocationRedeem;
+        strategySend = strategyAmount;
+      }
+      UP_CONTROLLER.borrowNative(strategySend, address(this));
+      strategy.deposit{value: strategySend}(strategySend);
     }
     // Step 7 - Profit?
     (proceeds, callerProfit) = _refund();
