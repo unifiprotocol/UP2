@@ -126,7 +126,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       } else {
         strategy.withdrawAll();
         (bool success2, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
-        require(success2, "Rebalancer: FAIL_WITHDRAWING_FROM_STRATEGY");
+        require(success2, "Rebalancer: FAIL_WITHDRAWING_ALL_FROM_STRATEGY");
       }
     }
 
@@ -142,6 +142,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       address(this),
       block.timestamp + 150
     );
+    UPToken.approve(address(UP_CONTROLLER), amountToken);
     UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
     // UP Controller now has all available funds
     // Step 4 - Arbitrage
@@ -151,7 +152,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies as well as rebalanced pool
     uint256 targetLpAmount = (totalETH * allocationLP) / 100;
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
-    uint256 upToAdd = (targetLpAmount / backedValue) * 1e18;
+    uint256 upToAdd = ((targetLpAmount * 1e18) / backedValue);
     UP_CONTROLLER.borrowUP(upToAdd, address(this));
     UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
     // ERC20 Approval
