@@ -20,7 +20,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   address public WETH;
   address public factory;
-  uint256 public tradingFeeOfAMM = 30; //Calculated in basis points. i.e. 30 = 0.3%
+  uint256 public tradingFeeOfAMM = 25; //Calculated in basis points. i.e. 30 = 0.3%
   uint256 public maximumAllocationLPWithLockup = 79; // Whole Number for Percent, i.e. 5 = 5%. MAKE UPGRADEABLE
   bool public strategyLockup; // if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
 
@@ -133,24 +133,26 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Withdraw the entire balance of the LP
     // Step 3
     uint256 lpTokenBalance = IERC20(liquidityPool).balanceOf(address(this));
-    liquidityPool.approve(address(router), lpTokenBalance);
-    (uint256 amountToken, ) = router.removeLiquidityETH(
-      address(UPToken),
-      lpTokenBalance,
-      0,
-      0,
-      address(this),
-      block.timestamp + 150
-    );
-    UPToken.approve(address(UP_CONTROLLER), amountToken);
-    UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
+    if (lpTokenBalance != 0) {
+      liquidityPool.approve(address(router), lpTokenBalance);
+      (uint256 amountToken, ) = router.removeLiquidityETH(
+        address(UPToken),
+        lpTokenBalance,
+        0,
+        0,
+        address(this),
+        block.timestamp + 150
+      );
+      UPToken.approve(address(UP_CONTROLLER), amountToken);
+      UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
+    }
     // UP Controller now has all available funds
     // Step 4 - Arbitrage
     _arbitrage();
     // Calculate Allocations
     // Step 5 - Refill LP
     uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies as well as rebalanced pool
-    uint256 targetLpAmount = (totalETH * allocationLP) / 100;
+    uint256 targetLpAmount = (totalETH * allocationLP) / 100; // NEED TO ADD IF THERE IS NO STRAT
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
     uint256 upToAdd = ((targetLpAmount * 1e18) / backedValue);
     UP_CONTROLLER.borrowUP(upToAdd, address(this));
@@ -186,6 +188,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     return (proceeds, callerProfit);
   }
+
+  // ADD WITHDRAW FROM LP ADMIN FUNCTION
+  // ADD WITHDRAW FROM STRATEGY ADMIN FUNCTION
 
   // Internal Functions
 
@@ -323,7 +328,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     if (currentPrice == 0) return;
     uint256 mintAmount = (tradeSize * 1e18) / currentPrice;
-    UPToken.mint(msg.sender, mintAmount);
+    UPToken.mint(address(this), mintAmount);
     UP_CONTROLLER.repay{value: tradeSize}(0); /// GO BACK
   }
 
@@ -342,6 +347,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     callerBonus = ((proceeds * callerReward) / 100);
     (bool success2, ) = (msg.sender).call{value: callerBonus}("");
     require(success2, "Rebalancer: FAIL_SENDING_PROFITS_TO_CALLER");
+    //Could be a check if Redeem is turned on
     UP_CONTROLLER.repay{value: address(this).balance}(0);
     return (proceeds, callerBonus);
   }
