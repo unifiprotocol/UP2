@@ -146,6 +146,13 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       UPToken.approve(address(UP_CONTROLLER), amountToken);
       UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
     }
+    if (strategyLockup == true) {
+      uint256 nativeStillBorrowed = address(UP_CONTROLLER).balance - strategy.amountDeposited();
+      UP_CONTROLLER.setBorrowedAmounts(0, nativeStillBorrowed);
+    } else {
+      UP_CONTROLLER.setBorrowedAmounts(0, 0);
+    }
+
     // UP Controller now has all available funds
     // Step 4 - Arbitrage
     _arbitrage();
@@ -183,7 +190,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     (proceeds, callerProfit) = _refund();
     //EMIT EVENT HERE
     //Step 8 - Update UP Controller Variables
-    uint256 nativeRemoved = strategy.amountDeposited() + targetLpAmount;
+    uint256 nativeRemoved = targetLpAmount;
+    if (address(strategy) != address(0)) {
+      nativeRemoved += strategy.amountDeposited();
+    }
     UP_CONTROLLER.setBorrowedAmounts(upToAdd, nativeRemoved);
 
     return (proceeds, callerProfit);
