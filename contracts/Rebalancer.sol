@@ -34,7 +34,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   //DAO Parameters
 
-  uint256 public allocationLP = 5; // Whole Number for Percent, i.e. 5 = 5%. If StrategyLockup = true, maximum amount is 100 - maximumAllocationLPWithLockup
+  uint256 public allocationLP = 100; // Whole Number for Percent, i.e. 5 = 5%. If StrategyLockup = true, maximum amount is 100 - maximumAllocationLPWithLockup
   //If there is no strategy, the allocationLP will default to 100%
   uint256 public callerReward = 10; // Whole Number for Percent, i.e. 5 = 5%. Represents the profit of rebalance that will go to the caller of the rebalance.
   uint256 public allocationRedeem = 0; //Whole Number for Percent, i.e 5 = 5%. If a balance is required for redeeming UP, simply set this variable to a percent.
@@ -147,8 +147,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
     }
     if (strategyLockup == true) {
-      uint256 nativeStillBorrowed = address(UP_CONTROLLER).balance - strategy.amountDeposited();
-      UP_CONTROLLER.setBorrowedAmounts(0, nativeStillBorrowed);
+      UP_CONTROLLER.setBorrowedAmounts(
+        0,
+        (address(UP_CONTROLLER).balance - strategy.amountDeposited())
+      );
     } else {
       UP_CONTROLLER.setBorrowedAmounts(0, 0);
     }
@@ -420,16 +422,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   /// @notice Permissioned function to withdraw any tokens accidentally deposited to the Public Mint contract.
   function withdrawFundsERC20(address tokenAddress) public onlyAdmin returns (bool) {
     return _withdrawFundsERC20(tokenAddress);
-  }
-
-  /// @notice Permissioned function to pause UPToken Controller
-  function pause() public onlyAdmin {
-    _pause();
-  }
-
-  /// @notice Permissioned function to unpause UPToken Controller
-  function unpause() public onlyAdmin {
-    _unpause();
   }
 
   // Fallback Function
