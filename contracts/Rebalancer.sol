@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
-import "@uniswap/lib/contracts/libraries/Babylonian.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IWETH.sol";
 import "./Libraries/UniswapHelper.sol";
 import "./Interfaces/UnifiPair.sol";
@@ -159,6 +158,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Step 4 - Arbitrage
     _arbitrage();
     // Calculate Allocations
+    // MOVE REFUND HERE?
+    (proceeds, callerProfit) = _refund();
     // Step 5 - Refill LP
     uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies as well as rebalanced pool
     uint256 targetLpAmount = (totalETH * allocationLP) / 100; // NEED TO ADD IF THERE IS NO STRAT
@@ -189,7 +190,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       strategy.deposit{value: strategySend}(strategySend);
     }
     // Step 7 - Profit?
-    (proceeds, callerProfit) = _refund();
+
     //EMIT EVENT HERE
     //Step 8 - Update UP Controller Variables
     uint256 nativeRemoved = targetLpAmount;
@@ -340,8 +341,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
     if (currentPrice == 0) return;
     uint256 mintAmount = (tradeSize * 1e18) / currentPrice;
-    UPToken.mint(address(this), mintAmount);
-    UP_CONTROLLER.repay{value: tradeSize}(0); /// GO BACK
+    UPToken.mint{value: tradeSize}(address(this), mintAmount); //Needs to be Payable, right now minting unbacked up
   }
 
   /// @notice Allows Rebalancer to redeem the native tokens backing UP
