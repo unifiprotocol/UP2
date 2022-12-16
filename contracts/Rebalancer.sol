@@ -290,6 +290,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         uint256 expectedNativeFromSale = tradeSize / backedValue;
         UP_CONTROLLER.borrowNative(tradeSize, address(this));
         uint256 upSold = _arbitrageSell(tradeSize, expectedNativeFromSale);
+        //Needs
         amountIn -= upSold;
         // Takes the amount of UP minted and sold in this transaction, and subtracts it from the total amount of UP required to move the market so that MV = BV
       }
@@ -338,10 +339,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   /// @notice Mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
   function _mintUP(uint256 tradeSize) internal whenNotPaused {
-    uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice();
+    uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice(); //!!!!!It should not be calculating the price here, the funds are already borrowed!
     if (currentPrice == 0) return;
     uint256 mintAmount = (tradeSize * 1e18) / currentPrice;
-    UPToken.mint{value: tradeSize}(address(this), mintAmount); //Needs to be Payable, right now minting unbacked up
+    UPToken.mint{value: tradeSize}(address(this), mintAmount); //!!! NEEDS TO GO THROUGH CONTROLLER Needs to be Payable,  right now minting unbacked up
   }
 
   /// @notice Allows Rebalancer to redeem the native tokens backing UP
