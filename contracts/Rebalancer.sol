@@ -145,15 +145,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       UPToken.approve(address(UP_CONTROLLER), amountToken);
       UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
     }
-    if (strategyLockup == true) {
-      UP_CONTROLLER.setBorrowedAmounts(
-        0,
-        (address(UP_CONTROLLER).balance - strategy.amountDeposited())
-      );
-    } else {
-      UP_CONTROLLER.setBorrowedAmounts(0, 0);
-    }
-
+    _setBorrowedBalances();
     // UP Controller now has all available funds
     // Step 4 - Arbitrage
     _arbitrage();
@@ -163,7 +155,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Step 5 - Refill LP
     uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies as well as rebalanced pool
     uint256 targetLpAmount = (totalETH * allocationLP) / 100; // NEED TO ADD IF THERE IS NO STRAT
-    uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
+    uint256 backedValue = UP_CONTROLLER.getVirtualPrice(); // This Virtual Price will be inaccurate
     uint256 upToAdd = ((targetLpAmount * 1e18) / backedValue);
     UP_CONTROLLER.borrowUP(upToAdd, address(this));
     UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
@@ -287,9 +279,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           tradeSize = actualAmountIn;
           actualAmountIn == 0;
         }
-        uint256 expectedNativeFromSale = tradeSize / backedValue;
+        uint256 minNativeFromSale = tradeSize / backedValue;
         UP_CONTROLLER.borrowNative(tradeSize, address(this));
-        uint256 upSold = _arbitrageSell(tradeSize, expectedNativeFromSale);
+        uint256 upSold = _arbitrageSell(tradeSize, minNativeFromSale, backedValue);
         //Needs
         amountIn -= upSold;
         // Takes the amount of UP minted and sold in this transaction, and subtracts it from the total amount of UP required to move the market so that MV = BV
@@ -317,10 +309,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   function _arbitrageSell(
     uint256 tradeSize,
-    uint256 expectedNativeFromSale
+    uint256 minNativeFromSale,
+    uint256 backedValue
   ) internal returns (uint256 up2Balance) {
     // If selling UP
-    _mintUP(tradeSize);
+    _mintUP(tradeSize, backedValue);
 
     address[] memory path = new address[](2);
     path[0] = address(UPToken);
@@ -330,19 +323,31 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     UPToken.approve(address(router), up2Balance);
     router.swapExactTokensForETH(
       up2Balance,
-      expectedNativeFromSale,
+      minNativeFromSale,
       path,
       address(this),
       block.timestamp + 150
     );
   }
 
+  function _setBorrowedBalances() internal whenNotPaused {
+    if (strategyLockup == true) {
+      UP_CONTROLLER.setBorrowedAmounts(
+        0,
+        (address(UP_CONTROLLER).balance - strategy.amountDeposited())
+      );
+    } else {
+      UP_CONTROLLER.setBorrowedAmounts(0, 0);
+    }
+  }
+
   /// @notice Mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
-  function _mintUP(uint256 tradeSize) internal whenNotPaused {
-    uint256 currentPrice = UPController(UP_CONTROLLER).getVirtualPrice(); //!!!!!It should not be calculating the price here, the funds are already borrowed!
-    if (currentPrice == 0) return;
-    uint256 mintAmount = (tradeSize * 1e18) / currentPrice;
-    UPToken.mint{value: tradeSize}(address(this), mintAmount); //!!! NEEDS TO GO THROUGH CONTROLLER Needs to be Payable,  right now minting unbacked up
+  function _mintUP(uint256 tradeSize, uint256 backedValue) internal whenNotPaused {
+    if (backedValue == 0) return;
+    uint256 mintAmount = (tradeSize * 1e18) / backedValue;
+    UPToken.mint(address(this), mintAmount);
+    (bool success, ) = address(UP_CONTROLLER).call{value: tradeSize}("");
+    require(success, "Rebalancer: FAIL_SENDING_UP_BACKIng_TO_CONTROLLER");
   }
 
   /// @notice Allows Rebalancer to redeem the native tokens backing UP
