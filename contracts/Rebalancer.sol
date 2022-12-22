@@ -134,7 +134,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     uint256 lpTokenBalance = IERC20(liquidityPool).balanceOf(address(this));
     if (lpTokenBalance != 0) {
       liquidityPool.approve(address(router), lpTokenBalance);
-      (uint256 amountToken, ) = router.removeLiquidityETH(
+      router.removeLiquidityETH(
         address(UPToken),
         lpTokenBalance,
         0,
@@ -142,6 +142,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         address(this),
         block.timestamp + 150
       );
+      uint256 amountToken = UPToken.balanceOf(address(UP_CONTROLLER));
       UPToken.approve(address(UP_CONTROLLER), amountToken);
       UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
     }
@@ -153,6 +154,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // MOVE REFUND HERE?
     (proceeds, callerProfit) = _refund();
     // Step 5 - Refill LP
+    // Let's add a check that MV = BV here
     uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies as well as rebalanced pool
     uint256 targetLpAmount = (totalETH * allocationLP) / 100; // NEED TO ADD IF THERE IS NO STRAT
     uint256 backedValue = UP_CONTROLLER.getVirtualPrice(); // This Virtual Price will be inaccurate
@@ -266,7 +268,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       while (
         amountIn > 100 //As there may be a slight rounding in UP sales, a small amount of UP token dust may occur. This allows for dust + rounding of 100 gwei of UP
       ) {
-        actualAmountIn = amountIn *= backedValue;
+        actualAmountIn = amountIn *= backedValue; // in Native
         // Calculates the amount of native tokens required to mint the amount of UP to sell into the LP.
         if (actualAmountIn > fundsAvailable) {
           // Checks if amount of native required to move the market is greater than funds available in the strategy / controller
@@ -279,10 +281,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           tradeSize = actualAmountIn;
           actualAmountIn == 0;
         }
-        uint256 minNativeFromSale = tradeSize / backedValue;
-        UP_CONTROLLER.borrowNative(tradeSize, address(this));
-        uint256 upSold = _arbitrageSell(tradeSize, minNativeFromSale, backedValue);
-        //Needs
+        uint256 upToMint = tradeSize / backedValue;
+        UP_CONTROLLER.borrowNative(tradeSize, address(this)); // SHOULD IT BE DOING THIS?
+        uint256 upSold = _arbitrageSell(upToMint, tradeSize);
         amountIn -= upSold;
         // Takes the amount of UP minted and sold in this transaction, and subtracts it from the total amount of UP required to move the market so that MV = BV
       }
@@ -308,12 +309,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   function _arbitrageSell(
-    uint256 tradeSize,
-    uint256 minNativeFromSale,
-    uint256 backedValue
+    uint256 upToMint,
+    uint256 tradeSize
   ) internal returns (uint256 up2Balance) {
     // If selling UP
-    _mintUP(tradeSize, backedValue);
+    _mintUP(upToMint, tradeSize); // Is it sending backedValue?
 
     address[] memory path = new address[](2);
     path[0] = address(UPToken);
@@ -321,13 +321,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     up2Balance = UPToken.balanceOf(address(this));
     UPToken.approve(address(router), up2Balance);
-    router.swapExactTokensForETH(
-      up2Balance,
-      minNativeFromSale,
-      path,
-      address(this),
-      block.timestamp + 150
-    );
+    router.swapExactTokensForETH(up2Balance, tradeSize, path, address(this), block.timestamp + 150);
   }
 
   function _setBorrowedBalances() internal whenNotPaused {
@@ -342,10 +336,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   /// @notice Mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
-  function _mintUP(uint256 tradeSize, uint256 backedValue) internal whenNotPaused {
-    if (backedValue == 0) return;
-    uint256 mintAmount = (tradeSize * 1e18) / backedValue;
-    UPToken.mint(address(this), mintAmount);
+  function _mintUP(uint256 upToMint, uint256 tradeSize) internal whenNotPaused {
+    UPToken.mint(address(this), upToMint);
     (bool success, ) = address(UP_CONTROLLER).call{value: tradeSize}("");
     require(success, "Rebalancer: FAIL_SENDING_UP_BACKIng_TO_CONTROLLER");
   }
@@ -363,10 +355,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     proceeds = address(this).balance;
     // Any leftover funds in the contract is profit. Yay!
     callerBonus = ((proceeds * callerReward) / 100);
-    (bool success2, ) = (msg.sender).call{value: callerBonus}("");
-    require(success2, "Rebalancer: FAIL_SENDING_PROFITS_TO_CALLER");
+    (bool success1, ) = (msg.sender).call{value: callerBonus}("");
+    require(success1, "Rebalancer: FAIL_SENDING_PROFITS_TO_CALLER");
     //Could be a check if Redeem is turned on
-    UP_CONTROLLER.repay{value: address(this).balance}(0);
+    (bool success2, ) = (address(UP_CONTROLLER)).call{value: address(this).balance}("");
+    require(success2, "Rebalancer: FAIL_SENDING_PROFITS_TO_CONTROLLER");
     return (proceeds, callerBonus);
   }
 
