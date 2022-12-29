@@ -144,7 +144,14 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       );
       uint256 amountToken = UPToken.balanceOf(address(UP_CONTROLLER));
       UPToken.approve(address(UP_CONTROLLER), amountToken);
-      UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
+      uint256 amountUPborrowed = UPController(UP_CONTROLLER).upBorrowed();
+      if (amountToken <= amountUPborrowed) {
+        UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
+      } else {
+        uint256 upToJustBurn = amountToken - amountUPborrowed;
+        UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountUPborrowed);
+        UPToken.justBurn(upToJustBurn);
+      }
     }
     _setBorrowedBalances();
     // UP Controller now has all available funds
@@ -252,6 +259,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           // If upControllerBalance below amountOut of UP required, then triggers rebalance.
           // Checks if there is enough native tokens in the UP Controller to redeem the UP purchased
           uint256 upOutput = (upControllerBalance * 1e18) / backedValue;
+          expectedReturn = upOutput;
           // Gets the maximum amount of UP that can be redeemed.
           tradeSize = UniswapHelper.getAmountIn(upOutput, reserves1, reserves0, tradingFeeOfAMM);
           // Calculates the amount of native tokens required to purchase the maxiumum of UP that can be redeemed.
@@ -261,7 +269,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
         UP_CONTROLLER.borrowNative(tradeSize, address(this));
         _arbitrageBuy(tradeSize, expectedReturn);
-        UP_CONTROLLER.repay{value: tradeSize}(0);
+        address(UP_CONTROLLER).call{value: tradeSize};
       }
     } else {
       // If Selling Up
@@ -282,7 +290,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           actualAmountIn == 0;
         }
         uint256 upToMint = tradeSize / backedValue;
-        UP_CONTROLLER.borrowNative(tradeSize, address(this)); // SHOULD IT BE DOING THIS?
+        UP_CONTROLLER.borrowNative(tradeSize, address(this));
         uint256 upSold = _arbitrageSell(upToMint, tradeSize);
         amountIn -= upSold;
         // Takes the amount of UP minted and sold in this transaction, and subtracts it from the total amount of UP required to move the market so that MV = BV
