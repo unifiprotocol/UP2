@@ -120,12 +120,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         strategy.gather();
         uint256 amountToWithdraw = address(strategy).balance;
         strategy.withdraw(amountToWithdraw);
-        (bool success1, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
-        require(success1, "Rebalancer: FAIL_WITHDRAWING_FROM_STRATEGY");
+        address(UP_CONTROLLER).call{value: address(this).balance};
       } else {
         strategy.withdrawAll();
-        (bool success2, ) = address(UP_CONTROLLER).call{value: address(this).balance}("");
-        require(success2, "Rebalancer: FAIL_WITHDRAWING_ALL_FROM_STRATEGY");
+        address(UP_CONTROLLER).call{value: address(this).balance};
       }
     }
 
