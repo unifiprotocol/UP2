@@ -287,7 +287,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           tradeSize = actualAmountIn;
           actualAmountIn = 0;
         }
-        uint256 upToMint = (tradeSize * backedValue) / 1e18;
+        uint256 upToMint = (tradeSize * 1e18) / backedValue;
         UP_CONTROLLER.borrowNative(tradeSize, address(this));
         uint256 upSold = _arbitrageSell(upToMint, tradeSize);
         amountIn -= upSold;
