@@ -140,7 +140,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         address(this),
         block.timestamp + 150
       );
-      uint256 amountToken = UPToken.balanceOf(address(UP_CONTROLLER));
+      uint256 amountToken = UPToken.balanceOf(address(this));
       UPToken.approve(address(UP_CONTROLLER), amountToken);
       uint256 amountUPborrowed = UPController(UP_CONTROLLER).upBorrowed();
       if (amountToken <= amountUPborrowed) {
@@ -229,7 +229,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
     // If Buying UP
     if (!aToB) {
-      actualAmountIn == amountIn;
+      actualAmountIn = amountIn;
       while (actualAmountIn > 0) {
         // Sets a loop so that if the amount of native tokens required to move the market so that MV = BV is larger than the funds available, the transaction will repeat until the prices match.
         if (actualAmountIn > fundsAvailable) {
@@ -274,7 +274,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       while (
         amountIn > 100 //As there may be a slight rounding in UP sales, a small amount of UP token dust may occur. This allows for dust + rounding of 100 gwei of UP
       ) {
-        actualAmountIn = amountIn *= backedValue; // in Native
+        actualAmountIn = amountIn * backedValue; // in Native
         // Calculates the amount of native tokens required to mint the amount of UP to sell into the LP.
         if (actualAmountIn > fundsAvailable) {
           // Checks if amount of native required to move the market is greater than funds available in the strategy / controller
@@ -285,9 +285,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         } else {
           // If there is enough funds available to move the market so that MV = BV, the tradeSize will equal the amount required, and will not repeat.
           tradeSize = actualAmountIn;
-          actualAmountIn == 0;
+          actualAmountIn = 0;
         }
-        uint256 upToMint = tradeSize / backedValue;
+        uint256 upToMint = (tradeSize * 1e18) / backedValue;
         UP_CONTROLLER.borrowNative(tradeSize, address(this));
         uint256 upSold = _arbitrageSell(upToMint, tradeSize);
         amountIn -= upSold;
