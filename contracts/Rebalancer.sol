@@ -284,7 +284,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         }
 
         _arbitrageBuy(tradeSize, expectedReturn);
-        UP_CONTROLLER.repay(0){value: tradeSize};
+        UP_CONTROLLER.repay{value: tradeSize}(0);
         upControllerBalance = (address(UP_CONTROLLER).balance / 3) * 2;
         fundsAvailable = (address(UP_CONTROLLER).balance / 3);
       }
@@ -301,7 +301,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   /// @param amountIn The amount of native tokens to be used to buy UP
   /// @param expectedReturn The amount of native tokens expected to received from redeeming UP
   function _arbitrageBuy(uint256 amountIn, uint256 expectedReturn) internal {
-    UP_CONTROLLER.borrowNative(tradeSize, address(this));
+    UP_CONTROLLER.borrowNative(amountIn, address(this));
     address[] memory path = new address[](2);
     path[0] = WETH;
     path[1] = address(UPToken);
