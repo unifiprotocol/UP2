@@ -246,7 +246,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       uint256 actualAmountIn = amountIn;
       uint256 upControllerBalance = (address(UP_CONTROLLER).balance / 3) * 2;
       uint256 fundsAvailable = (address(UP_CONTROLLER).balance / 3);
-      while (actualAmountIn > 0 && upControllerBalance >= minimumRedeem) {
+      while (actualAmountIn > 1000 && upControllerBalance >= minimumRedeem) {
         // Note Sets a loop so that if the amount of native tokens required to move the market so that MV = BV is larger than the funds available, the transaction will repeat until the prices match.
         if (actualAmountIn > fundsAvailable) {
           // Note Checks if amount of native required to move the market is greater than funds available in the strategy / controller
