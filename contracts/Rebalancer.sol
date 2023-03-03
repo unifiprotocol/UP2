@@ -181,7 +181,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Arbitrage market value to backed value, if needed. This is done by buying UP with ETH, or selling UP for ETH.
 
     _arbitrage();
-    (proceeds, callerProfit) = _refund();
     _setBorrowedBalances();
 
     // Note Step 5
@@ -224,6 +223,10 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       targetLpAmount += strategy.amountDeposited();
     }
     UP_CONTROLLER.setBorrowedAmounts(upToAdd, targetLpAmount);
+
+    // Note Step 8
+    // Profit is sent to the controller and caller.
+    (proceeds, callerProfit) = _refund(); //Note Profits must be sent after LP and Strategy is refilled so that Market Value equals Backed Value when being refilled
     return (proceeds, callerProfit);
   }
 
