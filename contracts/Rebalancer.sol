@@ -257,7 +257,6 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         } else {
           // Note If there is enough funds available to move the market so that MV = BV, the tradeSize will equal the amount required, and will not repeat.
           tradeSize = actualAmountIn;
-          actualAmountIn == 0;
         }
 
         uint256 expectedUPReturn = UniswapHelper.getAmountOut(
@@ -274,13 +273,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
             reserves0,
             tradingFeeOfAMM
           );
-          // Note Calculates the amount of native tokens required to purchase the maxiumum of UP that can be redeemed.
-          actualAmountIn -= tradeSize;
-          // Note Adjusts the total amount required to move market to account for the smaller trade size. This transaction will still end with MV=BV, just requires more loops.
         }
 
         _arbitrageBuy(tradeSize, expectedUPReturn);
         UP_CONTROLLER.repay{value: tradeSize}(0);
+        actualAmountIn -= tradeSize; // Note Adjusts the total amount required to move market to account for the smaller trade size. This transaction will still end with MV=BV, just requires more loops.
         upControllerBalance = (address(UP_CONTROLLER).balance / 3) * 2;
         fundsAvailable = (address(UP_CONTROLLER).balance / 3);
       }
