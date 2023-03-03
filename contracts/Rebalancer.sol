@@ -76,9 +76,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     );
     uint256 lpBalance = liquidityPool.balanceOf(address(this));
     uint256 totalSupply = liquidityPool.totalSupply();
-    uint256 upInLP = (lpBalance * reservesUP) / totalSupply;
-    uint256 nativeInLP = (lpBalance * reservesETH) / totalSupply;
-    return (upInLP, nativeInLP);
+    return (((lpBalance * reservesUP) / totalSupply), ((lpBalance * reservesETH) / totalSupply));
   }
 
   /// @notice Calculates the amount required to move the market to the desired ratio
@@ -141,8 +139,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
       if (strategyLockup == true) {
         strategy.gather();
-        uint256 amountToWithdraw = address(strategy).balance;
-        strategy.withdraw(amountToWithdraw);
+        strategy.withdraw(address(strategy).balance);
         address(UP_CONTROLLER).call{value: address(this).balance};
       } else {
         strategy.withdrawAll();
@@ -170,9 +167,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       if (amountToken <= amountUPborrowed) {
         UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountToken);
       } else {
-        uint256 upToJustBurn = amountToken - amountUPborrowed;
         UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountUPborrowed);
-        UPToken.justBurn(upToJustBurn);
+        UPToken.justBurn((amountToken - amountUPborrowed));
       }
     } // Note UP Controller now has all available funds
     _setBorrowedBalances();
@@ -186,10 +182,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     // Note Step 5
     // Refill LP with allocated amount of funds. This is done by borrowing UP and ETH from the UP Controller, and adding liquidity to the LP.
 
-    uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies
-    uint256 targetLpAmount = (totalETH * allocationLP) / 100;
-    uint256 backedValue = UP_CONTROLLER.getVirtualPrice();
-    uint256 upToAdd = ((targetLpAmount * 1e18) / backedValue);
+    uint256 targetLpAmount = ((UP_CONTROLLER.getNativeBalance()) * allocationLP) / 100;
+    uint256 upToAdd = ((targetLpAmount * 1e18) / (UP_CONTROLLER.getVirtualPrice()));
     UP_CONTROLLER.borrowUP(upToAdd, address(this));
     UP_CONTROLLER.borrowNative(targetLpAmount, address(this));
     UPToken.approve(address(router), upToAdd);
@@ -208,9 +202,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     if (address(strategy) != address(0)) {
       uint256 strategySend = address(UP_CONTROLLER).balance;
       if (allocationRedeem > 0) {
-        uint256 strategyAllocation = 100 - allocationRedeem;
-        uint256 strategyAmount = (strategySend * strategyAllocation) / 100;
-        strategySend = strategyAmount;
+        strategySend = (strategySend * (100 - allocationRedeem)) / 100;
       }
       UP_CONTROLLER.borrowNative(strategySend, address(this));
       strategy.deposit{value: strategySend}(strategySend);
@@ -274,12 +266,14 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           reserves0,
           tradingFeeOfAMM
         ); // Note Amount of UP expected from Buy
-        uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
-        if (upControllerBalance < expectedNativeReturn) {
-          // Note Checks if there is enough native tokens in the UP Controller to redeem the UP purchased
-          uint256 upOutput = (upControllerBalance * 1e18) / backedValue;
+        if (upControllerBalance < ((expectedReturn * backedValue) / 1e18)) {
           // Note Gets the maximum amount of UP that can be redeemed.
-          tradeSize = UniswapHelper.getAmountIn(upOutput, reserves1, reserves0, tradingFeeOfAMM);
+          tradeSize = UniswapHelper.getAmountIn(
+            ((upControllerBalance * 1e18) / backedValue),
+            reserves1,
+            reserves0,
+            tradingFeeOfAMM
+          );
           // Note Calculates the amount of native tokens required to purchase the maxiumum of UP that can be redeemed.
           actualAmountIn -= tradeSize;
           // Note Adjusts the total amount required to move market to account for the smaller trade size. This transaction will still end with MV=BV, just requires more loops.
