@@ -260,13 +260,13 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           actualAmountIn == 0;
         }
 
-        uint256 expectedReturn = UniswapHelper.getAmountOut(
+        uint256 expectedUPReturn = UniswapHelper.getAmountOut(
           tradeSize,
           reserves1,
           reserves0,
           tradingFeeOfAMM
         ); // Note Amount of UP expected from Buy
-        if (upControllerBalance < ((expectedReturn * backedValue) / 1e18)) {
+        if (upControllerBalance < ((expectedUPReturn * backedValue) / 1e18)) {
           // Note Gets the maximum amount of UP that can be redeemed.
           tradeSize = UniswapHelper.getAmountIn(
             ((upControllerBalance * 1e18) / backedValue),
@@ -279,7 +279,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           // Note Adjusts the total amount required to move market to account for the smaller trade size. This transaction will still end with MV=BV, just requires more loops.
         }
 
-        _arbitrageBuy(tradeSize, expectedReturn);
+        _arbitrageBuy(tradeSize, expectedUPReturn);
         UP_CONTROLLER.repay{value: tradeSize}(0);
         upControllerBalance = (address(UP_CONTROLLER).balance / 3) * 2;
         fundsAvailable = (address(UP_CONTROLLER).balance / 3);
@@ -295,15 +295,15 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   /// @notice Buys UP from the LP and redeems for native tokens from the UP Controller
   /// @param amountIn The amount of native tokens to be used to buy UP
-  /// @param expectedReturn The amount of native tokens expected to received from redeeming UP
-  function _arbitrageBuy(uint256 amountIn, uint256 expectedReturn) internal {
+  /// @param expectedUPReturn The amount of UP expected to be received from the LP
+  function _arbitrageBuy(uint256 amountIn, uint256 expectedUPReturn) internal {
     UP_CONTROLLER.borrowNative(amountIn, address(this));
     address[] memory path = new address[](2);
     path[0] = WETH;
     path[1] = address(UPToken);
 
     uint256[] memory amounts = router.swapExactETHForTokens{value: amountIn}(
-      expectedReturn,
+      expectedUPReturn,
       path,
       address(this),
       block.timestamp + 150
