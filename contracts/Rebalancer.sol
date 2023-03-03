@@ -19,9 +19,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   address public WETH;
   address public factory;
-  uint256 public tradingFeeOfAMM = 25; //Calculated in basis points. i.e. 5 = 0.05%
-  uint256 public maximumAllocationLPWithLockup = 79; // Whole Number for Percent, i.e. 5 = 5%.
-  bool public strategyLockup; // if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
+  uint256 public tradingFeeOfAMM = 25; // Note Calculated in basis points. i.e. 5 = 0.05%
+  uint256 public maximumAllocationLPWithLockup = 79; // Note Whole Number for Percent, i.e. 5 = 5%.
+  bool public strategyLockup; // Note if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
 
   IUnifiPair public liquidityPool;
   IUniswapV2Router02 public router;
@@ -33,11 +33,11 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   //DAO Parameters
 
-  uint256 public allocationLP = 100; // Whole Number for Percent, i.e. 5 = 5%. If StrategyLockup = true, maximum amount is 100 - maximumAllocationLPWithLockup
+  uint256 public allocationLP = 100; // Note Whole Number for Percent, i.e. 5 = 5%. If StrategyLockup = true, maximum amount is 100 - maximumAllocationLPWithLockup
   //If there is no strategy, the allocationLP will default to 100%
-  uint256 public callerReward = 50; // Basis Points for Percent, i.e. 5 = 0.05%. Represents the profit of rebalance that will go to the caller of the rebalance.
-  uint256 public allocationRedeem = 0; //Whole Number for Percent, i.e 5 = 5%. If a balance is required for redeeming UP, simply set this variable to a percent.
-  uint256 public minimumRedeem = 50000000000000000; // The minimum amount of wei that can be redeemed. This is a check if the controller is near empty, and would make buying UP wasteful. Default is 0.05 ETH.
+  uint256 public callerReward = 50; // Note Basis Points for Percent, i.e. 5 = 0.05%. Represents the profit of rebalance that will go to the caller of the rebalance.
+  uint256 public allocationRedeem = 0; // Note Whole Number for Percent, i.e 5 = 5%. If a balance is required for redeeming UP, simply set this variable to a percent.
+  uint256 public minimumRedeem = 50000000000000000; // Note  The minimum amount of wei that can be redeemed. This is a check if the controller is near empty, and would make buying UP wasteful. Default is 0.05 ETH.
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Rebalancer: ONLY_ADMIN");
     _;
@@ -102,7 +102,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
     upPrice = UP_CONTROLLER.getVirtualPrice();
 
     (aToB, amountIn) = UniswapHelper.computeTradeToMoveMarket(
-      1000000000000000000, // Ratio = 1:UPVirtualPrice
+      1000000000000000000, // Note Ratio = 1:UPVirtualPrice
       upPrice,
       reservesUP,
       reservesETH,
@@ -130,13 +130,13 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   /// @return proceeds The amount of profit generated from the rebalance given to the controller
   /// @return callerProfit The amount of profit generated from the rebalance given to the caller
   function rebalance() external whenNotPaused returns (uint256 proceeds, uint256 callerProfit) {
-    // Step 1
+    // Note Step 1
     // Store a snapshot of the rewards earned by the strategy
     if (address(strategy) != address(0)) {
       Strategy.Rewards memory strategyRewards = strategy.checkRewards();
       _saveReward(strategyRewards);
 
-      // Step 2
+      // Note Step 2
       // Withdraw the entire balance of the strategy. If strategyLockup = true, some funds are not immediately available.
 
       if (strategyLockup == true) {
@@ -150,7 +150,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       }
     }
 
-    // Step 3
+    // Note Step 3
     // Withdraw the entire balance of the LP.
 
     uint256 lpTokenBalance = IERC20(liquidityPool).balanceOf(address(this));
@@ -174,17 +174,17 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         UPController(UP_CONTROLLER).repay{value: address(this).balance}(amountUPborrowed);
         UPToken.justBurn(upToJustBurn);
       }
-    } // UP Controller now has all available funds
+    } // Note UP Controller now has all available funds
     _setBorrowedBalances();
 
-    // Step 4
+    // Note Step 4
     // Arbitrage market value to backed value, if needed. This is done by buying UP with ETH, or selling UP for ETH.
 
     _arbitrage();
     (proceeds, callerProfit) = _refund();
     _setBorrowedBalances();
 
-    // Step 5
+    // Note Step 5
     // Refill LP with allocated amount of funds. This is done by borrowing UP and ETH from the UP Controller, and adding liquidity to the LP.
 
     uint256 totalETH = UP_CONTROLLER.getNativeBalance(); //Accounts for locked strategies
@@ -203,7 +203,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       block.timestamp + 150
     );
 
-    // Step 6
+    // Note Step 6
     // Refill Strategy with allocated amount of funds. This is done by borrowing ETH from the UP Controller, and depositing into the strategy.
 
     if (address(strategy) != address(0)) {
@@ -217,7 +217,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       strategy.deposit{value: strategySend}(strategySend);
     }
 
-    // Step 7
+    // Note Step 7
     // Update UP Controller Variables based on amount of funds sent to LP and Strategy.
 
     if (address(strategy) != address(0)) {
@@ -232,17 +232,17 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   ///@notice Arbitrage market value to backed value, if needed. This is done by buying UP with ETH, or selling UP for ETH.
   function _arbitrage() internal {
     (
-      bool aToB, // The direction of the arbitrage. If true, Darbi is buying UP from the LP. If false, Darbi is selling UP to the LP.
-      uint256 amountIn, //if buying UP, number returned is in native value. If selling UP, number returned in UP value.
+      bool aToB, // Note The direction of the arbitrage. If true, Darbi is buying UP from the LP. If false, Darbi is selling UP to the LP.
+      uint256 amountIn, // Note if buying UP, number returned is in native value. If selling UP, number returned in UP value.
       uint256 reserves0,
       uint256 reserves1,
       uint256 backedValue // The current backed Value of
     ) = moveMarketBuyAmount();
 
-    // aToB == true == Buys UP
-    // aToB == false == Sells UP
+    // Note aToB == true == Buys UP
+    // Note aToB == false == Sells UP
     uint256 tradeSize;
-    // Declaring variable in advance. Represents the amount of token input per transaction, determined based on the actual trade size, or the maximum size available - whichever is lower.
+    // Note Declaring variable in advance. Represents the amount of token input per transaction, determined based on the actual trade size, or the maximum size available - whichever is lower.
     // For example, if buying UP, let's say 100 BNB is required to move the market so that backed value = market value, and 110 BNB is available - then the tradeSize is 100 BNB.
     // However, if 100 BNB is requred to move the market so that backed value = market value, and 50 BNB is available - then the tradeSize is 50 BNB.
 
@@ -252,15 +252,15 @@ contract Rebalancer is AccessControl, Pausable, Safe {
       uint256 upControllerBalance = (address(UP_CONTROLLER).balance / 3) * 2;
       uint256 fundsAvailable = (address(UP_CONTROLLER).balance / 3);
       while (actualAmountIn > 0 && upControllerBalance >= minimumRedeem) {
-        // Sets a loop so that if the amount of native tokens required to move the market so that MV = BV is larger than the funds available, the transaction will repeat until the prices match.
+        // Note Sets a loop so that if the amount of native tokens required to move the market so that MV = BV is larger than the funds available, the transaction will repeat until the prices match.
         if (actualAmountIn > fundsAvailable) {
-          // Checks if amount of native required to move the market is greater than funds available in the strategy / controller
+          // Note Checks if amount of native required to move the market is greater than funds available in the strategy / controller
           tradeSize = fundsAvailable;
-          // Sets tradesize to amount of funds Darbi has access to.
+          // Note Sets tradesize to amount of funds Darbi has access to.
           actualAmountIn -= tradeSize;
-          // Reduces the amount required to complete market movement.
+          // Note Reduces the amount required to complete market movement.
         } else {
-          // If there is enough funds available to move the market so that MV = BV, the tradeSize will equal the amount required, and will not repeat.
+          // Note If there is enough funds available to move the market so that MV = BV, the tradeSize will equal the amount required, and will not repeat.
           tradeSize = actualAmountIn;
           actualAmountIn == 0;
         }
@@ -270,10 +270,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
           reserves1,
           reserves0,
           tradingFeeOfAMM
-        ); // Amount of UP expected from Buy
+        ); // Note Amount of UP expected from Buy
         uint256 expectedNativeReturn = (expectedReturn * backedValue) / 1e18; //Amount of Native Tokens Expected to Receive from Redeem
         if (upControllerBalance < expectedNativeReturn) {
-          // Note If upControllerBalance below amountOut of UP required, then triggers rebalance.
           // Note Checks if there is enough native tokens in the UP Controller to redeem the UP purchased
           uint256 upOutput = (upControllerBalance * 1e18) / backedValue;
           // Note Gets the maximum amount of UP that can be redeemed.
@@ -396,7 +395,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   /// @notice Sets the address of the Strategy contract
   /// @param newAddress The address of the Strategy contract
   function setStrategy(address newAddress) external onlyAdmin {
-    // Can be 0x00
+    // Note Can be 0x00
     strategy = Strategy(payable(newAddress));
   }
 
