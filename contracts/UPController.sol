@@ -76,12 +76,14 @@ contract UPController is AccessControl, Safe, Pausable {
     require(address(this).balance >= _borrowAmount, "UPController: NOT_ENOUGH_BALANCE");
     (bool success, ) = _to.call{value: _borrowAmount}("");
     require(success, "UPController: BORROW_NATIVE_FAILED");
+    nativeBorrowed += _borrowAmount;
     emit BorrowNative(_to, _borrowAmount, nativeBorrowed);
   }
 
   /// @notice Borrows UP token minting it
   function borrowUP(uint256 _borrowAmount, address _to) public onlyRebalancer whenNotPaused {
     UP(UP_TOKEN).mint(_to, _borrowAmount);
+    upBorrowed += _borrowAmount;
   }
 
   /// @notice Mints UP based on virtual price - UPv1 logic
@@ -96,10 +98,11 @@ contract UPController is AccessControl, Safe, Pausable {
     UP(UP_TOKEN).burnFrom(msg.sender, upAmount);
   }
 
-  function setBorrowedAmounts(
-    uint256 upAmount,
-    uint256 nativeAmount
-  ) public onlyRebalancer whenNotPaused {
+  function setBorrowedAmounts(uint256 upAmount, uint256 nativeAmount)
+    public
+    onlyRebalancer
+    whenNotPaused
+  {
     upBorrowed = upAmount;
     nativeBorrowed = nativeAmount;
   }
