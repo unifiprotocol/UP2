@@ -282,7 +282,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
         fundsAvailable = (address(UP_CONTROLLER).balance / 3);
       }
     } else {
-      uint256 backedValueOfUpSold = amountIn * backedValue;
+      uint256 backedValueOfUpSold = (amountIn * backedValue) / 1e18;
       _arbitrageSell(amountIn, backedValueOfUpSold);
       (bool success, ) = address(UP_CONTROLLER).call{value: backedValueOfUpSold}("");
       require(success, "Rebalancer: FAIL_SENDING_UP_BACKING_TO_CONTROLLER");
