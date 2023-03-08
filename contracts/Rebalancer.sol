@@ -88,13 +88,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   function moveMarketBuyAmount()
     public
     view
-    returns (
-      bool aToB,
-      uint256 amountIn,
-      uint256 reservesUP,
-      uint256 reservesETH,
-      uint256 upPrice
-    )
+    returns (bool aToB, uint256 amountIn, uint256 reservesUP, uint256 reservesETH, uint256 upPrice)
   {
     (reservesUP, reservesETH) = UniswapHelper.getReserves(factory, address(UPToken), address(WETH));
     upPrice = UP_CONTROLLER.getVirtualPrice();
@@ -331,7 +325,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   }
 
   /// @notice Sets the Borrowed Balances in the UP Controller before an arbitrage call during rebalance
-  function _setBorrowedBalances() internal whenNotPaused {
+  function _setBorrowedBalances() internal {
     if (strategyLockup == true) {
       UP_CONTROLLER.setBorrowedAmounts(
         0,
@@ -344,13 +338,13 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   /// @notice Mints UP at the mint rate, deposits the native tokens to the UP Controller, Sends UP to the Msg.sender
   /// @param upToMint The amount of UP to mint
-  function _mintUP(uint256 upToMint) internal whenNotPaused {
+  function _mintUP(uint256 upToMint) internal {
     UPToken.mint(address(this), upToMint);
   }
 
   /// @notice Allows Rebalancer to redeem the native tokens backing UP
   /// @param upAmount The amount of UP to redeem
-  function _redeem(uint256 upAmount) internal whenNotPaused {
+  function _redeem(uint256 upAmount) internal {
     UPToken.approve(address(UP_CONTROLLER), upAmount);
     uint256 prevBalance = address(this).balance;
     UP_CONTROLLER.redeem(upAmount);
@@ -431,10 +425,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
 
   /// @notice Sets the maximum percentage in whole numbers that can be allocated to the LP when the strategy contains a lockup period.
   /// @param _maximumAllocationLPWithLockup The maximum percentage in whole numbers that can be allocated to the LP when the strategy contains a lockup period.
-  function setmaximumAllocationLPWithLockup(uint256 _maximumAllocationLPWithLockup)
-    external
-    onlyAdmin
-  {
+  function setmaximumAllocationLPWithLockup(
+    uint256 _maximumAllocationLPWithLockup
+  ) external onlyAdmin {
     require(_maximumAllocationLPWithLockup <= 100);
     maximumAllocationLPWithLockup = _maximumAllocationLPWithLockup;
   }
