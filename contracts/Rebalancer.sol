@@ -21,6 +21,7 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   address public factory;
   uint256 public tradingFeeOfAMM = 25; // Note Calculated in basis points. i.e. 5 = 0.05%
   uint256 public maximumAllocationLPWithLockup = 79; // Note Whole Number for Percent, i.e. 5 = 5%.
+  uint256 public lastRebalanceTime = 0; // Note The last time the rebalance function was called
   bool public strategyLockup; // Note if True, funds in Strategy are cannot be withdrawn immediately (such as staking on Harmony). If false, funds in Strategy are always available (such as AAVE on Polygon).
 
   IUnifiPair public liquidityPool;
@@ -38,6 +39,8 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   uint256 public callerReward = 50; // Note Basis Points for Percent, i.e. 5 = 0.05%. Represents the profit of rebalance that will go to the caller of the rebalance.
   uint256 public allocationRedeem = 0; // Note Whole Number for Percent, i.e 5 = 5%. If a balance is required for redeeming UP, simply set this variable to a percent.
   uint256 public minimumRedeem = 50000000000000000; // Note  The minimum amount of wei that can be redeemed. This is a check if the controller is near empty, and would make buying UP wasteful. Default is 0.05 ETH.
+  uint256 public rebalanceCooldown = 10; // Note The minimum amount of blocks between rebalances. Default is 10 blocks.
+
   modifier onlyAdmin() {
     require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Rebalancer: ONLY_ADMIN");
     _;
@@ -122,6 +125,9 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   /// @return proceeds The amount of profit generated from the rebalance given to the controller
   /// @return callerProfit The amount of profit generated from the rebalance given to the caller
   function rebalance() external whenNotPaused returns (uint256 proceeds, uint256 callerProfit) {
+    uint256 currentBlock = block.number;
+    require(lastRebalanceTime + rebalanceCooldown <= currentBlock, "Rebalancer: COOLDOWN");
+    lastRebalanceTime = currentBlock;
     // Note Step 1
     // Store a snapshot of the rewards earned by the strategy
     if (address(strategy) != address(0)) {
@@ -436,6 +442,12 @@ contract Rebalancer is AccessControl, Pausable, Safe {
   /// @param _minimumRedeem The minimum amount of native tokens in wei in the UP Controller for an arbitrage buy to occur. If below, the loop will end.
   function setMinimumRedeem(uint256 _minimumRedeem) external onlyAdmin {
     minimumRedeem = _minimumRedeem;
+  }
+
+  /// @notice Sets the minimum amount of blocks that must pass before a rebalance can be called again
+  /// @param _rebalanceCooldown The minimum amount of blocks that must pass before a rebalance can be called again
+  function setRebalanceCooldown(uint256 _rebalanceCooldown) external onlyAdmin {
+    rebalanceCooldown = _rebalanceCooldown;
   }
 
   // Admin Functions
